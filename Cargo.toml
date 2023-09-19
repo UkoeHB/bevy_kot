@@ -1,0 +1,26 @@
+[package]
+name = "bevy_kot"
+description = "koe's Bevy toolkit"
+authors = ["koe <ukoe@protonmail.com>"]
+version = "0.0.1"
+edition = "2021"
+keywords = ["gamedev", "ui"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/UkoeHB/bevy_kot"
+
+[dependencies]
+bevy            = { version = "0.11", default-features = false }
+bevy_fn_plugin  = { version = "0.1" }
+bevy_lunex      = { version = "0.0.6" }
+bevy_lunex_core = { version = "0.0.6" }
+fxhash          = { version = "0.2" }
+tracing         = { version = "0.1" }
+
+[dev-dependencies]
+bevy               = { version = "0.11", default-features = true, features = [ "dynamic_linking" ] }
+tracing-subscriber = { version = "0.3" }
+
+[[test]]
+name = "tests"
+path = "tests/tests.rs"
