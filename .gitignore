@@ -12,3 +12,6 @@ Cargo.lock
 
 # Vscode
 .vscode
+
+# Trace files
+trace-*

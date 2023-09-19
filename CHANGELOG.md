@@ -1,10 +1,11 @@
 # Changelog
 
-## [0.0.2 (WIP)]
+## [0.0.2]
 
 ### Changed
 
 - Docs cleanup.
+- `InteractiveElementBuilder` API cleanup.
 
 ### Added
 
@@ -13,7 +14,7 @@
 
 ### Fixed
 
-- Add `unpress_on_unclick_away` to `unpress_on_press_away` in case unclick away occurs in the same tick as pressing an element.
+- Several `InteractiveElementBuilder` API bugs.
 
 
 ## [0.0.1]

@@ -31,6 +31,15 @@ The more UI examples, the better. Please submit new UI examples highlighting spe
 
 ## Bevy compatability
 
-| bevy | bevy_kot       |
+| bevy | `bevy_kot`     |
 |------|----------------|
 | 0.11 | 0.0.1 - master |
+
+
+
+## `bevy_lunex` compatability
+
+| lunex | `bevy_kot`     |
+|-------|----------------|
+| 0.0.6 | 0.0.2 - master |
+| 0.0.5 | 0.0.1          |
