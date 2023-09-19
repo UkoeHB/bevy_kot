@@ -139,8 +139,8 @@ fn spawn_button(
         .with_default_widget(default_widget.clone())
         .with_pressed_widget(pressed_widget)
         .press_on_click_or_hold()
-        .unpress_on_press_away_recommended()
-        .abort_press_on_press_away_if_not_present()
+        .unpress_on_press_away_or_unclick_any()
+        .abort_press_if_obstructed()
         .build::<kot_builtin::MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
 }
@@ -172,11 +172,18 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
             }
         ).unwrap();
 
+//let a = kot::make_overlay(&mut ui, &root, "a", true);
+//let b = kot::make_overlay(&mut ui, &a, "b", true);
+//let c = kot::make_overlay(&mut ui, &b, "c", true);
+//let d = kot::make_overlay(&mut ui, &c, "d", true);
+//let e = kot::make_overlay(&mut ui, &d, "e", true);
+
     // spawn 10k buttons
     for x in 0..100
     {
         for y in 0..100
         {
+            //spawn_button(&mut commands, &asset_server, &mut ui, &e, x as f32, y as f32);
             spawn_button(&mut commands, &asset_server, &mut ui, &root, x as f32, y as f32);
         }
     }

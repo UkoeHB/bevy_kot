@@ -22,7 +22,7 @@ fn check_press_invariants(builder: &InteractiveElementBuilder) -> Result<(), Int
             builder.press_away_start_callback.is_some() ||
             builder.press_away_always_callback.is_some() ||
             builder.press_away_if_present_callback.is_some() ||
-            builder.press_away_if_not_present_callback.is_some()
+            builder.press_away_if_obstructed_callback.is_some()
 
         )
     { return Err(InteractiveElementBuilderError::InconsistentPressAway); }
@@ -56,7 +56,7 @@ fn check_press_invariants(builder: &InteractiveElementBuilder) -> Result<(), Int
     if builder.press_home_zone.is_some() { return error; }
     if builder.abort_press_on_unclick_away { return error; }
     if builder.abort_press_on_press_away { return error; }
-    if builder.abort_press_on_press_away_if_not_present { return error; }
+    if builder.abort_press_if_obstructed { return error; }
     if builder.select_on_press_start { return error; }
     if builder.select_on_unpress { return error; }
     if builder.no_hover_on_pressed { return error; }
@@ -66,7 +66,7 @@ fn check_press_invariants(builder: &InteractiveElementBuilder) -> Result<(), Int
     if builder.press_away_start_callback.is_some() { return error; }
     if builder.press_away_always_callback.is_some() { return error; }
     if builder.press_away_if_present_callback.is_some() { return error; }
-    if builder.press_away_if_not_present_callback.is_some() { return error; }
+    if builder.press_away_if_obstructed_callback.is_some() { return error; }
     if builder.unpress_callback.is_some() { return error; }
     if builder.abortpress_callback.is_some() { return error; }
 
@@ -653,20 +653,20 @@ where
 //-------------------------------------------------------------------------------------------------------------------
 
 fn maybe_build_responder_on_click_hold_away<H, V>(
-    need_press                               : bool,
-    entity_commands                          : &mut EntityCommands,
-    element_entity                           : Entity,
-    abort_press_on_press_away                : bool,
-    abort_press_on_press_away_if_not_present : bool,
-    unpress_on_press_away                    : bool,
-    no_hover_on_pressed                      : bool,
-    no_hover_on_pressed_selected             : bool,
-    hover_fixer                              : &H,
-    press_away_start_callback                : Option<CallbackWith<(), Vec2>>,
-    press_away_always_callback               : Option<CallbackWith<(), Vec2>>,
-    press_away_if_present_callback           : Option<CallbackWith<(), Vec2>>,
-    press_away_if_not_present_callback       : Option<CallbackWith<(), Vec2>>,
-    update_widget_visibility                 : &V,
+    need_press                        : bool,
+    entity_commands                   : &mut EntityCommands,
+    element_entity                    : Entity,
+    abort_press_on_press_away         : bool,
+    abort_press_if_obstructed         : bool,
+    unpress_on_press_away             : bool,
+    no_hover_on_pressed               : bool,
+    no_hover_on_pressed_selected      : bool,
+    hover_fixer                       : &H,
+    press_away_start_callback         : Option<CallbackWith<(), Vec2>>,
+    press_away_always_callback        : Option<CallbackWith<(), Vec2>>,
+    press_away_if_present_callback    : Option<CallbackWith<(), Vec2>>,
+    press_away_if_obstructed_callback : Option<CallbackWith<(), Vec2>>,
+    update_widget_visibility          : &V,
 )
 where
     H: Fn(&mut World) -> () + Clone + Send + Sync + 'static,
@@ -688,7 +688,7 @@ where
 
                 // [option] action: abort press
                 // - note: must check this before unpress_on_press_away (they are overlapping options)
-                if abort_press_on_press_away_if_not_present && !is_present
+                if abort_press_if_obstructed && !is_present
                 { let _ = try_callback_with::<AbortPress, Vec2>(world, element_entity, cpos_world); return; }
 
                 // [option] action: unpress
@@ -714,10 +714,10 @@ where
                 {
                     if let Some(cb) = &press_away_if_present_callback { cb.call_with(cpos_world).apply(world); }
                 }
-                // invoke user-defined callback: press away (if not present)
+                // invoke user-defined callback: press away (if obstructed)
                 else
                 {
-                    if let Some(cb) = &press_away_if_not_present_callback { cb.call_with(cpos_world).apply(world); }
+                    if let Some(cb) = &press_away_if_obstructed_callback { cb.call_with(cpos_world).apply(world); }
                 }
 
                 // update visibility
@@ -983,50 +983,50 @@ struct InteractiveElementWidgetPack
 #[derive(Clone, Default)]
 pub struct InteractiveElementBuilder
 {
-    widget_pack                              : InteractiveElementWidgetPack,
+    widget_pack                       : InteractiveElementWidgetPack,
 
-    press_home_zone                          : Option<Widget>,
-    press_on_click                           : bool,
-    press_on_clickhold                       : bool,
+    press_home_zone                   : Option<Widget>,
+    press_on_click                    : bool,
+    press_on_clickhold                : bool,
 
-    unpress_on_unclick_home                  : bool,
-    unpress_on_unclick_away                  : bool,
-    unpress_on_press_away                    : bool,
+    unpress_on_unclick_home           : bool,
+    unpress_on_unclick_away           : bool,
+    unpress_on_press_away             : bool,
 
-    abort_press_on_unclick_away              : bool,
-    abort_press_on_press_away                : bool,
-    abort_press_on_press_away_if_not_present : bool,
+    abort_press_on_unclick_away       : bool,
+    abort_press_on_press_away         : bool,
+    abort_press_if_obstructed         : bool,
 
-    select_on_click                          : bool,
-    select_on_press_start                    : bool,
-    select_on_unpress                        : bool,
-    select_on_hover_start                    : bool,
+    select_on_click                   : bool,
+    select_on_press_start             : bool,
+    select_on_unpress                 : bool,
+    select_on_hover_start             : bool,
 
-    with_select_toggling                     : bool,
+    with_select_toggling              : bool,
 
-    no_hover_on_pressed                      : bool,
-    no_hover_on_selected                     : bool,
-    no_hover_on_pressed_selected             : bool,
+    no_hover_on_pressed               : bool,
+    no_hover_on_selected              : bool,
+    no_hover_on_pressed_selected      : bool,
 
-    on_click_callback                        : Option<CallbackWith<(), Vec2>>,
-    on_clickhold_callback                    : Option<CallbackWith<(), Vec2>>,
-    on_unclick_callback                      : Option<CallbackWith<(), (Vec2, bool)>>,
-    on_hover_start_callback                  : Option<CallbackWith<(), Vec2>>,
-    on_hover_callback                        : Option<CallbackWith<(), Vec2>>,
-    on_unhover_callback                      : Option<Callback<()>>,
+    on_click_callback                 : Option<CallbackWith<(), Vec2>>,
+    on_clickhold_callback             : Option<CallbackWith<(), Vec2>>,
+    on_unclick_callback               : Option<CallbackWith<(), (Vec2, bool)>>,
+    on_hover_start_callback           : Option<CallbackWith<(), Vec2>>,
+    on_hover_callback                 : Option<CallbackWith<(), Vec2>>,
+    on_unhover_callback               : Option<Callback<()>>,
 
-    startpress_callback                      : Option<CallbackWith<(), Vec2>>,
-    press_home_start_callback                : Option<CallbackWith<(), Vec2>>,
-    press_home_callback                      : Option<CallbackWith<(), Vec2>>,
-    press_away_start_callback                : Option<CallbackWith<(), Vec2>>,
-    press_away_always_callback               : Option<CallbackWith<(), Vec2>>,
-    press_away_if_present_callback           : Option<CallbackWith<(), Vec2>>,
-    press_away_if_not_present_callback       : Option<CallbackWith<(), Vec2>>,
-    unpress_callback                         : Option<CallbackWith<(), Vec2>>,
-    abortpress_callback                      : Option<CallbackWith<(), Vec2>>,
+    startpress_callback               : Option<CallbackWith<(), Vec2>>,
+    press_home_start_callback         : Option<CallbackWith<(), Vec2>>,
+    press_home_callback               : Option<CallbackWith<(), Vec2>>,
+    press_away_start_callback         : Option<CallbackWith<(), Vec2>>,
+    press_away_always_callback        : Option<CallbackWith<(), Vec2>>,
+    press_away_if_present_callback    : Option<CallbackWith<(), Vec2>>,
+    press_away_if_obstructed_callback : Option<CallbackWith<(), Vec2>>,
+    unpress_callback                  : Option<CallbackWith<(), Vec2>>,
+    abortpress_callback               : Option<CallbackWith<(), Vec2>>,
 
-    select_callback                          : Option<Callback<()>>,
-    deselect_callback                        : Option<Callback<()>>,
+    select_callback                   : Option<Callback<()>>,
+    deselect_callback                 : Option<Callback<()>>,
 }
 
 impl InteractiveElementBuilder
@@ -1139,7 +1139,8 @@ impl InteractiveElementBuilder
     }
 
     /// Unpress the element when an unclick is detected anywhere.
-    /// - This option is not recommended, since the results are likely to be counterintuitive. Most of the time you
+    /// - This option is not recommended, since the results are likely to be counterintuitive (e.g. unpress being
+    ///   detected when unclick occurs after a pop-up). Most of the time you
     ///   want `unpress_on_unclick_home_and_abort_on_unclick_away`.
     pub fn unpress_on_unclick_home_or_away(mut self) -> Self
     {
@@ -1148,63 +1149,55 @@ impl InteractiveElementBuilder
         self
     }
 
-    /// Unpress the element when a click hold is detected away from the element's press home zone or if unclick is
-    /// detected anywhere. Prefer `unpress_on_press_away_recommended` unless you have a specific use-case.
-    /// - Disables setting `abort_press_on_press_away`.
-    /// - If `abort_press_on_press_away_if_not_present` is set then this only takes effect when the element is
-    ///   present (visible and the click hold does not occur above an interaction barrier higher than the
-    ///   press home zone).
-    /// - If this is not paired with `abort_press_on_press_away_if_not_present`,
-    ///   then UI changes like pop-ups may spuriously register as 'unpress' events.
-    pub fn unpress_on_press_away(mut self) -> Self
+    /// Abort press when a click hold or unclick is detected away from the press home zone.
+    /// - Disables settings `unpress_on_unclick_away`, `unpress_on_press_away`, and
+    ///   `abort_press_if_obstructed`.
+    /// - Unpresses the element WITHOUT invoking any unpress callbacks. Will invoke `abortpress_callback`.
+    pub fn abort_press_on_press_away_or_unclick_away(mut self) -> Self
     {
-        self.unpress_on_unclick_home     = true;
-        self.unpress_on_press_away       = true;
-        self.unpress_on_unclick_away     = true;
-        self.abort_press_on_unclick_away = false;
-        self.abort_press_on_press_away   = false;
+        self.unpress_on_unclick_away     = false;
+        self.unpress_on_press_away       = false;
+        self.abort_press_on_unclick_away = true;
+        self.abort_press_on_press_away   = true;
+        self.abort_press_if_obstructed   = false;
         self
     }
 
     /// Unpress the element when a click hold is detected away from the element's press home zone or if unclick is
-    /// detected on the press home zone. Also abort press if click hold is detected when the element is not present.
-    /// - Invokes `unpress_on_press_away()` and `abort_press_on_press_away_if_not_present()`.
+    /// detected anywhere. It is recommended to combine this with `abort_press_if_obstructed()`.
+    /// - Disables setting `abort_press_on_press_away`.
+    /// - If `abort_press_if_obstructed` is set then this only takes effect when the element is
+    ///   present (visible and the click hold does not occur above an interaction barrier higher than the
+    ///   press home zone).
+    /// - If this is not paired with `abort_press_if_obstructed`,
+    ///   then UI changes like pop-ups may spuriously register as 'unpress' events.
     /// Example: Suppose you want to hold an item with the mouse and drag it over another item to show a pop-up
     ///          that displays what happens when they combine. To achieve this you can use two overlapping cursors: the
     ///          main mouse cursor and a secondary item-held mouse cursor. Let the item in hand have an interactive element
     ///          for the main cursor and use `press_on_click`, `unpress_on_unclick_recommended`, `startpress_callback`,
     ///          and `unpress_callback`, where the press-start callback activates the secondary mouse cursor and the
     ///          unpress callback deactivates it (in addition to grabbing/releasing the item). Let the second item have
-    ///          an interactive element for the secondary cursor and use `press_on_clickhold`,
-    ///          `unpress_on_press_away_recommended`, `with_hovered_pressed_widget`, `press_home_start_callback`,
+    ///          an interactive element for the secondary cursor and use `press_on_clickhold`, `abort_press_if_obstructed`
+    ///          `unpress_on_press_away_or_unclick_any`, `with_hovered_pressed_widget`, `press_home_start_callback`,
     ///          where the hovered-pressed widget displays the pop-up and the callback edits the pop-up contents.
-    pub fn unpress_on_press_away_recommended(self) -> Self
+    pub fn unpress_on_press_away_or_unclick_any(mut self) -> Self
     {
-        self.unpress_on_press_away()
-            .abort_press_on_press_away_if_not_present()
-    }
-
-    /// Abort press when a click hold is detected away from the press home zone.
-    /// - Disables settings `unpress_on_unclick_away`, `unpress_on_press_away`, and
-    ///   `abort_press_on_press_away_if_not_present`.
-    /// - Unpresses the element WITHOUT invoking any unpress callbacks. Will invoke `abortpress_callback`.
-    pub fn abort_press_on_press_away(mut self) -> Self
-    {
-        self.unpress_on_unclick_away                  = false;
-        self.unpress_on_press_away                    = false;
-        self.abort_press_on_press_away                = true;
-        self.abort_press_on_press_away_if_not_present = false;
+        self.unpress_on_unclick_home     = true;
+        self.unpress_on_unclick_away     = true;
+        self.unpress_on_press_away       = true;
+        self.abort_press_on_unclick_away = false;
+        self.abort_press_on_press_away   = false;
         self
     }
 
-    /// Abort press when a click hold is detected away from the press home zone and the press home zone is not present
+    /// Abort press when a click hold is detected away from the press home zone and the press home zone is obstructed
     /// (it is invisible or the event occurs above an interaction barrier higher than the press home zone).
     /// - Disables setting `abort_press_on_press_away`.
     /// - Unpresses the element WITHOUT invoking any unpress callbacks. Will invoke `abortpress_callback`.
-    pub fn abort_press_on_press_away_if_not_present(mut self) -> Self
+    pub fn abort_press_if_obstructed(mut self) -> Self
     {
-        self.abort_press_on_press_away                = false;
-        self.abort_press_on_press_away_if_not_present = true;
+        self.abort_press_on_press_away = false;
+        self.abort_press_if_obstructed = true;
         self
     }
 
@@ -1414,16 +1407,16 @@ impl InteractiveElementBuilder
         self
     }
 
-    /// Callback invoked when the element is in state `Pressed::Away` if the element is not present (is invisible or the
+    /// Callback invoked when the element is in state `Pressed::Away` if the element is obstructed (is invisible or the
     /// event occurs above an interaction barrier higher than the press home zone).
     /// - Takes the world position of the cursor.
     /// - Invoked every tick while true.
-    pub fn press_away_if_not_present_callback(
+    pub fn press_away_if_obstructed_callback(
         mut self,
         callback: impl Fn(&mut World, Vec2) -> () + Send + Sync + 'static
     ) -> Self
     {
-        self.press_away_if_not_present_callback = Some(CallbackWith::<(), Vec2>::new(callback));
+        self.press_away_if_obstructed_callback = Some(CallbackWith::<(), Vec2>::new(callback));
         self
     }
 
@@ -1669,7 +1662,7 @@ impl InteractiveElementBuilder
         // responder: on click hold away w/ Pressed component
         //need_press
         //[option: always]: action: abort press, then leave
-        //[option: not present]: action: abort press, then leave
+        //[option: obstructed]: action: abort press, then leave
         //[option] action: unpress, then leave
         // - always
         //-try change Pressed component to Away (don't leave, we need to do callbacks after this)
@@ -1678,8 +1671,8 @@ impl InteractiveElementBuilder
         //callback: press away always
         // - if present
         //callback: press away if present
-        // - if not present
-        //callback: press away if not present
+        // - if obstructed
+        //callback: press away if obstructed
         // - always (end)
         //-if changed Pressed component
         // update visibility
@@ -1688,7 +1681,7 @@ impl InteractiveElementBuilder
                 entity_commands,
                 element_entity,
                 self.abort_press_on_press_away,
-                self.abort_press_on_press_away_if_not_present,
+                self.abort_press_if_obstructed,
                 self.unpress_on_press_away,
                 self.no_hover_on_pressed,
                 self.no_hover_on_pressed_selected,
@@ -1696,7 +1689,7 @@ impl InteractiveElementBuilder
                 self.press_away_start_callback.take(),
                 self.press_away_always_callback.take(),
                 self.press_away_if_present_callback.take(),
-                self.press_away_if_not_present_callback.take(),
+                self.press_away_if_obstructed_callback.take(),
                 &update_widget_visibility,
             );
 

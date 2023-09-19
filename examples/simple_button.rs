@@ -88,7 +88,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
         .with_pressed_widget(pressed_widget)
         .press_on_click()
         .unpress_on_unclick_home_and_abort_on_unclick_away()
-        .abort_press_on_press_away_if_not_present()
+        .abort_press_if_obstructed()
         .build::<kot_builtin::MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
     entity_commands.insert(kot::UIInteractionBarrier::<kot_builtin::MainUI>::default());
