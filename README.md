@@ -18,6 +18,10 @@ A collection of tools I built to make my life easier.
 - Utilities for adding/removing components on entities (requires `&mut World`).
 
 
+### Miscellaneous
+
+- `FPSTracker` resource with plugin `FPSTrackerPlugin`.
+
 
 ## Help Wanted
 

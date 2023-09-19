@@ -3,6 +3,7 @@
 
 //module tree
 pub mod ecs;
+pub mod misc;
 pub mod ui;
 
 //API exports
