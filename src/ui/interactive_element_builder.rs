@@ -1160,6 +1160,7 @@ impl InteractiveElementBuilder
     {
         self.unpress_on_unclick_home     = true;
         self.unpress_on_press_away       = true;
+        self.unpress_on_unclick_away     = true;
         self.abort_press_on_unclick_away = false;
         self.abort_press_on_press_away   = false;
         self
