@@ -27,6 +27,6 @@ The more UI examples, the better. Please submit new UI examples highlighting spe
 
 ## Bevy compatability
 
-| bevy | bevy_simplenet |
+| bevy | bevy_kot       |
 |------|----------------|
-| 0.11 | master         |
+| 0.11 | 0.0.1 - master |

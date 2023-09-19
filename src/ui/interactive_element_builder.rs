@@ -908,7 +908,6 @@ struct InteractiveElementWidgetPack
 
 /// Builder for an interactive UI element.
 ///
-/// **Explanation**
 /// An interactive element is a UI widget that responds to clicks and hovers. A click sequence is composed of 'on click' ->
 /// 'click hold' -> [optional: 'click hold away from element'] -> 'unclick' (on or off the element). A hover sequence
 /// is composed of 'hover start' -> 'hovering' -> 'unhover'. The element can respond to clicks/hovers by entering a 'pressed'
@@ -928,7 +927,7 @@ struct InteractiveElementWidgetPack
 ///
 /// Interactive elements are closely tied to `InteractionSource`s. To consume an element builder you must specify the
 /// interaction source that you want to control the element. If you register that source with
-/// `register_interaction_source<[source]>`, then the built-in interaction pipeline will automatically connect your source
+/// `app.register_interaction_source<[source]>`, then the built-in interaction pipeline will automatically connect your source
 /// with any elements associated with that source. If you don't want the built-in pipeline, then you can implement your
 /// own using the element's callbacks. If you want multiple interaction sources to control the same element, then you
 /// can add an `InteractiveElement<[source]>` component to the element entity for each additional source. Note that
@@ -942,11 +941,14 @@ struct InteractiveElementWidgetPack
 /// target two different cursors. The two cursors can then be tied to the same hardware source (e.g. the mouse). You
 /// then enable/disable the cursors according to the conditions that allow overlapping interaction.
 ///
-/// **Built-in `InteractionSource`s**
+///
+/// ## Built-in `InteractionSource`s
+///
 /// - `MouseLButton`: {clicks: mouse left button, hovers: mouse pointer}
 /// - `MouseRButton`: {clicks: mouse right button, hovers: mouse pointer}
 ///
-/// **Implementation comments**
+///
+/// ## Implementation comments
 /// - Interactivity takes the form of a set of 'action' and 'response' callbacks which are added to the element entity.
 ///   The action callbacks are all related to pressing and selecting. The response callbacks are used
 ///   by the UI backend to respond to clicker events in the environment (click/clickhold/unclick/hover/unhover).
@@ -967,7 +969,9 @@ struct InteractiveElementWidgetPack
 ///   visibility update afterward, which mean a user-defined change to visibility won't be registered immediately.
 ///   (todo: add option to enhance visibility updates? always update visibility + add visibility-change callback)
 ///
-/// **Notes**
+///
+/// ## Notes
+///
 /// - All callbacks take the world position of the cursor at the time the callback is invoked.
 /// - Deselection will only be automatic if `with_select_toggling` is set. Deselect the element manually with
 ///   `Callback<Deselect>`, which will be added by the builder if you specify a `select_on_*` setting.
@@ -1145,7 +1149,7 @@ impl InteractiveElementBuilder
     }
 
     /// Unpress the element when a click hold is detected away from the element's press home zone or if unclick is
-    /// detected on the press home zone. Prefer `unpress_on_press_away_recommended` unless you have a specific use-case.
+    /// detected anywhere. Prefer `unpress_on_press_away_recommended` unless you have a specific use-case.
     /// - Disables setting `abort_press_on_press_away`.
     /// - If `abort_press_on_press_away_if_not_present` is set then this only takes effect when the element is
     ///   present (visible and the click hold does not occur above an interaction barrier higher than the
@@ -1155,9 +1159,9 @@ impl InteractiveElementBuilder
     pub fn unpress_on_press_away(mut self) -> Self
     {
         self.unpress_on_unclick_home     = true;
-        self.unpress_on_press_away        = true;
+        self.unpress_on_press_away       = true;
         self.abort_press_on_unclick_away = false;
-        self.abort_press_on_press_away    = false;
+        self.abort_press_on_press_away   = false;
         self
     }
 
@@ -1185,7 +1189,7 @@ impl InteractiveElementBuilder
     /// - Unpresses the element WITHOUT invoking any unpress callbacks. Will invoke `abortpress_callback`.
     pub fn abort_press_on_press_away(mut self) -> Self
     {
-        self.unpress_on_unclick_away                 = false;
+        self.unpress_on_unclick_away                  = false;
         self.unpress_on_press_away                    = false;
         self.abort_press_on_press_away                = true;
         self.abort_press_on_press_away_if_not_present = false;
