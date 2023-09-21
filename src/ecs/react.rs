@@ -479,7 +479,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when a `React<C>` is inserted on a specific entity.
     /// - Does nothing if the entity does not exist.
-    pub fn react_to_insert_on_entity<'a, C: Send + Sync + 'static>(
+    pub fn react_to_insertion_on_entity<'a, C: Send + Sync + 'static>(
         &'a mut self,
         entity   : Entity,
         callback : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -492,7 +492,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when a `React<C>` is inserted on any entity.
     /// - Takes the entity the component was inserted to.
-    pub fn react_to_insert_on_any<'a, C: Send + Sync + 'static>(
+    pub fn react_to_insertion_on_any<'a, C: Send + Sync + 'static>(
         &'a mut self,
         callback: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ){
