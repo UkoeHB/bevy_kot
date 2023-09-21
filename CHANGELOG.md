@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3]
+
+### Added
+
+- `React` components with hooks inserted via `ReactCommands`.
+
+
 ## [0.0.2]
 
 ### Changed
@@ -9,8 +16,8 @@
 
 ### Added
 
-- `FPSTracker` resource with `FPSTrackerPlugin`
-- `10k_buttons` example (currently 14 FPS on my machine)
+- `FPSTracker` resource with `FPSTrackerPlugin`.
+- `10k_buttons` example (currently 14 FPS on my machine).
 
 ### Fixed
 

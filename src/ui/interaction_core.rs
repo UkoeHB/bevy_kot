@@ -402,3 +402,12 @@ impl RegisterInteractionSourceExt for App
 }
 
 //-------------------------------------------------------------------------------------------------------------------
+
+// Integrate reactivity with interaction pipelines.
+// - React to all component removals and entity despawns at the end of every tick.
+//pub fn ReactInteractionPlugin(app: &mut App)
+//{
+//    app.add_systems(Last, react_to_all_removals_and_despawns);
+//}
+
+//-------------------------------------------------------------------------------------------------------------------

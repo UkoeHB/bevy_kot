@@ -11,6 +11,7 @@ use std::sync::Arc;
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Callback wrapper. Implements `Command`.
+/// - The type `T` can be used to mark the callback for query filtering.
 #[derive(Component)]
 pub struct Callback<T: Send + Sync + 'static>
 {
@@ -40,6 +41,7 @@ impl<T: Send + Sync + 'static> Command for Callback<T>
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Callback wrapper that lets you call with a value. The helper returned by `.call_with()` implements `Command`.
+/// - The type `T` can be used to mark the callback for query filtering.
 #[derive(Component)]
 pub struct CallbackWith<T: Send + Sync + 'static, V>
 {
@@ -66,6 +68,7 @@ impl<T: Send + Sync + 'static, V: Send + Sync + 'static> CallbackWith<T, V>
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Callback wrapper with a specific call value baked in. Implements `Command`.
+/// - The type `T` can be used to mark the callback for query filtering.
 pub struct Callwith<T: Send + Sync + 'static, C>
 {
     callback   : Arc<dyn Fn(&mut World, C) -> () + Send + Sync + 'static>,
@@ -86,6 +89,33 @@ impl<T: Send + Sync + 'static, C: Send + Sync + 'static> Command for Callwith<T,
     fn apply(self, world: &mut World)
     {
         (self.callback)(world, self.call_value);
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Callback wrapper that mimics `syscall`.
+/// - The type `T` can be used to mark the callback for query filtering.
+#[derive(Component)]
+pub struct SysCall<T: Send + Sync + 'static, I, O>
+{
+    callback : Arc<dyn Fn(&mut World, I) -> O + Send + Sync + 'static>,
+    _phantom : PhantomData<T>,
+}
+
+impl<T: Send + Sync + 'static, I, O> Clone for SysCall<T, I, O>
+{ fn clone(&self) -> Self { Self{ callback: self.callback.clone(), _phantom: PhantomData::default() } } }
+
+impl<T: Send + Sync + 'static, I, O> SysCall<T, I, O>
+{
+    pub fn new(callback: impl Fn(&mut World, I) -> O + Send + Sync + 'static) -> Self
+    {
+        Self{ callback: Arc::new(callback), _phantom: PhantomData::default() }
+    }
+
+    pub fn call(&self, world: &mut World, in_val: I) -> O
+    {
+        (self.callback)(world, in_val)
     }
 }
 

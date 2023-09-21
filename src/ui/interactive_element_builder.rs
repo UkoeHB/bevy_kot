@@ -18,10 +18,10 @@ fn check_press_invariants(builder: &InteractiveElementBuilder) -> Result<(), Int
     // check press_away consistency
     if builder.abort_press_on_press_away &&
         (
-            builder.unpress_on_press_away ||
-            builder.press_away_start_callback.is_some() ||
-            builder.press_away_always_callback.is_some() ||
-            builder.press_away_present_callback.is_some() ||
+            builder.unpress_on_press_away                    ||
+            builder.press_away_start_callback.is_some()      ||
+            builder.press_away_always_callback.is_some()     ||
+            builder.press_away_present_callback.is_some()    ||
             builder.press_away_obstructed_callback.is_some()
 
         )
@@ -31,7 +31,7 @@ fn check_press_invariants(builder: &InteractiveElementBuilder) -> Result<(), Int
     if builder.unpress_on_unclick_home &&
         !(
             builder.unpress_on_unclick_away     ||
-            builder.unpress_on_press_away        ||
+            builder.unpress_on_press_away       ||
             builder.abort_press_on_unclick_away
         )
     { return Err(InteractiveElementBuilderError::InconsistentUnPressUnclick); }

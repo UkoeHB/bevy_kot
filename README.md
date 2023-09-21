@@ -16,6 +16,7 @@ A collection of tools I built to make my life easier.
 - System callers for invoking systems as if they were functions (requires `&mut World`). I mainly use `syscall`.
 - Callbacks for entities.
 - Utilities for adding/removing components on entities (requires `&mut World`).
+- `React` components managed by `ReactCommands`.
 
 
 ### Miscellaneous
