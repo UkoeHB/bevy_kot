@@ -16,6 +16,10 @@ struct TestComponent(usize);
 #[derive(Resource, Default)]
 struct TestReactRecorder(usize);
 
+
+#[derive(Resource, Default)]
+struct TestReactRes(usize);
+
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -25,6 +29,14 @@ fn update_test_recorder(
     test_entities : Query<&React<TestComponent>>,
 ){
     recorder.0 = test_entities.get(entity).unwrap().0;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn double_react_res_value(mut react_res: ResMut<ReactRes<TestReactRes>>)
+{
+    react_res.get_mut_noreact().0 *= 2;  //noreact otherwise it will infinitely loop
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -62,6 +74,25 @@ fn update_test_entity(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+fn add_res_reactor(mut react_commands: ReactCommands)
+{
+    react_commands.react_to_resource_mutation::<TestReactRes>(|world| syscall(world, (), double_react_res_value));
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn update_react_res(
+    In(new_val)        : In<usize>,
+    mut react_commands : ReactCommands,
+    mut react_res      : ResMut<ReactRes<TestReactRes>>
+){
+    react_res.get_mut(&mut react_commands).0 = new_val;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
 #[test]
 fn react_basic()
 {
@@ -78,6 +109,25 @@ fn react_basic()
 
     // check
     assert_eq!(world.resource::<TestReactRecorder>().0, 10);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+#[test]
+fn react_res()
+{
+    // setup
+    let mut app = App::new();
+    app.add_plugins(ReactPlugin)
+        .insert_resource(ReactRes::new(TestReactRes::default()));
+    let mut world = &mut app.world;
+
+    // react cycle
+    syscall(&mut world, (), add_res_reactor);
+    syscall(&mut world, 100, update_react_res);
+
+    // check
+    assert_eq!(world.resource::<ReactRes<TestReactRes>>().0, 200);
 }
 
 //-------------------------------------------------------------------------------------------------------------------

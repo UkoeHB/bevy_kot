@@ -98,6 +98,9 @@ struct ReactorCore
 
     /// Component removal checkers
     removal_checkers: Vec<RemovalChecker>,
+
+    /// Resource mutation handlers
+    resource_handlers: HashMap<TypeId, Vec<Callback<()>>>,
 }
 
 impl ReactorCore
@@ -146,6 +149,16 @@ impl ReactorCore
         for cb in self.component_handlers.entry(TypeId::of::<C>()).or_default().mutation_callbacks.iter()
         {
             commands.add(cb.call_with(entity));
+        }
+    }
+
+    /// Queue reactions to a resource mutation.
+    fn react_on_resource_mutation<R: Send + Sync + 'static>(&mut self, commands: &mut Commands)
+    {
+        // resource handlers
+        for cb in self.resource_handlers.entry(TypeId::of::<R>()).or_default().iter()
+        {
+            commands.add(cb.clone());
         }
     }
 
@@ -217,6 +230,14 @@ impl ReactorCore
             .despawn_callbacks
             .push(callback);
     }
+
+    fn register_resource_mutation_reaction<R: Send + Sync + 'static>(&mut self, callback: Callback<()>)
+    {
+        self.resource_handlers
+            .entry(TypeId::of::<R>())
+            .or_default()
+            .push(callback);
+    }
 }
 
 impl Default for ReactorCore
@@ -227,6 +248,7 @@ impl Default for ReactorCore
             entity_handlers    : HashMap::default(),
             component_handlers : HashMap::default(),
             removal_checkers   : Vec::new(),
+            resource_handlers  : HashMap::new(),
         }
     }
 }
@@ -374,6 +396,15 @@ impl<'w, 's> ReactCommands<'w, 's>
         self.commands.get_or_spawn(entity).insert(DespawnTracker);
         self.reactor.register_despawn_reaction(entity, Callback::new(callback));
     }
+
+    /// React when a resource is mutated.
+    /// - Only works for `ReactRes<R>` resources.
+    pub fn react_to_resource_mutation<'a, R: Send + Sync + 'static>(
+        &'a mut self,
+        callback: impl Fn(&mut World) -> () + Send + Sync + 'static
+    ){
+        self.reactor.register_resource_mutation_reaction::<R>(Callback::new(callback));
+    }
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -390,12 +421,20 @@ pub struct React<C: Send + Sync + 'static>
 
 impl<C: Send + Sync + 'static> React<C>
 {
+    /// Mutably access the component and trigger reactions.
     pub fn get_mut<'a>(&'a mut self, engine: &mut ReactCommands) -> &'a mut C
     {
         engine.reactor.react_on_mutation::<C>(&mut engine.commands, self.entity);
         &mut self.component
     }
 
+    /// Mutably access the component without triggering reactions.
+    pub fn get_mut_noreact(&mut self) -> &mut C
+    {
+        &mut self.component
+    }
+
+    /// Unwrap the `React`.
     pub fn take(self) -> C
     {
         self.component
@@ -409,6 +448,53 @@ impl<C: Send + Sync + 'static> Deref for React<C>
     fn deref(&self) -> &C
     {
         &self.component
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Resource wrapper that facilitates reacting to resource mutations.
+#[derive(Resource)]
+pub struct ReactRes<R: Send + Sync + 'static>
+{
+    resource: R,
+}
+
+impl<R: Send + Sync + 'static> ReactRes<R>
+{
+    /// New resource.
+    pub fn new(resource: R) -> Self
+    {
+        Self{ resource }
+    }
+
+    /// Mutably access the resource and trigger reactions.
+    pub fn get_mut<'a>(&'a mut self, engine: &mut ReactCommands) -> &'a mut R
+    {
+        engine.reactor.react_on_resource_mutation::<R>(&mut engine.commands);
+        &mut self.resource
+    }
+
+    /// Mutably access the resource without triggering reactions.
+    pub fn get_mut_noreact(&mut self) -> &mut R
+    {
+        &mut self.resource
+    }
+
+    /// Unwrap the `ReactRes`.
+    pub fn take(self) -> R
+    {
+        self.resource
+    }
+}
+
+impl<R: Send + Sync + 'static> Deref for ReactRes<R>
+{
+    type Target = R;
+
+    fn deref(&self) -> &R
+    {
+        &self.resource
     }
 }
 
@@ -474,7 +560,7 @@ pub fn react_to_despawns(world: &mut World) -> usize
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Iteratively react to component removals and entity despawns until all reaction chains have ended.
-/// - WARNING: This may be inefficient if you are reacting to many entities and components.
+/// - WARNING: This may be inefficient if you are reacting to many components and entity despawns.
 pub fn react_to_all_removals_and_despawns(world: &mut World)
 {
     // check if we have a reactor
