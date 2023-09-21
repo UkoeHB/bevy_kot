@@ -42,7 +42,7 @@ fn spawn_test_entity(In(component): In<TestComponent>, mut react_commands: React
 
 fn add_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands)
 {
-    react_commands.react_to_mutation::<TestComponent>(
+    react_commands.react_to_mutation_on_entity::<TestComponent>(
             entity,
             move |world| { syscall(world, entity, update_test_recorder); }
         );

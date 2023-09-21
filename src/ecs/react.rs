@@ -306,7 +306,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when a `React<C>` is inserted on a specific entity.
     /// - Spawns the entity if it doesn't exist.
-    pub fn react_to_insert<'a, C: Send + Sync + 'static>(
+    pub fn react_to_insert_on_entity<'a, C: Send + Sync + 'static>(
         &'a mut self,
         entity   : Entity,
         callback : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -326,7 +326,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when a `React<C>` is mutated on a specific entity.
     /// - Spawns the entity if it doesn't exist.
-    pub fn react_to_mutation<'a, C: Send + Sync + 'static>(
+    pub fn react_to_mutation_on_entity<'a, C: Send + Sync + 'static>(
         &'a mut self,
         entity   : Entity,
         callback : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -346,7 +346,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when a `React<C>` is removed from a specific entity.
     /// - Spawns the entity if it doesn't exist.
-    pub fn react_to_removal<'a, C: Send + Sync + 'static>(
+    pub fn react_to_removal_from_entity<'a, C: Send + Sync + 'static>(
         &'a mut self,
         entity   : Entity,
         callback : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -366,7 +366,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when an entity is despawned.
     /// - Spawns the entity if it doesn't exist.
-    pub fn react_to_despawn<'a, C: Send + Sync + 'static>(
+    pub fn react_to_despawn<'a>(
         &'a mut self,
         entity: Entity,
         callback: impl Fn(&mut World) -> () + Send + Sync + 'static
