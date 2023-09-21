@@ -94,7 +94,7 @@ impl<T: Send + Sync + 'static, C: Send + Sync + 'static> Command for Callwith<T,
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Callback wrapper that mimics `syscall`.
+/// Callback wrapper that mimics `syscall` (**without** an implicit call to `apply_deferred`).
 /// - The type `T` can be used to mark the callback for query filtering.
 #[derive(Component)]
 pub struct SysCall<T: Send + Sync + 'static, I, O>

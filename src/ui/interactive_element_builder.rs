@@ -1487,7 +1487,7 @@ impl InteractiveElementBuilder
         let need_hover  = self.element_is_hoverable();
 
         // define the widget that will handle press-away events
-        let press_home_zone = self.press_home_zone.unwrap_or(element_widget.clone());
+        let press_home_zone = self.press_home_zone.unwrap_or_else(|| element_widget.clone());
 
         // spawn initial components on the element
         entity_commands.insert(

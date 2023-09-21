@@ -449,9 +449,6 @@ pub fn interaction_pipeline<S: InteractionSource>(world: &mut World)
     // handle unhover (source was positioned over a widget and now it is not)
     // - do this after checking 'hover' in case doing so caused an entity to become unhovered
     syscall(world, info_pack, handle_unhover::<S>);
-
-    // apply deferred for good measure (in case a call to apply_deferred in any of the syscalls queued something)
-    syscall(world, (), apply_deferred);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
