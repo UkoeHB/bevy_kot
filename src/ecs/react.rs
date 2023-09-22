@@ -444,6 +444,8 @@ impl Default for ReactCache
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Cached command queues for react methods.
+/// - We use a container of command queues in case of recursion.
 #[derive(Resource, Default)]
 struct ReactCommandQueue(Vec<CommandQueue>);
 
@@ -684,7 +686,6 @@ pub fn react_to_removals(world: &mut World) -> usize
     command_queue.apply(world);
 
     // return command queue
-    // - note: we use a container of command queues in case of recursion
     world.get_resource_or_insert_with(|| ReactCommandQueue::default()).0.push(command_queue);
 
     callback_count
@@ -696,6 +697,10 @@ pub fn react_to_removals(world: &mut World) -> usize
 /// - Returns number of callbacks queued.
 pub fn react_to_despawns(world: &mut World) -> usize
 {
+    // check if we have a reactor
+    if !world.contains_resource::<ReactCache>() { return 0; }
+
+    // handle despawns
     syscall(world, (), react_to_despawns_impl)
 }
 
