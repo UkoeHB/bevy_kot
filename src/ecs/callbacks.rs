@@ -10,6 +10,84 @@ use std::sync::Arc;
 
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Callback wrapper for FnOnce functions. Implements `Command`.
+/// - The type `T` can be used to mark the callback for query filtering.
+#[derive(Component)]
+pub struct CallOnce<T: Send + Sync + 'static>
+{
+    callonce : Box<dyn FnOnce(&mut World) -> () + Send + Sync + 'static>,
+    _phantom : PhantomData<T>,
+}
+
+impl<T: Send + Sync + 'static> CallOnce<T>
+{
+    pub fn new(callonce: impl FnOnce(&mut World) -> () + Send + Sync + 'static) -> Self
+    {
+        Self{ callonce: Box::new(callonce), _phantom: PhantomData::default() }
+    }
+}
+
+impl<T: Send + Sync + 'static> Command for CallOnce<T>
+{
+    fn apply(self, world: &mut World)
+    {
+        (self.callonce)(world);
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Callback wrapper that lets you call with a value once. The helper returned by `.call_with()` implements `Command`.
+/// - The type `T` can be used to mark the callback for query filtering.
+#[derive(Component)]
+pub struct CallOnceWith<T: Send + Sync + 'static, V>
+{
+    callonce : Box<dyn FnOnce(&mut World, V) -> () + Send + Sync + 'static>,
+    _phantom : PhantomData<T>,
+}
+
+impl<T: Send + Sync + 'static, V: Send + Sync + 'static> CallOnceWith<T, V>
+{
+    pub fn new(callonce: impl FnOnce(&mut World, V) -> () + Send + Sync + 'static) -> Self
+    {
+        Self{ callonce: Box::new(callonce), _phantom: PhantomData::default() }
+    }
+
+    pub fn call_with(self, call_value: V) -> CallwithOnce<T, V>
+    {
+        CallwithOnce{ callonce: self.callonce, call_value, _phantom: PhantomData::default() }
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Callback wrapper with a specific call value baked in. Implements `Command`.
+/// - The type `T` can be used to mark the callback for query filtering.
+pub struct CallwithOnce<T: Send + Sync + 'static, C>
+{
+    callonce   : Box<dyn FnOnce(&mut World, C) -> () + Send + Sync + 'static>,
+    call_value : C,
+    _phantom   : PhantomData<T>,
+}
+
+impl<T: Send + Sync + 'static, C> CallwithOnce<T, C>
+{
+    pub fn new(callonce: impl FnOnce(&mut World, C) -> () + Send + Sync + 'static, call_value: C) -> Self
+    {
+        Self{ callonce: Box::new(callonce), call_value, _phantom: PhantomData::default() }
+    }
+}
+
+impl<T: Send + Sync + 'static, C: Send + Sync + 'static> Command for CallwithOnce<T, C>
+{
+    fn apply(self, world: &mut World)
+    {
+        (self.callonce)(world, self.call_value);
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 /// Callback wrapper. Implements `Command`.
 /// - The type `T` can be used to mark the callback for query filtering.
 #[derive(Component)]

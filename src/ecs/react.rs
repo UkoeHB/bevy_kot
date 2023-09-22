@@ -266,7 +266,7 @@ struct ReactCache
 
     // Entity despawn handlers
     //todo: is there a more efficient data structure? need faster cleanup on despawns
-    despawn_handlers: HashMap<Entity, Vec<Callback<()>>>,
+    despawn_handlers: HashMap<Entity, Vec<CallOnce<()>>>,
 
     /// Resource mutation handlers
     resource_handlers: HashMap<TypeId, Vec<Callback<()>>>,
@@ -309,12 +309,12 @@ impl ReactCache
             .push(callback);
     }
 
-    fn register_despawn_reaction(&mut self, entity: Entity, callback: Callback<()>)
+    fn register_despawn_reaction(&mut self, entity: Entity, callonce: CallOnce<()>)
     {
         self.despawn_handlers
             .entry(entity)
             .or_default()
-            .push(callback);
+            .push(callonce);
     }
 
     fn register_resource_mutation_reaction<R: Send + Sync + 'static>(&mut self, callback: Callback<()>)
@@ -550,11 +550,11 @@ impl<'w, 's> ReactCommands<'w, 's>
     pub fn react_to_despawn<'a>(
         &'a mut self,
         entity: Entity,
-        callback: impl Fn(&mut World) -> () + Send + Sync + 'static
+        callonce: impl FnOnce(&mut World) -> () + Send + Sync + 'static
     ){
         let Some(mut entity_commands) = self.commands.get_entity(entity) else { return; };
         entity_commands.insert( DespawnTracker );
-        self.cache.register_despawn_reaction(entity, Callback::new(callback));
+        self.cache.register_despawn_reaction(entity, CallOnce::new(callonce));
     }
 
     /// React when a resource is mutated.
