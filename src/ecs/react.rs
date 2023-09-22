@@ -445,7 +445,7 @@ impl Default for ReactCache
 //-------------------------------------------------------------------------------------------------------------------
 
 #[derive(Resource, Default)]
-struct ReactCommandQueue(CommandQueue);
+struct ReactCommandQueue(Vec<CommandQueue>);
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -668,21 +668,24 @@ pub fn react_to_removals(world: &mut World) -> usize
 {
     // remove cached
     let Some(mut react_cache) = world.remove_resource::<ReactCache>() else { return 0; };
-    let mut command_queue = world.remove_resource::<ReactCommandQueue>().unwrap_or_else(|| ReactCommandQueue::default());
+    let mut command_queue = world
+        .get_resource_or_insert_with(|| ReactCommandQueue::default())
+        .0
+        .pop()
+        .unwrap_or_else(|| CommandQueue::default());
 
     // process removals
-    let callback_count = react_cache.react_to_removals(world, &mut command_queue.0);
+    let callback_count = react_cache.react_to_removals(world, &mut command_queue);
 
     // return react cache
     world.insert_resource(react_cache);
 
     // apply commands
-    command_queue.0.apply(world);
+    command_queue.apply(world);
 
     // return command queue
-    // - This will overwrite any queue inserted by a recursive invocation of this system. Only the queue of the bottom-most
-    //   invocation will persist.
-    world.insert_resource(command_queue);
+    // - note: we use a container of command queues in case of recursion
+    world.get_resource_or_insert_with(|| ReactCommandQueue::default()).0.push(command_queue);
 
     callback_count
 }
