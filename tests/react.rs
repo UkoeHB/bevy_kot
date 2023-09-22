@@ -56,9 +56,9 @@ fn update_test_recorder_with_resource(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn react_to_insertion_on_entity(In(entity): In<Entity>, mut react_commands: ReactCommands)
+fn add_entity_insertion_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands)
 {
-    react_commands.react_to_insertion_on_entity::<TestComponent>(
+    react_commands.add_entity_insertion_reactor::<TestComponent>(
             entity,
             move |world| { syscall(world, entity, update_test_recorder_with_component); }
         );
@@ -194,7 +194,7 @@ fn react_entity_insertion()
     let test_entity_b = world.spawn_empty().id();
 
     // add reactor
-    syscall(&mut world, test_entity_a, react_to_insertion_on_entity);
+    syscall(&mut world, test_entity_a, add_entity_insertion_reactor);
     assert_eq!(world.resource::<TestReactRecorder>().0, 0);
 
     // insert (reaction)
