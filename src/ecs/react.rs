@@ -146,7 +146,7 @@ fn react_to_entity_event<C: Send + Sync + 'static>(
     // get this entity's react handlers
     let Ok(react_handlers) = react_entities.get(entity) else { return; };
 
-    // finish react handling
+    // react
     let _ = react_to_entity_event_impl(rtype, TypeId::of::<C>(), &mut commands, &react_handlers);
 }
 
@@ -282,7 +282,7 @@ impl ReactCache
         self.removal_checkers.push(RemovalChecker::new::<C>());
     }
 
-    fn register_insertion_reaction<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
+    fn register_insertion_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
     {
         self.component_handlers
             .entry(TypeId::of::<C>())
@@ -291,7 +291,7 @@ impl ReactCache
             .push(callback);
     }
 
-    fn register_mutation_reaction<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
+    fn register_mutation_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
     {
         self.component_handlers
             .entry(TypeId::of::<C>())
@@ -300,7 +300,7 @@ impl ReactCache
             .push(callback);
     }
 
-    fn register_removal_reaction<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
+    fn register_removal_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
     {
         self.component_handlers
             .entry(TypeId::of::<C>())
@@ -309,7 +309,7 @@ impl ReactCache
             .push(callback);
     }
 
-    fn register_despawn_reaction(&mut self, entity: Entity, callonce: CallOnce<()>)
+    fn register_despawn_reactor(&mut self, entity: Entity, callonce: CallOnce<()>)
     {
         self.despawn_handlers
             .entry(entity)
@@ -317,7 +317,7 @@ impl ReactCache
             .push(callonce);
     }
 
-    fn register_resource_mutation_reaction<R: Send + Sync + 'static>(&mut self, callback: Callback<()>)
+    fn register_resource_mutation_reactor<R: Send + Sync + 'static>(&mut self, callback: Callback<()>)
     {
         self.resource_handlers
             .entry(TypeId::of::<R>())
@@ -329,7 +329,7 @@ impl ReactCache
     /// - Initializes removal checkers for newly-encountered component types. We only need to do that here because
     ///   all entities with `React` components acquired those components from a `ReactCommand::insert()` which uses
     ///   this method.
-    fn react_on_insert<C: Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
+    fn react_to_insertion<C: Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
     {
         // entity handlers
         commands.add(
@@ -346,7 +346,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a component mutation.
-    fn react_on_mutation<C: Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
+    fn react_to_mutation<C: Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
     {
         // entity handlers
         commands.add(
@@ -363,7 +363,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a resource mutation.
-    fn react_on_resource_mutation<R: Send + Sync + 'static>(&mut self, commands: &mut Commands)
+    fn react_to_resource_mutation<R: Send + Sync + 'static>(&mut self, commands: &mut Commands)
     {
         // resource handlers
         let Some(handlers) = self.resource_handlers.get(&TypeId::of::<R>()) else { return; };
@@ -480,7 +480,17 @@ impl<'w, 's> ReactCommands<'w, 's>
         entity_commands.insert( React{ entity, component } );
 
         let Some(ref mut cache) = self.cache else { return; };
-        cache.react_on_insert::<C>(&mut self.commands, entity);
+        cache.react_to_insertion::<C>(&mut self.commands, entity);
+    }
+
+    /// React when a `React<C>` is inserted on any entity.
+    /// - Takes the entity the component was inserted to.
+    pub fn add_insertion_reactor<'a, C: Send + Sync + 'static>(
+        &'a mut self,
+        reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
+    ){
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+        cache.register_insertion_reactor::<C>(CallbackWith::new(reactor));
     }
 
     /// React when a `React<C>` is inserted on a specific entity.
@@ -497,19 +507,19 @@ impl<'w, 's> ReactCommands<'w, 's>
             );
     }
 
-    /// React when a `React<C>` is inserted on any entity.
-    /// - Takes the entity the component was inserted to.
-    pub fn react_to_insertion_on_any<'a, C: Send + Sync + 'static>(
+    /// React when a `React<C>` is mutated on any entity.
+    /// - Takes the entity the component was mutated on.
+    pub fn add_mutation_reactor<'a, C: Send + Sync + 'static>(
         &'a mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ){
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.register_insertion_reaction::<C>(CallbackWith::new(reactor));
+        cache.register_mutation_reactor::<C>(CallbackWith::new(reactor));
     }
 
     /// React when a `React<C>` is mutated on a specific entity.
     /// - Does nothing if the entity does not exist.
-    pub fn react_to_mutation_on_entity<'a, C: Send + Sync + 'static>(
+    pub fn add_entity_mutation_reactor<'a, C: Send + Sync + 'static>(
         &'a mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -521,19 +531,20 @@ impl<'w, 's> ReactCommands<'w, 's>
             );
     }
 
-    /// React when a `React<C>` is mutated on any entity.
-    /// - Takes the entity the component was mutated on.
-    pub fn react_to_mutation_on_any<'a, C: Send + Sync + 'static>(
+    /// React when a `React<C>` is removed from any entity.
+    /// - Takes the entity the component was removed from.
+    pub fn add_removal_reactor<'a, C: Send + Sync + 'static>(
         &'a mut self,
-        reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
+        reactor : impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ){
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.register_mutation_reaction::<C>(CallbackWith::new(reactor));
+        cache.track_removals::<C>();
+        cache.register_removal_reactor::<C>(CallbackWith::new(reactor));
     }
 
     /// React when a `React<C>` is removed from a specific entity.
     /// - Does nothing if the entity does not exist.
-    pub fn react_to_removal_from_entity<'a, C: Send + Sync + 'static>(
+    pub fn add_entity_removal_reactor<'a, C: Send + Sync + 'static>(
         &'a mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -546,20 +557,9 @@ impl<'w, 's> ReactCommands<'w, 's>
             );
     }
 
-    /// React when a `React<C>` is removed from any entity.
-    /// - Takes the entity the component was removed from.
-    pub fn react_to_removal_from_any<'a, C: Send + Sync + 'static>(
-        &'a mut self,
-        reactor : impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
-    ){
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.track_removals::<C>();
-        cache.register_removal_reaction::<C>(CallbackWith::new(reactor));
-    }
-
     /// React when an entity is despawned.
     /// - Does nothing if the entity does not exist.
-    pub fn react_to_despawn<'a>(
+    pub fn add_despawn_reactor<'a>(
         &'a mut self,
         entity    : Entity,
         reactonce : impl FnOnce(&mut World) -> () + Send + Sync + 'static
@@ -567,17 +567,17 @@ impl<'w, 's> ReactCommands<'w, 's>
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
         let Some(mut entity_commands) = self.commands.get_entity(entity) else { return; };
         entity_commands.insert( DespawnTracker );
-        cache.register_despawn_reaction(entity, CallOnce::new(reactonce));
+        cache.register_despawn_reactor(entity, CallOnce::new(reactonce));
     }
 
     /// React when a resource is mutated.
     /// - Reactions only occur for `ReactRes<R>` resources accessed with `ReactRes::get_mut()`.
-    pub fn react_to_resource_mutation<'a, R: Send + Sync + 'static>(
+    pub fn add_resource_mutation_reactor<'a, R: Send + Sync + 'static>(
         &'a mut self,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
     ){
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.register_resource_mutation_reaction::<R>(Callback::new(reactor));
+        cache.register_resource_mutation_reactor::<R>(Callback::new(reactor));
     }
 }
 
@@ -598,7 +598,7 @@ impl<C: Send + Sync + 'static> React<C>
     /// Mutably access the component and trigger reactions.
     pub fn get_mut<'a>(&'a mut self, rcommands: &mut ReactCommands) -> &'a mut C
     {
-        if let Some(ref mut cache) = rcommands.cache { cache.react_on_mutation::<C>(&mut rcommands.commands, self.entity) }
+        if let Some(ref mut cache) = rcommands.cache { cache.react_to_mutation::<C>(&mut rcommands.commands, self.entity) }
         &mut self.component
     }
 
@@ -645,7 +645,7 @@ impl<R: Send + Sync + 'static> ReactRes<R>
     /// Mutably access the resource and trigger reactions.
     pub fn get_mut<'a>(&'a mut self, rcommands: &mut ReactCommands) -> &'a mut R
     {
-        if let Some(ref mut cache) = rcommands.cache { cache.react_on_resource_mutation::<R>(&mut rcommands.commands); }
+        if let Some(ref mut cache) = rcommands.cache { cache.react_to_resource_mutation::<R>(&mut rcommands.commands); }
         &mut self.resource
     }
 

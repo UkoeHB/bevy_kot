@@ -449,7 +449,7 @@ fn react_entity_despawn()
     // no immediate reaction
     assert_eq!(world.resource::<TestReactRecorder>().0, 0);
     // check for despawns (reaction)
-    assert_eq!(add_despawn_reactors(world), 1);
+    assert_eq!(react_to_despawns(world), 1);
     assert_eq!(world.resource::<TestReactRecorder>().0, usize::MAX);
 
     // despawn other entity (no reaction)
