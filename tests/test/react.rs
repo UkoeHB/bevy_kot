@@ -64,71 +64,71 @@ fn update_test_recorder_with_event(In(data): In<usize>, mut recorder: ResMut<Tes
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn add_entity_insertion_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands)
+fn add_entity_insertion_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands) -> RevokeToken
 {
     react_commands.add_entity_insertion_reactor::<TestComponent>(
             entity,
             move |world| { syscall(world, entity, update_test_recorder_with_component); }
-        );
+        )
 }
 
-fn add_entity_mutation_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands)
+fn add_entity_mutation_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands) -> RevokeToken
 {
     react_commands.add_entity_mutation_reactor::<TestComponent>(
             entity,
             move |world| { syscall(world, entity, update_test_recorder_with_component); }
-        );
+        )
 }
 
-fn add_entity_removal_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands)
+fn add_entity_removal_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands) -> RevokeToken
 {
     react_commands.add_entity_removal_reactor::<React<TestComponent>>(
             entity,
             move |world| { syscall(world, (), infinitize_test_recorder); }
-        );
+        )
 }
 
-fn add_insertion_reactor(mut react_commands: ReactCommands)
+fn add_insertion_reactor(mut react_commands: ReactCommands) -> RevokeToken
 {
     react_commands.add_insertion_reactor::<TestComponent>(
             move |world, entity| { syscall(world, entity, update_test_recorder_with_component); }
-        );
+        )
 }
 
-fn add_mutation_reactor(mut react_commands: ReactCommands)
+fn add_mutation_reactor(mut react_commands: ReactCommands) -> RevokeToken
 {
     react_commands.add_mutation_reactor::<TestComponent>(
             move |world, entity| { syscall(world, entity, update_test_recorder_with_component); }
-        );
+        )
 }
 
-fn add_removal_reactor(mut react_commands: ReactCommands)
+fn add_removal_reactor(mut react_commands: ReactCommands) -> RevokeToken
 {
     react_commands.add_removal_reactor::<React<TestComponent>>(
             move |world, _entity| { syscall(world, (), infinitize_test_recorder); }
-        );
+        )
 }
 
-fn add_despawn_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands)
+fn add_despawn_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands) -> RevokeToken
 {
     react_commands.add_despawn_reactor(
             entity,
             move |world| { syscall(world, (), infinitize_test_recorder); }
-        );
+        ).unwrap()
 }
 
-fn add_resource_mutation_reactor(mut react_commands: ReactCommands)
+fn add_resource_mutation_reactor(mut react_commands: ReactCommands) -> RevokeToken
 {
     react_commands.add_resource_mutation_reactor::<TestReactRes>(
             move |world| { syscall(world, (), update_test_recorder_with_resource); }
-        );
+        )
 }
 
-fn add_event_reactor(mut react_commands: ReactCommands)
+fn add_event_reactor(mut react_commands: ReactCommands) -> EventRevokeToken<usize>
 {
     react_commands.add_event_reactor::<usize>(
             move |world, event| { syscall(world, *event, update_test_recorder_with_event); }
-        );
+        )
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -198,6 +198,22 @@ fn add_entity_mutation_reactor_chain_to_res(In(entity): In<Entity>, mut react_co
             entity,
             move |world| { syscall(world, entity, pass_component_to_res); }
         );
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn revoke_reactor(In(token): In<RevokeToken>, mut react_commands: ReactCommands)
+{
+    react_commands.revoke(token);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn revoke_event_reactor(In(token): In<EventRevokeToken<usize>>, mut react_commands: ReactCommands)
+{
+    react_commands.revoke_event_reactor(token);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -615,6 +631,101 @@ fn react_pieces_without_plugin()
     syscall(&mut world, 100, update_react_res);
 
     //todo: send event
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+#[test]
+fn revoke_entity_mutation_reactor()
+{
+    // setup
+    let mut app = App::new();
+    app.add_plugins(ReactPlugin)
+        .init_resource::<TestReactRecorder>();
+    let mut world = &mut app.world;
+
+    // entities
+    let test_entity = world.spawn_empty().id();
+
+    // add reactor
+    let token = syscall(&mut world, test_entity, add_entity_mutation_reactor);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // insert (no reaction)
+    syscall(&mut world, (test_entity, TestComponent(5)), insert_on_test_entity);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // update (reaction)
+    syscall(&mut world, (test_entity, TestComponent(10)), update_test_entity);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 10);
+
+    // revoke
+    syscall(&mut world, token, revoke_reactor);
+
+    // update (no reaction)
+    syscall(&mut world, (test_entity, TestComponent(1)), update_test_entity);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 10);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+#[test]
+fn revoke_component_mutation_reactor()
+{
+    // setup
+    let mut app = App::new();
+    app.add_plugins(ReactPlugin)
+        .init_resource::<TestReactRecorder>();
+    let mut world = &mut app.world;
+
+    // entities
+    let test_entity = world.spawn_empty().id();
+
+    // add reactor
+    let token = syscall(&mut world, (), add_mutation_reactor);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // insert (no reaction)
+    syscall(&mut world, (test_entity, TestComponent(5)), insert_on_test_entity);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // update (reaction)
+    syscall(&mut world, (test_entity, TestComponent(10)), update_test_entity);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 10);
+
+    // revoke
+    syscall(&mut world, token, revoke_reactor);
+
+    // update (no reaction)
+    syscall(&mut world, (test_entity, TestComponent(1)), update_test_entity);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 10);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+#[test]
+fn revoke_data_event_reactor()
+{
+    // setup
+    let mut app = App::new();
+    app.add_plugins(ReactPlugin)
+        .init_resource::<TestReactRecorder>();
+    let mut world = &mut app.world;
+
+    // add reactor
+    let revoke_token = syscall(&mut world, (), add_event_reactor);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // send event (reaction)
+    syscall(&mut world, 222, send_data_event);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 222);
+
+    // revoke reactor
+    syscall(&mut world, revoke_token, revoke_event_reactor);
+
+    // send event (no reaction)
+    syscall(&mut world, 1, send_data_event);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 222);
 }
 
 //-------------------------------------------------------------------------------------------------------------------

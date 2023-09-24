@@ -64,6 +64,16 @@ struct EntityReactors
     removal_callbacks   : HashMap<TypeId, Vec<(u64, Callback<()>)>>,
 }
 
+impl EntityReactors
+{
+    fn is_empty(&self) -> bool
+    {
+        self.insertion_callbacks.is_empty() &&
+        self.mutation_callbacks.is_empty()  &&
+        self.removal_callbacks.is_empty()  
+    }
+}
+
 impl Default for EntityReactors
 {
     fn default() -> Self
@@ -84,6 +94,16 @@ struct ComponentReactors
     insertion_callbacks : Vec<(u64, CallbackWith<(), Entity>)>,
     mutation_callbacks  : Vec<(u64, CallbackWith<(), Entity>)>,
     removal_callbacks   : Vec<(u64, CallbackWith<(), Entity>)>,
+}
+
+impl ComponentReactors
+{
+    fn is_empty(&self) -> bool
+    {
+        self.insertion_callbacks.is_empty() &&
+        self.mutation_callbacks.is_empty()  &&
+        self.removal_callbacks.is_empty()  
+    }
 }
 
 impl Default for ComponentReactors
@@ -357,19 +377,20 @@ fn revoke_entity_reactor(
         comp_id,
         callback_id
     ))                  : In<(Entity, EntityReactType, TypeId, u64)>,
+    mut commands        : Commands,
     mut entity_reactors : Query<&mut EntityReactors>
 ){
     // get this entity's entity reactors
     let Ok(mut entity_reactors) = entity_reactors.get_mut(entity) else { return; };
 
     // get cached callbacks
-    let callbacks = match rtype
+    let callbacks_map = match rtype
     {
-        EntityReactType::Insertion => entity_reactors.insertion_callbacks.get_mut(&comp_id),
-        EntityReactType::Mutation  => entity_reactors.mutation_callbacks.get_mut(&comp_id),
-        EntityReactType::Removal   => entity_reactors.removal_callbacks.get_mut(&comp_id),
+        EntityReactType::Insertion => &mut entity_reactors.insertion_callbacks,
+        EntityReactType::Mutation  => &mut entity_reactors.mutation_callbacks,
+        EntityReactType::Removal   => &mut entity_reactors.removal_callbacks,
     };
-    let Some(callbacks) = callbacks else { return; };
+    let Some(callbacks) = callbacks_map.get_mut(&comp_id) else { return; };
 
     // revoke reactor
     for (idx, (id, _)) in callbacks.iter().enumerate()
@@ -378,6 +399,13 @@ fn revoke_entity_reactor(
         let _ = callbacks.remove(idx);  //todo: consider swap_remove()
         break;
     }
+
+    // clean up if entity has no reactors
+    if !(callbacks.len() == 0) { return; }
+    let _ = callbacks_map.remove(&comp_id);
+
+    if !entity_reactors.is_empty() { return; }
+    commands.get_entity(entity).unwrap().remove::<EntityReactors>();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -531,11 +559,12 @@ impl ReactCache
         {
             if *id != callback_id { continue; }
             let _ = callbacks.remove(idx);  //todo: consider swap_remove()
+
             break;
         }
 
         // cleanup empty hashmap entries
-        if callbacks.len() > 0 { return; }
+        if !component_reactors.is_empty() { return; }
         let _ = self.component_reactors.remove(&comp_id);
     }
 
