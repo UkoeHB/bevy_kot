@@ -244,9 +244,9 @@ impl Default for ComponentReactors
 /// Collect component removals.
 /// Note: `RemovedComponents` acts like an event reader, so multiple invocations of this system within one tick will
 /// not see duplicate removals.
-fn collect_component_removals<C: Send + Sync + 'static>(
+fn collect_component_removals<C: Component>(
     In(mut buffer) : In<Vec<Entity>>,
-    mut removed    : RemovedComponents<React<C>>
+    mut removed    : RemovedComponents<C>
 ) -> Vec<Entity>
 {
     buffer.clear();
@@ -265,7 +265,7 @@ struct RemovalChecker
 
 impl RemovalChecker
 {
-    fn new<C: Send + Sync + 'static>() -> Self
+    fn new<C: Component>() -> Self
     {
         Self{
             component_id : TypeId::of::<C>(),
@@ -280,7 +280,19 @@ impl RemovalChecker
 /// Tag for tracking despawns of entities with despawn reactors.
 //todo: embed callback for sending entity to despawn event receiver on Drop
 #[derive(Component)]
-struct DespawnTracker;
+struct DespawnTracker
+{
+    parent   : Entity,
+    notifier : Arc<crossbeam::channel::Sender<Entity>>,
+}
+
+impl Drop for DespawnTracker
+{
+    fn drop(&mut self)
+    {
+        let _ = self.notifier.send(self.parent);
+    }
+}
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -290,25 +302,22 @@ struct DespawnTracker;
 fn react_to_despawns_impl(
     mut commands    : Commands,
     mut react_cache : ResMut<ReactCache>,
-    despawn_tracked : Query<Entity, With<DespawnTracker>>,
 ) -> usize
 {
     let mut callback_count = 0;
-    react_cache.despawn_reactors.retain(
-            |entity, despawn_callbacks|
-            {
-                // keep if entity is alive
-                if despawn_tracked.contains(*entity) { return true; }
 
-                // queue despawn callbacks
-                for despawn_callback in despawn_callbacks.drain(..)
-                {
-                    enque_reaction(&mut commands, despawn_callback);
-                    callback_count += 1;
-                }
-                false
-            }
-        );
+    while let Ok(despawned_entity) = react_cache.despawn_receiver.try_recv()
+    {
+        // remove prepared callbacks
+        let Some(mut despawn_callbacks) = react_cache.despawn_reactors.remove(&despawned_entity) else { continue; };
+
+        // queue despawn callbacks
+        for despawn_callback in despawn_callbacks.drain(..)
+        {
+            enque_reaction(&mut commands, despawn_callback);
+            callback_count += 1;
+        }
+    }
 
     callback_count
 }
@@ -347,6 +356,10 @@ struct ReactCache
     // Entity despawn reactors
     //todo: is there a more efficient data structure? need faster cleanup on despawns
     despawn_reactors: HashMap<Entity, Vec<CallOnce<()>>>,
+    /// Despawn sender (cached for reuse with new despawn trackers)
+    despawn_sender: Arc<crossbeam::channel::Sender<Entity>>,
+    /// Despawn receiver
+    despawn_receiver: crossbeam::channel::Receiver<Entity>,
 
     /// Resource mutation reactors
     resource_reactors: HashMap<TypeId, Vec<Callback<()>>>,
@@ -354,7 +367,7 @@ struct ReactCache
 
 impl ReactCache
 {
-    fn track_removals<C: Send + Sync + 'static>(&mut self)
+    fn track_removals<C: Component>(&mut self)
     {
         // track removals of this component if untracked
         if self.tracked_removals.contains(&TypeId::of::<C>()) { return; };
@@ -508,6 +521,9 @@ impl Default for ReactCache
 {
     fn default() -> Self
     {
+        // prep despawn channel
+        let (despawn_sender, despawn_receiver) = crossbeam::channel::unbounded::<Entity>();
+
         Self{
             entity_reactors_query : None,
             component_reactors    : HashMap::default(),
@@ -515,6 +531,8 @@ impl Default for ReactCache
             removal_checkers      : Vec::new(),
             removal_buffer        : None,
             despawn_reactors      : HashMap::new(),
+            despawn_sender        : Arc::new(despawn_sender),
+            despawn_receiver,
             resource_reactors     : HashMap::new(),
         }
     }
@@ -649,9 +667,9 @@ impl<'w, 's> ReactCommands<'w, 's>
             );
     }
 
-    /// React when a `React<C>` is removed from any entity. IMMEDIATE
+    /// React when a component `C` is removed from any entity (`C` may be a `React<T>` or another component). IMMEDIATE
     /// - Reactor takes the entity the component was removed from.
-    pub fn add_removal_reactor<'a, C: Send + Sync + 'static>(
+    pub fn add_removal_reactor<'a, C: Component>(
         &'a mut self,
         reactor : impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ){
@@ -660,9 +678,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_removal_reactor::<C>(CallbackWith::new(reactor));
     }
 
-    /// React when a `React<C>` is removed from a specific entity. DEFERRED
+    /// React when a component `C` is removed from a specific entity (`C` may be a `React<T>` or another
+    /// component). DEFERRED
     /// - Does nothing if the entity does not exist.
-    pub fn add_entity_removal_reactor<'a, C: Send + Sync + 'static>(
+    pub fn add_entity_removal_reactor<'a, C: Component>(
         &'a mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -684,7 +703,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     ){
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
         let Some(mut entity_commands) = self.commands.get_entity(entity) else { return; };
-        entity_commands.insert( DespawnTracker );
+        entity_commands.insert( DespawnTracker{ parent: entity, notifier: cache.despawn_sender.clone() } );
         cache.register_despawn_reactor(entity, CallOnce::new(reactonce));
     }
 

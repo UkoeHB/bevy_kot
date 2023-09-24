@@ -82,7 +82,7 @@ fn add_entity_mutation_reactor(In(entity): In<Entity>, mut react_commands: React
 
 fn add_entity_removal_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands)
 {
-    react_commands.add_entity_removal_reactor::<TestComponent>(
+    react_commands.add_entity_removal_reactor::<React<TestComponent>>(
             entity,
             move |world| { syscall(world, (), infinitize_test_recorder); }
         );
@@ -104,7 +104,7 @@ fn add_mutation_reactor(mut react_commands: ReactCommands)
 
 fn add_removal_reactor(mut react_commands: ReactCommands)
 {
-    react_commands.add_removal_reactor::<TestComponent>(
+    react_commands.add_removal_reactor::<React<TestComponent>>(
             move |world, _entity| { syscall(world, (), infinitize_test_recorder); }
         );
 }
