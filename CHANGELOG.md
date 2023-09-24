@@ -4,7 +4,7 @@
 
 ### Added
 
-- `React` components and `ReactRes` resources with hooks inserted via `ReactCommands`.
+- `React` components, `ReactRes` resources, and `ReactEvent` messages with hooks inserted via `ReactCommands`.
 
 
 ## [0.0.2]

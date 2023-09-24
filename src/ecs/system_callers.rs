@@ -229,7 +229,7 @@ pub fn call_basic<S: 'static + BasicCallableSystem>(world: &mut World, id: CallI
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Execute a system on some data.
+/// Execute a system on some data then apply the system's deferred commands.
 ///
 /// # WARNING
 /// If a system is called recursively, the Local system parameters of all but the outer-most invocation will not
@@ -306,7 +306,7 @@ where
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Execute a named system on some data.
+/// Execute a named system on some data then apply the system's deferred commands.
 ///
 /// Systems with different names will have different Local state.
 ///

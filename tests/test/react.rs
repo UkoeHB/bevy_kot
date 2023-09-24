@@ -25,6 +25,14 @@ struct TestReactRecorder(usize);
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+fn infinitize_test_recorder(mut recorder: ResMut<TestReactRecorder>)
+{
+    recorder.0 = usize::MAX;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
 /// Copy test component to recorder
 fn update_test_recorder_with_component(
     In(entity)    : In<Entity>,
@@ -37,20 +45,20 @@ fn update_test_recorder_with_component(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn infinitize_test_recorder(mut recorder: ResMut<TestReactRecorder>)
-{
-    recorder.0 = usize::MAX;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
 /// Copy test component to recorder
 fn update_test_recorder_with_resource(
     mut recorder  : ResMut<TestReactRecorder>,
     resource      : Res<ReactRes<TestReactRes>>,
 ){
     recorder.0 = resource.0;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn update_test_recorder_with_event(In(data): In<usize>, mut recorder: ResMut<TestReactRecorder>)
+{
+    recorder.0 = data;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -116,6 +124,13 @@ fn add_resource_mutation_reactor(mut react_commands: ReactCommands)
         );
 }
 
+fn add_event_reactor(mut react_commands: ReactCommands)
+{
+    react_commands.add_event_reactor::<usize>(
+            move |world, event| { syscall(world, *event, update_test_recorder_with_event); }
+        );
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -155,6 +170,14 @@ fn update_react_res(
     mut react_res      : ResMut<ReactRes<TestReactRes>>
 ){
     react_res.get_mut(&mut react_commands).0 = new_val;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn send_data_event(In(data): In<usize>, mut react_commands: ReactCommands)
+{
+    react_commands.send(data);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -472,20 +495,44 @@ fn react_resource_mutation()
 
     // add reactor
     syscall(&mut world, (), add_resource_mutation_reactor);
-    assert_eq!(world.resource::<ReactRes<TestReactRes>>().0, 0);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
 
     // update resource (reaction)
     syscall(&mut world, 100, update_react_res);
-    assert_eq!(world.resource::<ReactRes<TestReactRes>>().0, 100);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 100);
 
     // update resource (reaction)
     syscall(&mut world, 1, update_react_res);
-    assert_eq!(world.resource::<ReactRes<TestReactRes>>().0, 1);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 1);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 
-//react chain: mutation into mutation
+#[test]
+fn react_data_event()
+{
+    // setup
+    let mut app = App::new();
+    app.add_plugins(ReactPlugin)
+        .init_resource::<TestReactRecorder>();
+    let mut world = &mut app.world;
+
+    // add reactor
+    syscall(&mut world, (), add_event_reactor);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // send event (reaction)
+    syscall(&mut world, 222, send_data_event);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 222);
+
+    // send event (reaction)
+    syscall(&mut world, 1, send_data_event);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 1);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+//react chain: component mutation into resource mutation
 #[test]
 fn react_mutation_chain()
 {
@@ -503,7 +550,7 @@ fn react_mutation_chain()
     // add reactors
     syscall(&mut world, test_entity_a, add_entity_mutation_reactor_chain_to_res);
     syscall(&mut world, (), add_resource_mutation_reactor);
-    assert_eq!(world.resource::<ReactRes<TestReactRes>>().0, 0);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
 
     // insert (no reaction)
     syscall(&mut world, (test_entity_a, TestComponent(1)), insert_on_test_entity);
