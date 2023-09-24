@@ -10,6 +10,7 @@ use bevy_fn_plugin::*;
 //standard shortcuts
 use core::any::TypeId;
 use core::ops::Deref;
+use std::marker::PhantomData;
 use std::sync::Arc;
 use std::vec::Vec;
 
@@ -45,23 +46,6 @@ fn push_react_command_queue(world: &mut World, queue: CommandQueue)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Queue a react callback, followed by a call to `apply_deferred`, then react to all removals and despawns.
-/// - We want to apply any side effects or chained reactions before any sibling reactions/commands.
-fn enque_reaction(commands: &mut Commands, cb: impl Command)
-{
-    commands.add(
-            move |world: &mut World|
-            {
-                cb.apply(world);
-                syscall(world, (), apply_deferred);
-                react_to_all_removals_and_despawns(world);
-            }
-        );
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
 enum EntityReactType
 {
     Insertion,
@@ -75,9 +59,9 @@ enum EntityReactType
 #[derive(Component)]
 struct EntityReactors
 {
-    insertion_callbacks : HashMap<TypeId, Vec<Callback<()>>>,
-    mutation_callbacks  : HashMap<TypeId, Vec<Callback<()>>>,
-    removal_callbacks   : HashMap<TypeId, Vec<Callback<()>>>,
+    insertion_callbacks : HashMap<TypeId, Vec<(u64, Callback<()>)>>,
+    mutation_callbacks  : HashMap<TypeId, Vec<(u64, Callback<()>)>>,
+    removal_callbacks   : HashMap<TypeId, Vec<(u64, Callback<()>)>>,
 }
 
 impl Default for EntityReactors
@@ -95,135 +79,11 @@ impl Default for EntityReactors
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Add reactor to an entity. The reactor will be invoked when the event occurs on the entity.
-fn register_entity_reactor<C: Send + Sync + 'static>(
-    In((rtype, entity, callback)) : In<(EntityReactType, Entity, Callback<()>)>,
-    mut commands                  : Commands,
-    mut entity_reactors           : Query<&mut EntityReactors>,
-){
-    // callback adder
-    let add_callback_fn =
-        move |entity_reactors: &mut EntityReactors|
-        {
-            let callbacks = match rtype
-            {
-                EntityReactType::Insertion => entity_reactors.insertion_callbacks.entry(TypeId::of::<C>()).or_default(),
-                EntityReactType::Mutation  => entity_reactors.mutation_callbacks.entry(TypeId::of::<C>()).or_default(),
-                EntityReactType::Removal   => entity_reactors.removal_callbacks.entry(TypeId::of::<C>()).or_default(),
-            };
-            callbacks.push(callback);
-        };
-
-    // add callback to entity
-    match entity_reactors.get_mut(entity)
-    {
-        Ok(mut entity_reactors) => add_callback_fn(&mut entity_reactors),
-        _ =>
-        {
-            let Some(mut entity_commands) = commands.get_entity(entity) else { return; };
-
-            // make new reactor tracker for the entity
-            let mut entity_reactors = EntityReactors::default();
-
-            // add callback and insert to entity
-            add_callback_fn(&mut entity_reactors);
-            entity_commands.insert(entity_reactors);
-        }
-    }
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-fn register_event_reactor<E: Send + Sync + 'static>(commands: &mut Commands, callback: CallbackWith<(), ReactEvent<E>>)
-{
-    commands.add(
-            move |world: &mut World|
-            {
-                let mut event_reactors = world.get_resource_or_insert_with(|| EventReactors::<E>::default());
-                event_reactors.reactors.push(callback);
-            }
-        );
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-/// React to an entity event.
-/// - Returns number of callbacks queued.
-fn react_to_entity_event_impl(
-    rtype           : EntityReactType,
-    component_id    : TypeId,
-    commands        : &mut Commands,
-    entity_reactors : &EntityReactors,
-) -> usize
-{
-    // get cached callbacks
-    let callbacks = match rtype
-    {
-        EntityReactType::Insertion => entity_reactors.insertion_callbacks.get(&component_id),
-        EntityReactType::Mutation  => entity_reactors.mutation_callbacks.get(&component_id),
-        EntityReactType::Removal   => entity_reactors.removal_callbacks.get(&component_id),
-    };
-    let Some(callbacks) = callbacks else { return 0; };
-
-    // queue callbacks
-    let mut callback_count = 0;
-    for cb in callbacks
-    {
-        enque_reaction(commands, cb.clone());
-        callback_count += 1;
-    }
-
-    callback_count
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-/// React to an entity event.
-fn react_to_entity_event(
-    In((rtype, entity, component_id)) : In<(EntityReactType, Entity, TypeId)>,
-    mut commands                      : Commands,
-    entity_reactors                   : Query<&EntityReactors>,
-){
-    // get this entity's entity reactors
-    let Ok(entity_reactors) = entity_reactors.get(entity) else { return; };
-
-    // react
-    let _ = react_to_entity_event_impl(rtype, component_id, &mut commands, &entity_reactors);
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-/// React to a data event.
-fn react_to_data_event<E: Send + Sync + 'static>(
-    In(event)      : In<E>,
-    mut commands   : Commands,
-    event_reactors : Option<Res<EventReactors<E>>>)
-{
-    // get reactors
-    let Some(ref event_reactors) = event_reactors else { return; };
-    if event_reactors.reactors.len() == 0 { return; }
-
-    // queue reactions
-    let event = ReactEvent::new(event);
-
-    for callback in event_reactors.reactors.iter()
-    {
-        enque_reaction(&mut commands, callback.call_with(event.clone()));
-    }
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
 struct ComponentReactors
 {
-    insertion_callbacks : Vec<CallbackWith<(), Entity>>,
-    mutation_callbacks  : Vec<CallbackWith<(), Entity>>,
-    removal_callbacks   : Vec<CallbackWith<(), Entity>>,
+    insertion_callbacks : Vec<(u64, CallbackWith<(), Entity>)>,
+    mutation_callbacks  : Vec<(u64, CallbackWith<(), Entity>)>,
+    removal_callbacks   : Vec<(u64, CallbackWith<(), Entity>)>,
 }
 
 impl Default for ComponentReactors
@@ -236,22 +96,6 @@ impl Default for ComponentReactors
             removal_callbacks   : Vec::new(),
         }
     }
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-/// Collect component removals.
-/// Note: `RemovedComponents` acts like an event reader, so multiple invocations of this system within one tick will
-/// not see duplicate removals.
-fn collect_component_removals<C: Component>(
-    In(mut buffer) : In<Vec<Entity>>,
-    mut removed    : RemovedComponents<C>
-) -> Vec<Entity>
-{
-    buffer.clear();
-    removed.iter().for_each(|entity| buffer.push(entity));
-    buffer
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -297,6 +141,186 @@ impl Drop for DespawnTracker
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Cache of event-specific reactors.
+#[derive(Resource)]
+struct EventReactors<E: Send + Sync + 'static>
+{
+    reactors: Vec<(u64, CallbackWith<(), ReactEvent<E>>)>,
+}
+
+impl<E: Send + Sync + 'static> Default for EventReactors<E> { fn default() -> Self { Self{ reactors: Vec::new() } } }
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Collect component removals.
+/// Note: `RemovedComponents` acts like an event reader, so multiple invocations of this system within one tick will
+/// not see duplicate removals.
+fn collect_component_removals<C: Component>(
+    In(mut buffer) : In<Vec<Entity>>,
+    mut removed    : RemovedComponents<C>
+) -> Vec<Entity>
+{
+    buffer.clear();
+    removed.iter().for_each(|entity| buffer.push(entity));
+    buffer
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Add reactor to an entity. The reactor will be invoked when the event occurs on the entity.
+fn register_entity_reactor<C: Send + Sync + 'static>(
+    In((
+        rtype,
+        entity,
+        callback,
+        callback_id
+    ))                  : In<(EntityReactType, Entity, Callback<()>, u64)>,
+    mut commands        : Commands,
+    mut entity_reactors : Query<&mut EntityReactors>,
+){
+    // callback adder
+    let add_callback_fn =
+        move |entity_reactors: &mut EntityReactors|
+        {
+            let callbacks = match rtype
+            {
+                EntityReactType::Insertion => entity_reactors.insertion_callbacks.entry(TypeId::of::<C>()).or_default(),
+                EntityReactType::Mutation  => entity_reactors.mutation_callbacks.entry(TypeId::of::<C>()).or_default(),
+                EntityReactType::Removal   => entity_reactors.removal_callbacks.entry(TypeId::of::<C>()).or_default(),
+            };
+            callbacks.push((callback_id, callback));
+        };
+
+    // add callback to entity
+    match entity_reactors.get_mut(entity)
+    {
+        Ok(mut entity_reactors) => add_callback_fn(&mut entity_reactors),
+        _ =>
+        {
+            let Some(mut entity_commands) = commands.get_entity(entity) else { return; };
+
+            // make new reactor tracker for the entity
+            let mut entity_reactors = EntityReactors::default();
+
+            // add callback and insert to entity
+            add_callback_fn(&mut entity_reactors);
+            entity_commands.insert(entity_reactors);
+        }
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn register_event_reactor<E: Send + Sync + 'static>(
+    commands    : &mut Commands,
+    callback    : CallbackWith<(), ReactEvent<E>>,
+    callback_id : u64,
+) -> EventRevokeToken<E>
+{
+    commands.add(
+            move |world: &mut World|
+            {
+                let mut event_reactors = world.get_resource_or_insert_with(|| EventReactors::<E>::default());
+                event_reactors.reactors.push((callback_id, callback));
+            }
+        );
+
+    EventRevokeToken::<E>{ callback_id, _p: PhantomData::default() }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Queue a react callback, followed by a call to `apply_deferred`, then react to all removals and despawns.
+/// - We want to apply any side effects or chained reactions before any sibling reactions/commands.
+fn enque_reaction(commands: &mut Commands, cb: impl Command)
+{
+    commands.add(
+            move |world: &mut World|
+            {
+                cb.apply(world);
+                syscall(world, (), apply_deferred);
+                react_to_all_removals_and_despawns(world);
+            }
+        );
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// React to an entity event.
+/// - Returns number of callbacks queued.
+fn react_to_entity_event_impl(
+    rtype           : EntityReactType,
+    component_id    : TypeId,
+    commands        : &mut Commands,
+    entity_reactors : &EntityReactors,
+) -> usize
+{
+    // get cached callbacks
+    let callbacks = match rtype
+    {
+        EntityReactType::Insertion => entity_reactors.insertion_callbacks.get(&component_id),
+        EntityReactType::Mutation  => entity_reactors.mutation_callbacks.get(&component_id),
+        EntityReactType::Removal   => entity_reactors.removal_callbacks.get(&component_id),
+    };
+    let Some(callbacks) = callbacks else { return 0; };
+
+    // queue callbacks
+    let mut callback_count = 0;
+    for (_, cb) in callbacks
+    {
+        enque_reaction(commands, cb.clone());
+        callback_count += 1;
+    }
+
+    callback_count
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// React to an entity event.
+fn react_to_entity_event(
+    In((rtype, entity, component_id)) : In<(EntityReactType, Entity, TypeId)>,
+    mut commands                      : Commands,
+    entity_reactors                   : Query<&EntityReactors>,
+){
+    // get this entity's entity reactors
+    let Ok(entity_reactors) = entity_reactors.get(entity) else { return; };
+
+    // react
+    let _ = react_to_entity_event_impl(rtype, component_id, &mut commands, &entity_reactors);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// React to a data event.
+fn react_to_data_event<E: Send + Sync + 'static>(
+    In(event)      : In<E>,
+    mut commands   : Commands,
+    event_reactors : Option<Res<EventReactors<E>>>)
+{
+    // get reactors
+    let Some(ref event_reactors) = event_reactors else { return; };
+    if event_reactors.reactors.len() == 0 { return; }
+
+    // queue reactions
+    let event = ReactEvent::new(event);
+
+    for (_, callback) in event_reactors.reactors.iter()
+    {
+        enque_reaction(&mut commands, callback.call_with(event.clone()));
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
 /// React to tracked despawns.
 /// - Returns number of callbacks queued.
 fn react_to_despawns_impl(
@@ -312,7 +336,7 @@ fn react_to_despawns_impl(
         let Some(mut despawn_callbacks) = react_cache.despawn_reactors.remove(&despawned_entity) else { continue; };
 
         // queue despawn callbacks
-        for despawn_callback in despawn_callbacks.drain(..)
+        for (_, despawn_callback) in despawn_callbacks.drain(..)
         {
             enque_reaction(&mut commands, despawn_callback);
             callback_count += 1;
@@ -325,14 +349,61 @@ fn react_to_despawns_impl(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Cache of event-specific reactors.
-#[derive(Resource)]
-struct EventReactors<E: Send + Sync + 'static>
-{
-    reactors: Vec<CallbackWith<(), ReactEvent<E>>>,
+/// Revoke an entity reactor.
+fn revoke_entity_reactor(
+    In((
+        entity,
+        rtype,
+        comp_id,
+        callback_id
+    ))                  : In<(Entity, EntityReactType, TypeId, u64)>,
+    mut entity_reactors : Query<&mut EntityReactors>
+){
+    // get this entity's entity reactors
+    let Ok(mut entity_reactors) = entity_reactors.get_mut(entity) else { return; };
+
+    // get cached callbacks
+    let callbacks = match rtype
+    {
+        EntityReactType::Insertion => entity_reactors.insertion_callbacks.get_mut(&comp_id),
+        EntityReactType::Mutation  => entity_reactors.mutation_callbacks.get_mut(&comp_id),
+        EntityReactType::Removal   => entity_reactors.removal_callbacks.get_mut(&comp_id),
+    };
+    let Some(callbacks) = callbacks else { return; };
+
+    // revoke reactor
+    for (idx, (id, _)) in callbacks.iter().enumerate()
+    {
+        if *id != callback_id { continue; }
+        let _ = callbacks.remove(idx);  //todo: consider swap_remove()
+        break;
+    }
 }
 
-impl<E: Send + Sync + 'static> Default for EventReactors<E> { fn default() -> Self { Self{ reactors: Vec::new() } } }
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Revoke an event reactor.
+fn revoke_event_reactor<E: Send + Sync + 'static>(
+    In(callback_id)    : In<u64>,
+    mut commands       : Commands,
+    mut event_reactors : Option<ResMut<EventReactors<E>>>
+){
+    // get reactors
+    let Some(ref mut event_reactors) = event_reactors else { return; };
+
+    // revoke reactor
+    for (idx, (id, _)) in event_reactors.reactors.iter().enumerate()
+    {
+        if *id != callback_id { continue; }
+        let _ = event_reactors.reactors.remove(idx);  //todo: consider swap_remove()
+        break;
+    }
+
+    // cleanup if reactors is empty
+    if event_reactors.reactors.len() > 0 { return; }
+    commands.remove_resource::<EventReactors<E>>();
+}
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -340,6 +411,9 @@ impl<E: Send + Sync + 'static> Default for EventReactors<E> { fn default() -> Se
 #[derive(Resource)]
 struct ReactCache
 {
+    /// Callback id source. Used for reactor revocation.
+    callback_counter: u64,
+
     /// query to get read-access to entity reactors
     entity_reactors_query: Option<QueryState<&'static EntityReactors>>,
 
@@ -355,18 +429,25 @@ struct ReactCache
 
     // Entity despawn reactors
     //todo: is there a more efficient data structure? need faster cleanup on despawns
-    despawn_reactors: HashMap<Entity, Vec<CallOnce<()>>>,
+    despawn_reactors: HashMap<Entity, Vec<(u64, CallOnce<()>)>>,
     /// Despawn sender (cached for reuse with new despawn trackers)
     despawn_sender: Arc<crossbeam::channel::Sender<Entity>>,
     /// Despawn receiver
     despawn_receiver: crossbeam::channel::Receiver<Entity>,
 
     /// Resource mutation reactors
-    resource_reactors: HashMap<TypeId, Vec<Callback<()>>>,
+    resource_reactors: HashMap<TypeId, Vec<(u64, Callback<()>)>>,
 }
 
 impl ReactCache
 {
+    fn next_callback_id(&mut self) -> u64
+    {
+        let counter = self.callback_counter;
+        self.callback_counter += 1;
+        counter
+    }
+
     fn track_removals<C: Component>(&mut self)
     {
         // track removals of this component if untracked
@@ -375,47 +456,125 @@ impl ReactCache
         self.removal_checkers.push(RemovalChecker::new::<C>());
     }
 
-    fn register_insertion_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
+    fn register_insertion_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
     {
+        let callback_id = self.next_callback_id();
         self.component_reactors
             .entry(TypeId::of::<C>())
             .or_default()
             .insertion_callbacks
-            .push(callback);
+            .push((callback_id, callback));
+
+        RevokeToken{ reactor_type: ReactorType::ComponentInsertion(TypeId::of::<C>()), callback_id }
     }
 
-    fn register_mutation_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
+    fn register_mutation_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
     {
+        let callback_id = self.next_callback_id();
         self.component_reactors
             .entry(TypeId::of::<C>())
             .or_default()
             .mutation_callbacks
-            .push(callback);
+            .push((callback_id, callback));
+
+        RevokeToken{ reactor_type: ReactorType::ComponentMutation(TypeId::of::<C>()), callback_id }
     }
 
-    fn register_removal_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>)
+    fn register_removal_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
     {
+        let callback_id = self.next_callback_id();
         self.component_reactors
             .entry(TypeId::of::<C>())
             .or_default()
             .removal_callbacks
-            .push(callback);
+            .push((callback_id, callback));
+
+        RevokeToken{ reactor_type: ReactorType::ComponentRemoval(TypeId::of::<C>()), callback_id }
     }
 
-    fn register_despawn_reactor(&mut self, entity: Entity, callonce: CallOnce<()>)
+    fn register_despawn_reactor(&mut self, entity: Entity, callonce: CallOnce<()>) -> RevokeToken
     {
+        let callback_id = self.next_callback_id();
         self.despawn_reactors
             .entry(entity)
             .or_default()
-            .push(callonce);
+            .push((callback_id, callonce));
+
+        RevokeToken{ reactor_type: ReactorType::Despawn(entity), callback_id }
     }
 
-    fn register_resource_mutation_reactor<R: Send + Sync + 'static>(&mut self, callback: Callback<()>)
+    fn register_resource_mutation_reactor<R: Send + Sync + 'static>(&mut self, callback: Callback<()>) -> RevokeToken
     {
+        let callback_id = self.next_callback_id();
         self.resource_reactors
             .entry(TypeId::of::<R>())
             .or_default()
-            .push(callback);
+            .push((callback_id, callback));
+
+        RevokeToken{ reactor_type: ReactorType::ResourceMutation(TypeId::of::<R>()), callback_id }
+    }
+
+    /// Revoke a component insertion reactor.
+    fn revoke_component_reactor(&mut self, rtype: EntityReactType, comp_id: TypeId, callback_id: u64)
+    {
+        // get cached callbacks
+        let Some(component_reactors) = self.component_reactors.get_mut(&comp_id) else { return; };
+        let callbacks = match rtype
+        {
+            EntityReactType::Insertion => &mut component_reactors.insertion_callbacks,
+            EntityReactType::Mutation  => &mut component_reactors.mutation_callbacks,
+            EntityReactType::Removal   => &mut component_reactors.removal_callbacks
+        };
+
+        // revoke reactor
+        for (idx, (id, _)) in callbacks.iter().enumerate()
+        {
+            if *id != callback_id { continue; }
+            let _ = callbacks.remove(idx);  //todo: consider swap_remove()
+            break;
+        }
+
+        // cleanup empty hashmap entries
+        if callbacks.len() > 0 { return; }
+        let _ = self.component_reactors.remove(&comp_id);
+    }
+
+    /// Revoke a despawn reactor.
+    fn revoke_despawn_reactor(&mut self, entity: Entity, callback_id: u64)
+    {
+        // get callbacks
+        let Some(callbacks) = self.despawn_reactors.get_mut(&entity) else { return; };
+
+        // revoke reactor
+        for (idx, (id, _)) in callbacks.iter().enumerate()
+        {
+            if *id != callback_id { continue; }
+            let _ = callbacks.remove(idx);  //todo: consider swap_remove()
+            break;
+        }
+
+        // cleanup empty hashmap entries
+        if callbacks.len() > 0 { return; }
+        let _ = self.despawn_reactors.remove(&entity);
+    }
+
+    /// Revoke a resource mutation reactor.
+    fn revoke_resource_mutation_reactor(&mut self, resource_id: TypeId, callback_id: u64)
+    {
+        // get callbacks
+        let Some(callbacks) = self.resource_reactors.get_mut(&resource_id) else { return; };
+
+        // revoke reactor
+        for (idx, (id, _)) in callbacks.iter().enumerate()
+        {
+            if *id != callback_id { continue; }
+            let _ = callbacks.remove(idx);  //todo: consider swap_remove()
+            break;
+        }
+
+        // cleanup empty hashmap entries
+        if callbacks.len() > 0 { return; }
+        let _ = self.resource_reactors.remove(&resource_id);
     }
 
     /// Queue reactions to a component insertion.
@@ -429,7 +588,7 @@ impl ReactCache
 
         // entity-agnostic component reactors
         let Some(handlers) = self.component_reactors.get(&TypeId::of::<C>()) else { return; };
-        for cb in handlers.insertion_callbacks.iter()
+        for (_, cb) in handlers.insertion_callbacks.iter()
         {
             enque_reaction(commands, cb.call_with(entity));
         }
@@ -446,7 +605,7 @@ impl ReactCache
 
         // entity-agnostic component reactors
         let Some(handlers) = self.component_reactors.get(&TypeId::of::<C>()) else { return; };
-        for cb in handlers.mutation_callbacks.iter()
+        for (_, cb) in handlers.mutation_callbacks.iter()
         {
             enque_reaction(commands, cb.call_with(entity));
         }
@@ -490,7 +649,7 @@ impl ReactCache
 
                 // entity-agnostic component reactors
                 let Some(reactors) = self.component_reactors.get(&checker.component_id) else { continue; };
-                for cb in reactors.removal_callbacks.iter()
+                for (_, cb) in reactors.removal_callbacks.iter()
                 {
                     enque_reaction(&mut commands, cb.call_with(*entity));
                     callback_count += 1;
@@ -510,7 +669,7 @@ impl ReactCache
     {
         // resource handlers
         let Some(handlers) = self.resource_reactors.get(&TypeId::of::<R>()) else { return; };
-        for cb in handlers.iter()
+        for (_, cb) in handlers.iter()
         {
             enque_reaction(commands, cb.clone());
         }
@@ -525,6 +684,7 @@ impl Default for ReactCache
         let (despawn_sender, despawn_receiver) = crossbeam::channel::unbounded::<Entity>();
 
         Self{
+            callback_counter      : 0,
             entity_reactors_query : None,
             component_reactors    : HashMap::default(),
             tracked_removals      : HashSet::default(),
@@ -539,194 +699,6 @@ impl Default for ReactCache
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-/// Drives reactivity.
-///
-/// Typically used with `ReactPlugin`. You can support optional reactivity by not requiring `ReactPlugin`, with caveats if
-/// `ReactPlugin` is not present:
-/// - Adding a reactor will panic.
-/// - Reactions will not be triggered.
-/// - Sending a `ReactEvent` will do nothing.
-///
-///
-/// ## Ordering and determinism
-///
-/// `ReactCommands` requires exclusive access to an internal cache, which means the order of react events is fully
-/// specified. Reactors of the same type will react to an event in the order they are added, and react commands will
-/// be applied in the order they were invoked (see API notes, some commands are IMMEDIATE and some are DEFERRED).
-/// Reactions to a reactor will always be resolved immediately after the reactor ends,
-/// in the order they were queued (and so on up the reaction tree). A reactor's component removals and entity despawns
-/// are queued alongside child reactions, which means a removal/despawn can only be 'seen' once its place in the queue
-/// has been processed. Reactors always schedule reactions to available removals/despawns after they run, so if you have
-/// [despawn A, reaction X, despawn B], and both despawns have reactions, then despawn A will be the first despawn reacted
-/// to at the end of reaction X (or at end of the first leaf node of a reaction branch stemming from X), before any of X's
-/// despawns.
-///
-/// A reaction tree is single-threaded by default (it may be multi-threaded if you manually invoke a bevy schedule within
-/// the tree), so trees are deterministic. However, root-level reactive systems (systems that cause reactions but are
-/// not themselves reactors) are subject to the ordering constraints of their callers (e.g. a bevy app schedule), and
-/// reaction trees can only be initiated by calling `apply_deferred()`. This means the order that root-level reactors are
-/// queued, and the order of root-level removals/despawns, is unspecified by the react framework.
-///
-/// A reaction tree is like a multi-layered accordion of command queues that automatically expands and resolves itself. Of
-/// note, the 'current' structure of that accordion tree cannot be modified. For
-/// example, you cannot add a data event reactor after an instance of a data event of that type that is below you in the
-/// reaction tree and expect the new reactor will respond to that data event instance. Moreover, already-queued reactions/
-/// react commands cannot be removed from the tree. However, modifications to the ECS world will be reflected in the
-/// behavior of future reactors, which may effect the structure of not-yet-expanded parts of the accordion.
-///
-/// Component removal and entity despawn reactions can only occur if you explicitly call `react_to_removals()`,
-/// `react_to_despawns()`, or `react_to_all_removals_and_despawns()`. We call those automatically in reaction trees, but
-/// if a root-level reactive system doesn't cause any reactions then removals/despawns won't be handled. For that reason,
-/// we recommand always pessimistically checking for removals/despawns manually after a call to `apply_deferred` after
-/// root-level reactive systems.
-///
-/// WARNING: All ordering constraints may be thrown out the window with bevy native command batching.
-///
-#[derive(SystemParam)]
-pub struct ReactCommands<'w, 's>
-{
-    commands : Commands<'w, 's>,
-    cache    : Option<ResMut<'w, ReactCache>>,
-}
-
-impl<'w, 's> ReactCommands<'w, 's>
-{
-    /// Access `Commands`.
-    pub fn commands<'a>(&'a mut self) -> &'a mut Commands<'w, 's>
-    {
-        &mut self.commands
-    }
-
-    /// Insert a `React<C>` to the specified entity. DEFERRED
-    /// - Does nothing if the entity does not exist.
-    //todo: consider more ergonomic entity access, e.g. ReactEntityCommands
-    pub fn insert<'a, C: Send + Sync + 'static>(&'a mut self, entity: Entity, component: C)
-    {
-        let Some(mut entity_commands) = self.commands.get_entity(entity) else { return; };
-        entity_commands.insert( React{ entity, component } );
-
-        let Some(ref mut cache) = self.cache else { return; };
-        cache.react_to_insertion::<C>(&mut self.commands, entity);
-    }
-
-    /// Send a react event. DEFFERED
-    /// Any reactors to this event will obtain a `ReactEvent` wrapping the event value.
-    pub fn send<'a, E: Send + Sync + 'static>(&'a mut self, event: E)
-    {
-        if self.cache.is_none() { return; }
-        self.commands.add(move |world: &mut World| { syscall(world, event, react_to_data_event); });
-    }
-
-    /// React when a `React<C>` is inserted on any entity. IMMEDIATE
-    /// - Reactor takes the entity the component was inserted to.
-    pub fn add_insertion_reactor<'a, C: Send + Sync + 'static>(
-        &'a mut self,
-        reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
-    ){
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.register_insertion_reactor::<C>(CallbackWith::new(reactor));
-    }
-
-    /// React when a `React<C>` is inserted on a specific entity. DEFERRED
-    /// - Does nothing if the entity does not exist.
-    pub fn add_entity_insertion_reactor<'a, C: Send + Sync + 'static>(
-        &'a mut self,
-        entity  : Entity,
-        reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
-    ){
-        if self.cache.is_none() { panic!("reactors are unsupported without ReactPlugin"); }
-        self.commands.add(
-                move |world: &mut World|
-                syscall(world, (EntityReactType::Insertion, entity, Callback::new(reactor)), register_entity_reactor::<C>)
-            );
-    }
-
-    /// React when a `React<C>` is mutated on any entity. IMMEDIATE
-    /// - Reactor takes the entity the component was mutated on.
-    pub fn add_mutation_reactor<'a, C: Send + Sync + 'static>(
-        &'a mut self,
-        reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
-    ){
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.register_mutation_reactor::<C>(CallbackWith::new(reactor));
-    }
-
-    /// React when a `React<C>` is mutated on a specific entity. DEFERRED
-    /// - Does nothing if the entity does not exist.
-    pub fn add_entity_mutation_reactor<'a, C: Send + Sync + 'static>(
-        &'a mut self,
-        entity  : Entity,
-        reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
-    ){
-        if self.cache.is_none() { panic!("reactors are unsupported without ReactPlugin"); }
-        self.commands.add(
-                move |world: &mut World|
-                syscall(world, (EntityReactType::Mutation, entity, Callback::new(reactor)), register_entity_reactor::<C>)
-            );
-    }
-
-    /// React when a component `C` is removed from any entity (`C` may be a `React<T>` or another component). IMMEDIATE
-    /// - Reactor takes the entity the component was removed from.
-    pub fn add_removal_reactor<'a, C: Component>(
-        &'a mut self,
-        reactor : impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
-    ){
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.track_removals::<C>();
-        cache.register_removal_reactor::<C>(CallbackWith::new(reactor));
-    }
-
-    /// React when a component `C` is removed from a specific entity (`C` may be a `React<T>` or another
-    /// component). DEFERRED
-    /// - Does nothing if the entity does not exist.
-    pub fn add_entity_removal_reactor<'a, C: Component>(
-        &'a mut self,
-        entity  : Entity,
-        reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
-    ){
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.track_removals::<C>();
-        self.commands.add(
-                move |world: &mut World|
-                syscall(world, (EntityReactType::Removal, entity, Callback::new(reactor)), register_entity_reactor::<C>)
-            );
-    }
-
-    /// React when an entity is despawned. IMMEDIATE
-    /// - Does nothing if the entity does not exist.
-    pub fn add_despawn_reactor<'a>(
-        &'a mut self,
-        entity    : Entity,
-        reactonce : impl FnOnce(&mut World) -> () + Send + Sync + 'static
-    ){
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        let Some(mut entity_commands) = self.commands.get_entity(entity) else { return; };
-        entity_commands.insert( DespawnTracker{ parent: entity, notifier: cache.despawn_sender.clone() } );
-        cache.register_despawn_reactor(entity, CallOnce::new(reactonce));
-    }
-
-    /// React when a resource `ReactRes<R>` is mutated. IMMEDIATE
-    pub fn add_resource_mutation_reactor<'a, R: Send + Sync + 'static>(
-        &'a mut self,
-        reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
-    ){
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.register_resource_mutation_reactor::<R>(Callback::new(reactor));
-    }
-
-    /// React when a data event is sent. DEFERRED
-    /// - Reactions only occur for data sent via `ReactCommands::<E>::send()`.
-    pub fn add_event_reactor<'a, E: Send + Sync + 'static>(
-        &'a mut self,
-        reactor : impl Fn(&mut World, ReactEvent<E>) -> () + Send + Sync + 'static
-    ){
-        if self.cache.is_none() { panic!("reactors are unsupported without ReactPlugin"); }
-        register_event_reactor::<E>(&mut self.commands, CallbackWith::new(reactor));
-    }
-}
-
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Component wrapper that enables reacting to component mutations.
@@ -888,6 +860,322 @@ pub fn react_to_all_removals_and_despawns(world: &mut World)
 
     // loop until no more removals/despawns
     while syscall(world, (), react_to_removals) > 0 || syscall(world, (), react_to_despawns_impl) > 0 {}
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+#[derive(Clone, Eq, PartialEq, Debug)]
+enum ReactorType
+{
+    EntityInsertion(Entity, TypeId),
+    EntityMutation(Entity, TypeId),
+    EntityRemoval(Entity, TypeId),
+    ComponentInsertion(TypeId),
+    ComponentMutation(TypeId),
+    ComponentRemoval(TypeId),
+    Despawn(Entity),
+    ResourceMutation(TypeId),
+}
+
+/// Toke for revoking reactors (event reactors use `EventRevokeToken`).
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct RevokeToken
+{
+    reactor_type : ReactorType,
+    callback_id  : u64,
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Token for revoking event reactors.
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct EventRevokeToken<E>
+{
+    callback_id : u64,
+    _p          : PhantomData<E>
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Drives reactivity.
+///
+/// Typically used with `ReactPlugin`. You can support optional reactivity by not requiring `ReactPlugin`, with caveats if
+/// `ReactPlugin` is not present:
+/// - Adding a reactor will panic.
+/// - Reactions will not be triggered.
+/// - Sending a `ReactEvent` will do nothing.
+///
+///
+/// ## Ordering and determinism
+///
+/// `ReactCommands` requires exclusive access to an internal cache, which means the order of react events is fully
+/// specified. Reactors of the same type will react to an event in the order they are added, and react commands will
+/// be applied in the order they were invoked (see API notes, some commands are IMMEDIATE and some are DEFERRED).
+/// Reactions to a reactor will always be resolved immediately after the reactor ends,
+/// in the order they were queued (and so on up the reaction tree). A reactor's component removals and entity despawns
+/// are queued alongside child reactions, which means a removal/despawn can only be 'seen' once its place in the queue
+/// has been processed. Reactors always schedule reactions to available removals/despawns after they run, so if you have
+/// [despawn A, reaction X, despawn B], and both despawns have reactions, then despawn A will be the first despawn reacted
+/// to at the end of reaction X (or at end of the first leaf node of a reaction branch stemming from X), before any of X's
+/// despawns.
+///
+/// A reaction tree is single-threaded by default (it may be multi-threaded if you manually invoke a bevy schedule within
+/// the tree), so trees are deterministic. However, root-level reactive systems (systems that cause reactions but are
+/// not themselves reactors) are subject to the ordering constraints of their callers (e.g. a bevy app schedule), and
+/// reaction trees can only be initiated by calling `apply_deferred()`. This means the order that root-level reactors are
+/// queued, and the order of root-level removals/despawns, is unspecified by the react framework.
+///
+/// A reaction tree is like a multi-layered accordion of command queues that automatically expands and resolves itself. Of
+/// note, the 'current' structure of that accordion tree cannot be modified. For
+/// example, you cannot add a data event reactor after an instance of a data event of that type that is below you in the
+/// reaction tree and expect the new reactor will respond to that data event instance. Moreover, already-queued reactions/
+/// react commands cannot be removed from the tree. However, modifications to the ECS world will be reflected in the
+/// behavior of future reactors, which may effect the structure of not-yet-expanded parts of the accordion.
+///
+/// Component removal and entity despawn reactions can only occur if you explicitly call `react_to_removals()`,
+/// `react_to_despawns()`, or `react_to_all_removals_and_despawns()`. We call those automatically in reaction trees, but
+/// if a root-level reactive system doesn't cause any reactions then removals/despawns won't be handled. For that reason,
+/// we recommand always pessimistically checking for removals/despawns manually after a call to `apply_deferred` after
+/// root-level reactive systems.
+///
+/// WARNING: All ordering constraints may be thrown out the window with bevy native command batching.
+///
+#[derive(SystemParam)]
+pub struct ReactCommands<'w, 's>
+{
+    commands : Commands<'w, 's>,
+    cache    : Option<ResMut<'w, ReactCache>>,
+}
+
+impl<'w, 's> ReactCommands<'w, 's>
+{
+    /// Access `Commands`.
+    pub fn commands<'a>(&'a mut self) -> &'a mut Commands<'w, 's>
+    {
+        &mut self.commands
+    }
+
+    /// Insert a `React<C>` to the specified entity. DEFERRED
+    /// - Does nothing if the entity does not exist.
+    //todo: consider more ergonomic entity access, e.g. ReactEntityCommands
+    pub fn insert<'a, C: Send + Sync + 'static>(&'a mut self, entity: Entity, component: C)
+    {
+        let Some(mut entity_commands) = self.commands.get_entity(entity) else { return; };
+        entity_commands.insert( React{ entity, component } );
+
+        let Some(ref mut cache) = self.cache else { return; };
+        cache.react_to_insertion::<C>(&mut self.commands, entity);
+    }
+
+    /// Send a react event. DEFFERED
+    /// Any reactors to this event will obtain a `ReactEvent` wrapping the event value.
+    pub fn send<'a, E: Send + Sync + 'static>(&'a mut self, event: E)
+    {
+        if self.cache.is_none() { return; }
+        self.commands.add(move |world: &mut World| { syscall(world, event, react_to_data_event); });
+    }
+
+    /// Revoke a reactor. DEFERRED (entity reactors) or IMMEDIATE (component, despawn, resource reactors)
+    pub fn revoke<'a>(&'a mut self, token: RevokeToken)
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+
+        let cb_id = token.callback_id;
+        match token.reactor_type
+        {
+            ReactorType::EntityInsertion(entity, comp_id) =>
+            {
+                self.commands.add(
+                        move |world: &mut World|
+                        syscall(world, (entity, EntityReactType::Insertion, comp_id, cb_id), revoke_entity_reactor)
+                    );
+            }
+            ReactorType::EntityMutation(entity, comp_id) =>
+            {
+                self.commands.add(
+                        move |world: &mut World|
+                        syscall(world, (entity, EntityReactType::Mutation, comp_id, cb_id), revoke_entity_reactor)
+                    );
+            }
+            ReactorType::EntityRemoval(entity, comp_id) =>
+            {
+                self.commands.add(
+                        move |world: &mut World|
+                        syscall(world, (entity, EntityReactType::Removal, comp_id, cb_id), revoke_entity_reactor)
+                    );
+            }
+            ReactorType::ComponentInsertion(comp_id) =>
+            {
+                cache.revoke_component_reactor(EntityReactType::Insertion, comp_id, cb_id);
+            }
+            ReactorType::ComponentMutation(comp_id) =>
+            {
+                cache.revoke_component_reactor(EntityReactType::Mutation, comp_id, cb_id);
+            }
+            ReactorType::ComponentRemoval(comp_id) =>
+            {
+                cache.revoke_component_reactor(EntityReactType::Removal, comp_id, cb_id);
+            }
+            ReactorType::Despawn(entity) =>
+            {
+                cache.revoke_despawn_reactor(entity, cb_id);
+            }
+            ReactorType::ResourceMutation(res_id) =>
+            {
+                cache.revoke_resource_mutation_reactor(res_id, cb_id);
+            }
+        }
+    }
+
+    /// Revoke an event reactor. DEFERRED
+    pub fn revoke_event_reactor<'a, E: Send + Sync + 'static>(&'a mut self, token: EventRevokeToken<E>)
+    {
+        self.commands.add(move |world: &mut World| syscall(world, token.callback_id, revoke_event_reactor::<E>));
+    }
+
+    /// React when a `React<C>` is inserted on any entity. IMMEDIATE
+    /// - Reactor takes the entity the component was inserted to.
+    pub fn add_insertion_reactor<'a, C: Send + Sync + 'static>(
+        &'a mut self,
+        reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
+    ) -> RevokeToken
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+
+        cache.register_insertion_reactor::<C>(CallbackWith::new(reactor))
+    }
+
+    /// React when a `React<C>` is inserted on a specific entity. DEFERRED
+    /// - Does nothing if the entity does not exist.
+    pub fn add_entity_insertion_reactor<'a, C: Send + Sync + 'static>(
+        &'a mut self,
+        entity  : Entity,
+        reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
+    ) -> RevokeToken
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+        let callback_id = cache.next_callback_id();
+        self.commands.add(
+                move |world: &mut World|
+                syscall(
+                        world,
+                        (EntityReactType::Insertion, entity, Callback::new(reactor), callback_id),
+                        register_entity_reactor::<C>
+                    )
+            );
+
+        RevokeToken{ reactor_type: ReactorType::EntityInsertion(entity, TypeId::of::<C>()), callback_id }
+    }
+
+    /// React when a `React<C>` is mutated on any entity. IMMEDIATE
+    /// - Reactor takes the entity the component was mutated on.
+    pub fn add_mutation_reactor<'a, C: Send + Sync + 'static>(
+        &'a mut self,
+        reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
+    ) -> RevokeToken
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+
+        cache.register_mutation_reactor::<C>(CallbackWith::new(reactor))
+    }
+
+    /// React when a `React<C>` is mutated on a specific entity. DEFERRED
+    /// - Does nothing if the entity does not exist.
+    pub fn add_entity_mutation_reactor<'a, C: Send + Sync + 'static>(
+        &'a mut self,
+        entity  : Entity,
+        reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
+    ) -> RevokeToken
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+        let callback_id = cache.next_callback_id();
+        self.commands.add(
+                move |world: &mut World|
+                syscall(
+                        world,
+                        (EntityReactType::Mutation, entity, Callback::new(reactor), callback_id),
+                        register_entity_reactor::<C>
+                    )
+            );
+
+        RevokeToken{ reactor_type: ReactorType::EntityMutation(entity, TypeId::of::<C>()), callback_id }
+    }
+
+    /// React when a component `C` is removed from any entity (`C` may be a `React<T>` or another component). IMMEDIATE
+    /// - Reactor takes the entity the component was removed from.
+    pub fn add_removal_reactor<'a, C: Component>(
+        &'a mut self,
+        reactor : impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
+    ) -> RevokeToken
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+        cache.track_removals::<C>();
+
+        cache.register_removal_reactor::<C>(CallbackWith::new(reactor))
+    }
+
+    /// React when a component `C` is removed from a specific entity (`C` may be a `React<T>` or another
+    /// component). DEFERRED
+    /// - Does nothing if the entity does not exist.
+    pub fn add_entity_removal_reactor<'a, C: Component>(
+        &'a mut self,
+        entity  : Entity,
+        reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
+    ) -> RevokeToken
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+        cache.track_removals::<C>();
+        let callback_id = cache.next_callback_id();
+        self.commands.add(
+                move |world: &mut World|
+                syscall(
+                        world,
+                        (EntityReactType::Removal, entity, Callback::new(reactor), callback_id),
+                        register_entity_reactor::<C>
+                    )
+            );
+
+        RevokeToken{ reactor_type: ReactorType::EntityRemoval(entity, TypeId::of::<C>()), callback_id }
+    }
+
+    /// React when an entity is despawned. IMMEDIATE
+    /// - Returns `None` if the entity does not exist.
+    pub fn add_despawn_reactor<'a>(
+        &'a mut self,
+        entity    : Entity,
+        reactonce : impl FnOnce(&mut World) -> () + Send + Sync + 'static
+    ) -> Option<RevokeToken>
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+        let Some(mut entity_commands) = self.commands.get_entity(entity) else { return None; };
+        entity_commands.insert( DespawnTracker{ parent: entity, notifier: cache.despawn_sender.clone() } );
+
+        Some(cache.register_despawn_reactor(entity, CallOnce::new(reactonce)))
+    }
+
+    /// React when a resource `ReactRes<R>` is mutated. IMMEDIATE
+    pub fn add_resource_mutation_reactor<'a, R: Send + Sync + 'static>(
+        &'a mut self,
+        reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
+    ) -> RevokeToken
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+
+        cache.register_resource_mutation_reactor::<R>(Callback::new(reactor))
+    }
+
+    /// React when a data event is sent. DEFERRED
+    /// - Reactions only occur for data sent via `ReactCommands::<E>::send()`.
+    pub fn add_event_reactor<'a, E: Send + Sync + 'static>(
+        &'a mut self,
+        reactor : impl Fn(&mut World, ReactEvent<E>) -> () + Send + Sync + 'static
+    ) -> EventRevokeToken<E>
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+        let callback_id = cache.next_callback_id();
+
+        register_event_reactor::<E>(&mut self.commands, CallbackWith::new(reactor), callback_id)
+    }
 }
 
 //-------------------------------------------------------------------------------------------------------------------
