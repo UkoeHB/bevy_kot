@@ -1,8 +1,9 @@
 # Changelog
 
-## [UNRELEASED]
+## [0.0.4]
 
-
+### Changed
+- Cleanup.
 
 
 ## [0.0.3]

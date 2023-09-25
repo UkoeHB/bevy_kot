@@ -1,4 +1,4 @@
-# `bevy_kot`: koe's Bevy toolkit
+# Koe's Bevy toolkit
 
 A collection of tools I built to make my life easier.
 
@@ -8,14 +8,14 @@ A collection of tools I built to make my life easier.
 
 ### UI
 
-- UI interaction tools for `bevy_lunex`, with a robust backend for handling arbitrary interaction sources. Very powerful and versatile.
+- Interaction UI tools for `bevy_lunex`, with a robust backend for handling arbitrary interaction sources.
 
 
 ### ECS
 
 - System callers for invoking systems as if they were functions (requires `&mut World`). I mainly use `syscall`.
-- Callbacks for entities.
-- Utilities for adding/removing components on entities (requires `&mut World`).
+- Entity callbacks.
+- Utilities for adding/removing components from entities (requires `&mut World`).
 - Reactive framework: `React` components, `ResReact` resources, and `ReactEvent` messages managed by `ReactCommands`.
 
 
