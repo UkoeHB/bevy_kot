@@ -12,7 +12,7 @@ use bevy::prelude::*;
 use bevy::window::WindowTheme;
 
 //standard shortcuts
-
+use std::fmt::Write;
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -30,7 +30,8 @@ fn refresh_fps_indicator(
 
     // 2. refresh
     let indicator_value = &mut indicator_query.single_mut().sections[0].value;
-    *indicator_value = format!("FPS: {}", fps_tracker.fps());
+    indicator_value.clear();
+    let _ = write!(indicator_value, "FPS: {}", fps_tracker.fps());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
