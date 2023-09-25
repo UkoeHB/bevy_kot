@@ -16,12 +16,13 @@ A collection of tools I built to make my life easier.
 - System callers for invoking systems as if they were functions (requires `&mut World`). I mainly use `syscall`.
 - Callbacks for entities.
 - Utilities for adding/removing components on entities (requires `&mut World`).
-- `React` components and `ResReact` resources managed by `ReactCommands`.
+- Reactive framework: `React` components, `ResReact` resources, and `ReactEvent` messages managed by `ReactCommands`.
 
 
 ### Miscellaneous
 
 - `FPSTracker` resource with plugin `FPSTrackerPlugin`.
+
 
 
 ## Help Wanted
@@ -35,6 +36,7 @@ The more UI examples, the better. Please submit new UI examples highlighting spe
 | bevy | `bevy_kot`     |
 |------|----------------|
 | 0.11 | 0.0.1 - master |
+
 
 
 
