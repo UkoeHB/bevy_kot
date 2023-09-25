@@ -17,6 +17,7 @@ use std::fmt::Write;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Counter for the COUNT text element. Inserted via `ReactCommands` so that mutations will trigger reactions.
 #[derive(Component, Default)]
 struct ButtonCounter(usize);
 
@@ -28,6 +29,7 @@ impl ButtonCounter
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Counter for the EVENS text element. Updated in response to mutations of the `ButtonCounter`.
 #[derive(Component, Default)]
 struct ReactCounter(usize);
 
@@ -39,6 +41,7 @@ impl ReactCounter
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Callback for the button.
 fn increment_button_counter(
     mut rcommands : kot_ecs::ReactCommands,
     mut counter   : Query<&mut kot_ecs::React<ButtonCounter>>
@@ -52,7 +55,8 @@ fn increment_button_counter(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Increment the react counter whenever the button counter reaches an even number
+/// Reactor for mutations of `React<ButtonCounter>`.
+/// - Increment the react counter whenever the button counter reaches an even number
 fn button_counter_reactor(counter: Query<&kot_ecs::React<ButtonCounter>>, mut react_counter: Query<&mut ReactCounter>)
 {
     // check if counter is even
@@ -66,8 +70,14 @@ fn button_counter_reactor(counter: Query<&kot_ecs::React<ButtonCounter>>, mut re
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn update_button_counter_text(mut counter: Query<(&mut Text, &kot_ecs::React<ButtonCounter>)>)
-{
+/// Transfer button count into the text element.
+fn update_button_counter_text(
+    mut counter: Query<
+        (&mut Text, &kot_ecs::React<ButtonCounter>),
+        Changed<kot_ecs::React<ButtonCounter>>
+    >,
+){
+    if counter.is_empty() { return; }
     let (mut text, counter) = counter.get_single_mut().unwrap();
     text.sections[0].value.clear();
     let _ = write!(text.sections[0].value, "COUNT: {}", counter.0);
@@ -76,8 +86,10 @@ fn update_button_counter_text(mut counter: Query<(&mut Text, &kot_ecs::React<But
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn update_react_counter_text(mut counter: Query<(&mut Text, &ReactCounter)>)
+/// Transfer react count into the text element.
+fn update_react_counter_text(mut counter: Query<(&mut Text, &ReactCounter), Changed<ReactCounter>>)
 {
+    if counter.is_empty() { return; }
     let (mut text, counter) = counter.get_single_mut().unwrap();
     text.sections[0].value.clear();
     let _ = write!(text.sections[0].value, "EVENS: {}", counter.0);
@@ -130,7 +142,9 @@ fn setup_button(
         .press_on_click()
         .unpress_on_unclick_home_and_abort_on_unclick_away()
         .abort_press_if_obstructed()
-        .unpress_callback(|world: &mut World, _: Vec2| kot_ecs::syscall(world, (), increment_button_counter))
+        .unpress_callback(
+            |world: &mut World, _: Vec2| kot_ecs::syscall(world, (), increment_button_counter)
+        )
         .build::<kot_builtin::MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
     entity_commands.insert(kot::UIInteractionBarrier::<kot_builtin::MainUI>::default());
@@ -188,9 +202,9 @@ fn setup_count_text(
             )
         );
 
-    // add reactive button counter
-    let entity_id = count_entity_commands.id();
-    rcommands.insert(entity_id, ButtonCounter::default());
+    // add reactive counter component
+    let count_entity = count_entity_commands.id();
+    rcommands.insert(count_entity, ButtonCounter::default());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -221,15 +235,14 @@ fn setup_react_count_text(
                 lunex::TextElementBundle::new(
                     react_count_text,
                     lunex::TextParams::topleft()
-                        .with_style(&react_count_text_style)
-                        .with_width(Some(100.)),
+                        .with_style(&react_count_text_style),
                     "EVENS:  0"  //use initial value to get correct initial text boundary
                 ),
                 ReactCounter::default(),
             )
         );
 
-    // add reaction
+    // add reactor
     rcommands.add_mutation_reactor::<ButtonCounter>(
             |world: &mut World, _: Entity| kot_ecs::syscall(world, (), button_counter_reactor)
         );
@@ -272,7 +285,6 @@ fn setup(mut rcommands: kot_ecs::ReactCommands, asset_server: Res<AssetServer>)
                 ..Default::default()
             }
         ).unwrap();
-
     setup_button(rcommands.commands(), &asset_server, &mut ui, button);
 
     // add count text
