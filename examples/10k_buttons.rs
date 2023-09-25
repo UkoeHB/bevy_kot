@@ -26,8 +26,7 @@ fn refresh_fps_indicator(
     fps_tracker         : Res<kot_misc::FPSTracker>
 ){
     // 1. only refresh once per second
-    if fps_tracker.current_time().as_secs() <= fps_tracker.previous_time().as_secs()
-        { return }
+    if fps_tracker.current_time().as_secs() <= fps_tracker.previous_time().as_secs() { return }
 
     // 2. refresh
     let indicator_value = &mut indicator_query.single_mut().sections[0].value;
