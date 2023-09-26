@@ -906,6 +906,21 @@ struct InteractiveElementWidgetPack
     hover_pressed_selected_widget : Option<Widget>,
 }
 
+impl InteractiveElementWidgetPack
+{
+    fn is_empty(&self) -> bool
+    {
+        self.default_widget.is_none()               &&
+        self.pressed_widget.is_none()               &&
+        self.selected_widget.is_none()              &&
+        self.hovered_widget.is_none()               &&
+        self.pressed_selected_widget.is_none()      &&
+        self.hover_selected_widget.is_none()        &&
+        self.hover_pressed_widget.is_none()         &&
+        self.hover_pressed_selected_widget.is_none()
+    }
+}
+
 /// Builder for an interactive UI element.
 ///
 /// An interactive element is a UI widget that responds to clicks and hovers. A click sequence is composed of 'on click' ->
@@ -1501,11 +1516,13 @@ impl InteractiveElementBuilder
 
         // prepare visibility updater
         let element_entity = entity_commands.id();
-        let widget_pack    = self.widget_pack;
+        let widget_pack = self.widget_pack;
+        let widget_pack_empty = widget_pack.is_empty();
 
         let update_widget_visibility =
             move |world: &mut World|
             {
+                if widget_pack_empty { return; }
                 syscall(world, (), apply_deferred);  //make sure any side-effects have resolved
                 if let Err(_) = syscall(
                         world,
