@@ -1189,10 +1189,10 @@ impl InteractiveElementBuilder
     /// Example: Suppose you want to hold an item with the mouse and drag it over another item to show a pop-up
     ///          that displays what happens when they combine. To achieve this you can use two overlapping cursors: the
     ///          main mouse cursor and a secondary item-held mouse cursor. Let the item in hand have an interactive element
-    ///          for the main cursor and use `press_on_click`, `unpress_on_unclick_recommended`, `startpress_callback`,
+    ///          for the main cursor and use `press_on_click`, `unpress_on_unclick_home_or_away`, `startpress_callback`,
     ///          and `unpress_callback`, where the press-start callback activates the secondary mouse cursor and the
     ///          unpress callback deactivates it (in addition to grabbing/releasing the item). Let the second item have
-    ///          an interactive element for the secondary cursor and use `press_on_clickhold`, `abort_press_if_obstructed`
+    ///          an interactive element for the secondary cursor and use `press_on_click_or_hold`, `abort_press_if_obstructed`
     ///          `unpress_on_press_away_or_unclick_any`, `with_hovered_pressed_widget`, `press_home_start_callback`,
     ///          where the hovered-pressed widget displays the pop-up and the callback edits the pop-up contents.
     pub fn unpress_on_press_away_or_unclick_any(mut self) -> Self
