@@ -165,7 +165,7 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
                     ui,
                     widget,
                     pressed_entity,
-                    target_limit,
+                    None,  //no depth limit
                     widget_branch.get_depth(),
                     &element_param,
                 ) { target_is_hovered = true; }
