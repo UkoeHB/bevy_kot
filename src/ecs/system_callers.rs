@@ -241,6 +241,7 @@ pub fn call_basic<S: 'static + BasicCallableSystem>(world: &mut World, id: CallI
 /// use bevy_kot::ecs::*;
 /// use bevy::prelude::*;
 /// 
+/// // normal system: takes an input and sets a local
 /// fn test_system(In(input): In<u16>, mut local: Local<u16>)
 /// {
 ///     assert_eq!(input, *local);
@@ -252,6 +253,7 @@ pub fn call_basic<S: 'static + BasicCallableSystem>(world: &mut World, id: CallI
 /// syscall(&mut world, 0u16, test_system);
 /// syscall(&mut world, 1u16, test_system);  //Local is preserved
 ///
+/// // function-like system: takes an input and returns an output
 /// fn test_function(In(input): In<u16>) -> u16
 /// {
 ///     input * 2

@@ -928,11 +928,11 @@ pub struct EventRevokeToken<E>
 
 /// Drives reactivity.
 ///
-/// Typically used with `ReactPlugin`. You can support optional reactivity by not requiring `ReactPlugin`, with caveats if
-/// `ReactPlugin` is not present:
+/// Typically used with [`ReactPlugin`]. You can support optional reactivity by not requiring [`ReactPlugin`], with caveats
+/// if [`ReactPlugin`] is not present:
 /// - Adding a reactor will panic.
 /// - Reactions will not be triggered.
-/// - Sending a `ReactEvent` will do nothing.
+/// - Sending a [`ReactEvent`] will do nothing.
 ///
 ///
 /// ## Ordering and determinism
@@ -951,7 +951,7 @@ pub struct EventRevokeToken<E>
 /// A reaction tree is single-threaded by default (it may be multi-threaded if you manually invoke a bevy schedule within
 /// the tree), so trees are deterministic. However, root-level reactive systems (systems that cause reactions but are
 /// not themselves reactors) are subject to the ordering constraints of their callers (e.g. a bevy app schedule), and
-/// reaction trees can only be initiated by calling `apply_deferred()`. This means the order that root-level reactors are
+/// reaction trees can only be initiated by calling [`apply_deferred()`]. This means the order that root-level reactors are
 /// queued, and the order of root-level removals/despawns, is unspecified by the react framework.
 ///
 ///
@@ -964,8 +964,8 @@ pub struct EventRevokeToken<E>
 /// react commands cannot be removed from the tree. However, modifications to the ECS world will be reflected in the
 /// behavior of future reactors, which may effect the structure of not-yet-expanded parts of the accordion.
 ///
-/// Component removal and entity despawn reactions can only occur if you explicitly call `react_to_removals()`,
-/// `react_to_despawns()`, or `react_to_all_removals_and_despawns()`. We call those automatically in reaction trees, but
+/// Component removal and entity despawn reactions can only occur if you explicitly call [`react_to_removals()`],
+/// [`react_to_despawns()`], or [`react_to_all_removals_and_despawns()`]. We call those automatically in reaction trees, but
 /// if a root-level reactive system doesn't cause any reactions then removals/despawns won't be handled. For that reason,
 /// we recommand always pessimistically checking for removals/despawns manually after a call to `apply_deferred` after
 /// root-level reactive systems.
@@ -981,13 +981,13 @@ pub struct ReactCommands<'w, 's>
 
 impl<'w, 's> ReactCommands<'w, 's>
 {
-    /// Access `Commands`.
+    /// Access [`Commands`].
     pub fn commands<'a>(&'a mut self) -> &'a mut Commands<'w, 's>
     {
         &mut self.commands
     }
 
-    /// Insert a `React<C>` to the specified entity.
+    /// Insert a [`React<C>`] to the specified entity.
     /// - DEFERRED
     /// - Does nothing if the entity does not exist.
     //todo: consider more ergonomic entity access, e.g. ReactEntityCommands
@@ -1002,7 +1002,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// Send a react event.
     /// - DEFFERED
-    /// - Any reactors to this event will obtain a `ReactEvent` wrapping the event value.
+    /// - Any reactors to this event will obtain a [`ReactEvent`] wrapping the event value.
     pub fn send<E: Send + Sync + 'static>(&mut self, event: E)
     {
         if self.cache.is_none() { return; }
@@ -1069,7 +1069,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         self.commands.add(move |world: &mut World| syscall(world, token.callback_id, revoke_event_reactor::<E>));
     }
 
-    /// React when a `React<C>` is inserted on any entity.
+    /// React when a [`React<C>`] is inserted on any entity.
     /// - IMMEDIATE
     /// - Reactor takes the entity the component was inserted to.
     pub fn add_insertion_reactor<C: Send + Sync + 'static>(
@@ -1082,7 +1082,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_insertion_reactor::<C>(CallbackWith::new(reactor))
     }
 
-    /// React when a `React<C>` is inserted on a specific entity.
+    /// React when a [`React<C>`] is inserted on a specific entity.
     /// - DEFERRED
     /// - Does nothing if the entity does not exist.
     pub fn add_entity_insertion_reactor<C: Send + Sync + 'static>(
@@ -1105,7 +1105,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         RevokeToken{ reactor_type: ReactorType::EntityInsertion(entity, TypeId::of::<C>()), callback_id }
     }
 
-    /// React when a `React<C>` is mutated on any entity.
+    /// React when a [`React<C>`] is mutated on any entity.
     /// - IMMEDIATE
     /// - Reactor takes the entity the component was mutated on.
     pub fn add_mutation_reactor<C: Send + Sync + 'static>(
@@ -1118,7 +1118,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_mutation_reactor::<C>(CallbackWith::new(reactor))
     }
 
-    /// React when a `React<C>` is mutated on a specific entity.
+    /// React when a [`React<C>`] is mutated on a specific entity.
     /// - DEFERRED
     /// - Does nothing if the entity does not exist.
     pub fn add_entity_mutation_reactor<C: Send + Sync + 'static>(
@@ -1141,7 +1141,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         RevokeToken{ reactor_type: ReactorType::EntityMutation(entity, TypeId::of::<C>()), callback_id }
     }
 
-    /// React when a component `C` is removed from any entity (`C` may be a `React<T>` or another component).
+    /// React when a component `C` is removed from any entity (`C` may be a [`React<T>`] or another component).
     /// - IMMEDIATE
     /// - Reactor takes the entity the component was removed from.
     pub fn add_removal_reactor<C: Component>(
@@ -1155,7 +1155,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_removal_reactor::<C>(CallbackWith::new(reactor))
     }
 
-    /// React when a component `C` is removed from a specific entity (`C` may be a `React<T>` or another
+    /// React when a component `C` is removed from a specific entity (`C` may be a [`React<T>`] or another
     /// component).
     /// - DEFERRED
     /// - Does nothing if the entity does not exist.
@@ -1182,7 +1182,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when an entity is despawned.
     /// - IMMEDIATE
-    /// - Returns `None` if the entity does not exist.
+    /// - Returns [`None`] if the entity does not exist.
     pub fn add_despawn_reactor(
         &mut self,
         entity    : Entity,
@@ -1196,7 +1196,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         Some(cache.register_despawn_reactor(entity, CallOnce::new(reactonce)))
     }
 
-    /// React when a resource `ReactRes<R>` is mutated.
+    /// React when a resource [`ReactRes<R>`] is mutated.
     /// - IMMEDIATE
     pub fn add_resource_mutation_reactor<R: Send + Sync + 'static>(
         &mut self,
@@ -1210,7 +1210,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when a data event is sent.
     /// - DEFERRED
-    /// - Reactions only occur for data sent via `ReactCommands::<E>::send()`.
+    /// - Reactions only occur for data sent via [`ReactCommands::<E>::send()`].
     pub fn add_event_reactor<E: Send + Sync + 'static>(
         &mut self,
         reactor : impl Fn(&mut World, ReactEvent<E>) -> () + Send + Sync + 'static
@@ -1225,7 +1225,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Prepares react framework so that reactors may be registered with `ReactCommands`.
+/// Prepares react framework so that reactors may be registered with [`ReactCommands`].
 /// - Does NOT schedule any component removal or entity despawn reactor systems. You must schedule those yourself!
 /// 
 /// WARNING: If reactivity is implemented natively in Bevy, then this implementation will become obsolete.

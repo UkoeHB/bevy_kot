@@ -8,6 +8,8 @@ use bevy::prelude::*;
 
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Try to add a component to an entity.
+///
 /// Returns `true` if component added to entity and entity did not previously have the component.
 pub fn try_add_component_to_entity<C: Component>(world: &mut World, entity: Entity, component: C) -> bool
 {
@@ -19,6 +21,8 @@ pub fn try_add_component_to_entity<C: Component>(world: &mut World, entity: Enti
 
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Try to remove a component from an entity.
+///
 /// Returns `Some([component])` if component removed from entity.
 pub fn try_remove_component_from_entity<C: Component>(world: &mut World, entity: Entity) -> Option<C>
 {
@@ -29,6 +33,8 @@ pub fn try_remove_component_from_entity<C: Component>(world: &mut World, entity:
 
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Try to set the value of a component on an entity.
+///
 /// Returns `true` if the component was added-to or updated on the entity.
 /// - Returns `false` if the value wouldn't change.
 /// - Does not trigger change detection unless the component is added or modified.
@@ -49,6 +55,8 @@ pub fn try_set_component<C: Component + Eq>(world: &mut World, entity: Entity, c
 
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Try to update the value of a component on an entity.
+///
 /// Returns `true` if the component was updated on the entity with a different value.
 /// - Returns `false` if the component did not previously exist on the entity, or if the value wouldn't change.
 /// - Does not trigger change detection unless the component is modified.

@@ -199,7 +199,9 @@ impl<T: Send + Sync + 'static, I, O> SysCall<T, I, O>
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Returns `true` if the callback was invoked.
+/// Try to invoke the callback `C` on `entity`.
+///
+/// Returns `false` if the entity doesn't exist or the callback is not present on the entity.
 pub fn try_callback<C: Send + Sync + 'static>(world: &mut World, entity: Entity) -> bool
 {
     let Some(entity_mut) = world.get_entity_mut(entity) else { return false; };
@@ -210,7 +212,9 @@ pub fn try_callback<C: Send + Sync + 'static>(world: &mut World, entity: Entity)
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Returns `true` if the callback was invoked with the provided value.
+/// Try to invoke the callback `C` on `entity` with `value`.
+///
+/// Returns `false` if the entity doesn't exist or the callback is not present on the entity.
 pub fn try_callback_with<C, V>(world: &mut World, entity: Entity, value: V) -> bool
 where
     C: Send + Sync + 'static,
