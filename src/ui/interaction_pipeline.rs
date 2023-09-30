@@ -210,7 +210,7 @@ fn handle_just_clicked<S: InteractionSource>(
     // check if there are any widgets to click
     if widgets.is_empty() { return; }
 
-    // see if the targeted entity is has a callback
+    // see if the targeted entity has a callback
     let Some(highest_entity) = info_pack.targeted else { return; };
     let Ok(callback) = widgets.get(highest_entity) else { return; };
 

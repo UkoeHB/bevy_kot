@@ -294,28 +294,28 @@ pub struct Hovered;
 
 /* Interactive element actions */
 
-/// `CallbackWith<StartPress, Vec2>`
+/// Callback added to interactive element: `CallbackWith<StartPress, Vec2>`
 /// - Inputs: world position of cursor.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct StartPress;
 
-/// `CallbackWith<UnPress, Vec2>`
+/// Callback added to interactive element: `CallbackWith<UnPress, Vec2>`
 /// - Inputs: world position of cursor.
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct UnPress;
 
-/// `CallbackWith<AbortPress, Vec2>`
+/// Callback added to interactive element: `CallbackWith<AbortPress, Vec2>`
 /// - Inputs: world position of cursor.
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct AbortPress;
 
-/// `Callback<Select>`
+/// Callback added to interactive element: `Callback<Select>`
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Select;
 
-/// `Callback<Deselect>`
+/// Callback added to interactive element: `Callback<Deselect>`
 /// - Only invoked when the element is `Selected` and `with_select_toggling` is set. Intended for manual use.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Deselect;
@@ -324,40 +324,40 @@ pub struct Deselect;
 
 /* Interactive element responders */
 
-/// `CallbackWith<OnClick, Vec2>`
+/// Callback added to interactive element: `CallbackWith<OnClick, Vec2>`
 /// - Inputs: world position of cursor.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnClick;
 
-/// `CallbackWith<OnClickHold, Vec2>`
+/// Callback added to interactive element: `CallbackWith<OnClickHold, Vec2>`
 /// - Inputs: world position of cursor.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnClickHold;
 
-/// `CallbackWith<OnClickHoldHome, Vec2>`
+/// Callback added to interactive element: `CallbackWith<OnClickHoldHome, Vec2>`
 /// - Inputs: world position of cursor.
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnClickHoldHome;
 
-/// `CallbackWith<OnClickHoldAway, (Vec2, bool)>`
+/// Callback added to interactive element: `CallbackWith<OnClickHoldAway, (Vec2, bool)>`
 /// - Inputs: world position of cursor, true/false if element is present.
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnClickHoldAway;
 
-/// `CallbackWith<OnUnClick, (Vec2, bool)>`
+/// Callback added to interactive element: `CallbackWith<OnUnClick, (Vec2, bool)>`
 /// - Inputs: world position of cursor, true/false if element is under cursor.
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnUnClick;
 
-/// `CallbackWith<OnHover, Vec2>`
+/// Callback added to interactive element: `CallbackWith<OnHover, Vec2>`
 /// - Inputs: world position of cursor.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnHover;
 
-/// `Callback<OnUnHover>`
+/// Callback added to interactive element: `Callback<OnUnHover>`
 /// - Only invoked when the element is `Hovered`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnUnHover;
@@ -400,14 +400,5 @@ impl RegisterInteractionSourceExt for App
             )
     }
 }
-
-//-------------------------------------------------------------------------------------------------------------------
-
-// Integrate reactivity with interaction pipelines.
-// - React to all component removals and entity despawns at the end of every tick.
-//pub fn ReactInteractionPlugin(app: &mut App)
-//{
-//    app.add_systems(Last, react_to_all_removals_and_despawns);
-//}
 
 //-------------------------------------------------------------------------------------------------------------------
