@@ -931,7 +931,9 @@ enum ReactorType
     ResourceMutation(TypeId),
 }
 
-/// Toke for revoking reactors (event reactors use `EventRevokeToken`).
+/// Token for revoking reactors (event reactors use [`EventRevokeToken`]).
+///
+/// See [`ReactCommands::revoke()`].
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct RevokeToken
 {
@@ -941,7 +943,9 @@ pub struct RevokeToken
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Token for revoking event reactors.
+/// Token for revoking event reactors (non-event reactors use [`RevokeToken`]).
+///
+/// See [`ReactCommands::revoke_event_reactor()`].
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct EventRevokeToken<E>
 {
@@ -953,8 +957,7 @@ pub struct EventRevokeToken<E>
 
 /// Drives reactivity.
 ///
-/// Typically used with [`ReactPlugin`]. You can support optional reactivity by not requiring [`ReactPlugin`], with caveats
-/// if [`ReactPlugin`] is not present:
+/// Typically used with [`ReactPlugin`]. If [`ReactPlugin`] is not present:
 /// - Adding a reactor will panic.
 /// - Reactions will not be triggered.
 /// - Sending a [`ReactEvent`] will do nothing.
@@ -964,7 +967,7 @@ pub struct EventRevokeToken<E>
 ///
 /// `ReactCommands` requires exclusive access to an internal cache, which means the order of react events is fully
 /// specified. Reactors of the same type will react to an event in the order they are added, and react commands will
-/// be applied in the order they were invoked (see API notes, some commands are IMMEDIATE and some are DEFERRED).
+/// be applied in the order they were invoked (see API notes, some commands are applied immediately, and some are deferred.
 /// Reactions to a reactor will always be resolved immediately after the reactor ends,
 /// in the order they were queued (and so on up the reaction tree). A reactor's component removals and entity despawns
 /// are queued alongside child reactions, which means a removal/despawn can only be 'seen' once its place in the queue
@@ -1012,8 +1015,8 @@ impl<'w, 's> ReactCommands<'w, 's>
         &mut self.commands
     }
 
-    /// Insert a [`React<C>`] to the specified entity.
-    /// - DEFERRED
+    /// Insert a [`React<C>`] component to the specified entity.
+    /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
     //todo: consider more ergonomic entity access, e.g. ReactEntityCommands
     pub fn insert<C: Send + Sync + 'static>(&mut self, entity: Entity, component: C)
@@ -1026,7 +1029,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// Send a react event.
-    /// - DEFFERED
+    /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Any reactors to this event will obtain a [`ReactEvent`] wrapping the event value.
     pub fn send<E: Send + Sync + 'static>(&mut self, event: E)
     {
@@ -1035,7 +1038,8 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// Revoke a reactor.
-    /// - DEFERRED (entity reactors) or IMMEDIATE (component, despawn, resource reactors)
+    /// - Entity reactors: registered after `apply_deferred` is invoked.
+    /// - Component, despawn, resource reactors: registered immediately.
     pub fn revoke(&mut self, token: RevokeToken)
     {
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
@@ -1088,14 +1092,14 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// Revoke an event reactor.
-    /// - DEFERRED
+    /// - Reactor is registered after `apply_deferred` is invoked.
     pub fn revoke_event_reactor<E: Send + Sync + 'static>(&mut self, token: EventRevokeToken<E>)
     {
         self.commands.add(move |world: &mut World| syscall(world, token.callback_id, revoke_event_reactor::<E>));
     }
 
     /// React when a [`React<C>`] is inserted on any entity.
-    /// - IMMEDIATE
+    /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was inserted to.
     pub fn add_insertion_reactor<C: Send + Sync + 'static>(
         &mut self,
@@ -1108,7 +1112,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// React when a [`React<C>`] is inserted on a specific entity.
-    /// - DEFERRED
+    /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
     pub fn add_entity_insertion_reactor<C: Send + Sync + 'static>(
         &mut self,
@@ -1131,7 +1135,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// React when a [`React<C>`] is mutated on any entity.
-    /// - IMMEDIATE
+    /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was mutated on.
     pub fn add_mutation_reactor<C: Send + Sync + 'static>(
         &mut self,
@@ -1144,7 +1148,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// React when a [`React<C>`] is mutated on a specific entity.
-    /// - DEFERRED
+    /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
     pub fn add_entity_mutation_reactor<C: Send + Sync + 'static>(
         &mut self,
@@ -1167,7 +1171,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// React when a component `C` is removed from any entity (`C` may be a [`React<T>`] or another component).
-    /// - IMMEDIATE
+    /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was removed from.
     pub fn add_removal_reactor<C: Component>(
         &mut self,
@@ -1182,7 +1186,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when a component `C` is removed from a specific entity (`C` may be a [`React<T>`] or another
     /// component).
-    /// - DEFERRED
+    /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
     pub fn add_entity_removal_reactor<C: Component>(
         &mut self,
@@ -1206,7 +1210,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// React when an entity is despawned.
-    /// - IMMEDIATE
+    /// - Reactor is registered immediately.
     /// - Returns [`None`] if the entity does not exist.
     pub fn add_despawn_reactor(
         &mut self,
@@ -1223,7 +1227,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// React when a resource [`ReactRes<R>`] is mutated.
-    /// - IMMEDIATE
+    /// - Reactor is registered immediately.
     pub fn add_resource_mutation_reactor<R: Send + Sync + 'static>(
         &mut self,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -1235,7 +1239,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// React when a data event is sent.
-    /// - DEFERRED
+    /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Reactions only occur for data sent via [`ReactCommands::<E>::send()`].
     pub fn add_event_reactor<E: Send + Sync + 'static>(
         &mut self,

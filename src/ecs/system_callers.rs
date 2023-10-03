@@ -261,7 +261,7 @@ pub fn call_basic<S: 'static + BasicCallableSystem>(world: &mut World, id: CallI
 /// 
 /// let mut world = World::new();
 /// 
-/// assert_eq!(syscall(&mut world, 1u16, test_function), 2u16);  //systems may have outputs as well
+/// assert_eq!(syscall(&mut world, 1u16, test_function), 2u16);
 /// ```
 ///
 pub fn syscall<I, O, S, Marker>(world: &mut World, input: I, system: S) -> O

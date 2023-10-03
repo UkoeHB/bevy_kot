@@ -8,7 +8,7 @@ A collection of tools.
 
 ### UI
 
-- Interactive element builder for `bevy_lunex`, with a robust backend for handling arbitrary interaction sources.
+- Interactive element builder for [`bevy_lunex`], with a robust backend for handling arbitrary interaction sources.
 
 
 ### ECS
@@ -16,12 +16,12 @@ A collection of tools.
 - System callers for invoking systems as if they were functions (requires `&mut World`).
 - Entity callbacks.
 - Utilities for adding/removing components from entities (requires `&mut World`).
-- Reactive framework: `React` components, `ResReact` resources, and `ReactEvent` messages managed by `ReactCommands`.
+- Reactive framework: [`React`] components, [`ReactRes`] resources, and [`ReactEvent`] messages managed by [`ReactCommands`].
 
 
 ### Miscellaneous
 
-- `FPSTracker` resource with plugin `FPSTrackerPlugin`.
+- [`FPSTracker`] resource with plugin [`FPSTrackerPlugin`].
 
 
 

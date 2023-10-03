@@ -18,6 +18,10 @@ name    = "tests"
 path    = "tests/test/mod.rs"
 doctest = false
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
 bevy            = { version = "0.11", default-features = false }
 bevy_fn_plugin  = { version = "0.1" }
