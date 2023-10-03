@@ -2,7 +2,7 @@
 name = "bevy_kot"
 description = "koe's Bevy toolkit"
 authors = ["koe <ukoe@protonmail.com>"]
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 keywords = ["gamedev", "ui"]
 license = "MIT OR Apache-2.0"

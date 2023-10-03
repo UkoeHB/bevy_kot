@@ -3,10 +3,25 @@
 ## [WIP]
 
 
+## [0.0.5]
+
+### Added
+
+- UI examples.
+
+### Changed
+
+- Cleanup.
+
+### Fixed
+
+- Multiple despawn reactors on the same entity now works properly.
+
 
 ## [0.0.4]
 
 ### Changed
+
 - Cleanup.
 
 
