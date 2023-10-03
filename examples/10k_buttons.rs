@@ -10,6 +10,7 @@ use kot::RegisterInteractionSourceExt;
 //third-party shortcuts
 use bevy::prelude::*;
 use bevy::window::WindowTheme;
+use bevy::winit::{UpdateMode, WinitSettings};
 
 //standard shortcuts
 use std::fmt::Write;
@@ -221,6 +222,11 @@ fn main()
         .add_plugins(kot_misc::FPSTrackerPlugin)
         .add_plugins(lunex::LunexUiPlugin)
         //.add_plugins(kot::UIDebugOverlayPlugin)
+        .insert_resource(WinitSettings{
+            return_from_run : false,
+            focused_mode    : UpdateMode::Continuous,  //continuous so we can see FPS
+            unfocused_mode  : UpdateMode::ReactiveLowPower{ max_wait: std::time::Duration::from_secs(10) },
+        })
         .register_interaction_source(kot_builtin::MouseLButtonMain::default())
         .add_systems(Startup, setup)
         .add_systems(Last, refresh_fps_indicator)

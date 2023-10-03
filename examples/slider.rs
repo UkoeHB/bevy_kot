@@ -245,6 +245,7 @@ fn main()
         )
         .add_plugins(lunex::LunexUiPlugin)
         //.add_plugins(kot::UIDebugOverlayPlugin)
+        .insert_resource(bevy::winit::WinitSettings::desktop_app())
         .register_interaction_source(kot_builtin::MouseLButtonMain::default())
         .add_systems(Startup, setup)
         .run();

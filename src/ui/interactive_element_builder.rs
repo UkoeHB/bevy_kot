@@ -1164,20 +1164,6 @@ impl InteractiveElementBuilder
         self
     }
 
-    /// Abort press when a click hold or unclick is detected away from the press home zone.
-    /// - Disables settings `unpress_on_unclick_away`, `unpress_on_press_away`, and
-    ///   `abort_press_if_obstructed`.
-    /// - Unpresses the element WITHOUT invoking any unpress callbacks. Will invoke `abortpress_callback`.
-    pub fn abort_press_on_press_away_or_unclick_away(mut self) -> Self
-    {
-        self.unpress_on_unclick_away     = false;
-        self.unpress_on_press_away       = false;
-        self.abort_press_on_unclick_away = true;
-        self.abort_press_on_press_away   = true;
-        self.abort_press_if_obstructed   = false;
-        self
-    }
-
     /// Unpress the element when a click hold is detected away from the element's press home zone or if unclick is
     /// detected anywhere. It is recommended to combine this with `abort_press_if_obstructed()`.
     /// - Disables setting `abort_press_on_press_away`.
@@ -1202,6 +1188,20 @@ impl InteractiveElementBuilder
         self.unpress_on_press_away       = true;
         self.abort_press_on_unclick_away = false;
         self.abort_press_on_press_away   = false;
+        self
+    }
+
+    /// Abort press when a click hold or unclick is detected away from the press home zone.
+    /// - Disables settings `unpress_on_unclick_away`, `unpress_on_press_away`, and
+    ///   `abort_press_if_obstructed`.
+    /// - Unpresses the element WITHOUT invoking any unpress callbacks. Will invoke `abortpress_callback`.
+    pub fn abort_press_on_press_away_or_unclick_away(mut self) -> Self
+    {
+        self.unpress_on_unclick_away     = false;
+        self.unpress_on_press_away       = false;
+        self.abort_press_on_unclick_away = true;
+        self.abort_press_on_press_away   = true;
+        self.abort_press_if_obstructed   = false;
         self
     }
 
@@ -1307,7 +1307,7 @@ impl InteractiveElementBuilder
 
     /// Callback invoked when an unclick is detected and the press home zone is pressed.
     /// - Takes the world position of the cursor.
-    /// - Takes a bool indicating if the clicker was above the press home zone when the unclick occurred.
+    /// - Takes a bool indicating if the cursor was above or away from the press home zone when the unclick occurred.
     /// - WARNING: You must specify a press activator and deactivator to use this, since unclicks only make sense in the
     ///            context of pressing the element.
     pub fn on_unclick_callback(
