@@ -33,6 +33,14 @@ fn infinitize_test_recorder(mut recorder: ResMut<TestReactRecorder>)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+fn test_recorder_div2(mut recorder: ResMut<TestReactRecorder>)
+{
+    recorder.0 /= 2;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
 /// Copy test component to recorder
 fn update_test_recorder_with_component(
     In(entity)    : In<Entity>,
@@ -114,6 +122,14 @@ fn add_despawn_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands
     react_commands.add_despawn_reactor(
             entity,
             move |world| { syscall(world, (), infinitize_test_recorder); }
+        ).unwrap()
+}
+
+fn add_despawn_reactor_div2(In(entity): In<Entity>, mut react_commands: ReactCommands) -> RevokeToken
+{
+    react_commands.add_despawn_reactor(
+            entity,
+            move |world| { syscall(world, (), test_recorder_div2); }
         ).unwrap()
 }
 
@@ -457,7 +473,6 @@ fn react_component_removal()
 
 //-------------------------------------------------------------------------------------------------------------------
 
-//react entity despawn
 #[test]
 fn react_entity_despawn()
 {
@@ -483,6 +498,10 @@ fn react_entity_despawn()
     syscall(&mut world, (test_entity_b, TestComponent(2)), insert_on_test_entity);
     assert_eq!(world.resource::<TestReactRecorder>().0, 0);
 
+    // check for despawns (no reaction before despawn)
+    assert_eq!(react_to_despawns(world), 0);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
     // despawn (reaction)
     assert!(world.despawn(test_entity_a));
     // no immediate reaction
@@ -490,6 +509,55 @@ fn react_entity_despawn()
     // check for despawns (reaction)
     assert_eq!(react_to_despawns(world), 1);
     assert_eq!(world.resource::<TestReactRecorder>().0, usize::MAX);
+
+    // despawn other entity (no reaction)
+    *world.resource_mut::<TestReactRecorder>() = TestReactRecorder::default();
+    assert!(world.despawn(test_entity_b));
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+#[test]
+fn react_entity_despawn_multiple_reactors()
+{
+    // setup
+    let mut app = App::new();
+    app.add_plugins(ReactPlugin)
+        .init_resource::<TestReactRecorder>();
+    let mut world = &mut app.world;
+
+    // entities
+    let test_entity_a = world.spawn_empty().id();
+    let test_entity_b = world.spawn_empty().id();
+
+    // add reactor
+    syscall(&mut world, test_entity_a, add_despawn_reactor);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // add second reactor
+    syscall(&mut world, test_entity_a, add_despawn_reactor_div2);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // insert (no reaction)
+    syscall(&mut world, (test_entity_a, TestComponent(1)), insert_on_test_entity);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // insert (no reaction)
+    syscall(&mut world, (test_entity_b, TestComponent(2)), insert_on_test_entity);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // check for despawns (no reaction before despawn)
+    assert_eq!(react_to_despawns(world), 0);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // despawn (reaction)
+    assert!(world.despawn(test_entity_a));
+    // no immediate reaction
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+    // check for despawns (reaction)
+    assert_eq!(react_to_despawns(world), 2);
+    assert_eq!(world.resource::<TestReactRecorder>().0, usize::MAX / 2);
 
     // despawn other entity (no reaction)
     *world.resource_mut::<TestReactRecorder>() = TestReactRecorder::default();

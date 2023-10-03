@@ -142,7 +142,6 @@ impl RemovalChecker
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Tag for tracking despawns of entities with despawn reactors.
-//todo: embed callback for sending entity to despawn event receiver on Drop
 #[derive(Component)]
 struct DespawnTracker
 {
@@ -156,6 +155,32 @@ impl Drop for DespawnTracker
     {
         let _ = self.notifier.send(self.parent);
     }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn add_despawn_tracker(
+    In((entity, notifier)) : In<(Entity, Arc<crossbeam::channel::Sender<Entity>>)>,
+    world                  : &mut World
+){
+    // try to get the entity
+    // - if entity doesn't exist, then notify the reactor in case we have despawn reactors waiting
+    let Some(mut entity_mut) = world.get_entity_mut(entity)
+    else
+    {
+        let _ = notifier.send(entity);
+        return;
+    };
+
+    // leave if entity already has a despawn tracker
+    // - we don't want to accidentally trigger `DespawnTracker::drop()` by replacing the existing component
+    if entity_mut.contains::<DespawnTracker>() { return; }
+
+    // insert a new despawn tracker
+    entity_mut.insert(
+            DespawnTracker{ parent: entity, notifier }
+        );
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -1190,8 +1215,9 @@ impl<'w, 's> ReactCommands<'w, 's>
     ) -> Option<RevokeToken>
     {
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        let Some(mut entity_commands) = self.commands.get_entity(entity) else { return None; };
-        entity_commands.insert( DespawnTracker{ parent: entity, notifier: cache.despawn_sender.clone() } );
+        let Some(_) = self.commands.get_entity(entity) else { return None; };
+        let notifier =  cache.despawn_sender.clone();
+        self.commands.add(move |world: &mut World| syscall(world, (entity, notifier), add_despawn_tracker));
 
         Some(cache.register_despawn_reactor(entity, CallOnce::new(reactonce)))
     }

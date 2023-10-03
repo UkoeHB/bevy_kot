@@ -408,6 +408,7 @@ pub fn interaction_pipeline<S: InteractionSource>(world: &mut World)
     else
     {
         //todo: clean up Pressed/Hovered if focused window changed (abort press and force unhover)
+        //todo: clean up Pressed/Hovered if cursor is deactivated or despawned (abort press and force unhover)
         //(maybe do this in separate system for all sources?)
         return;
     };
