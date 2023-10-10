@@ -145,7 +145,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
 
     // slider bar image tied to slider bar
     commands.spawn(
-        lunex::ImageElementBundle::new(
+            lunex::ImageElementBundle::new(
                     &slider_bar,
                     lunex::ImageParams::center()
                         .with_width(Some(100.))

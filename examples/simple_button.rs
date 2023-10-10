@@ -54,7 +54,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
     // default button image tied to button
     let default_widget = kot::make_overlay(&mut ui, &button, "default", true);
     commands.spawn(
-        lunex::ImageElementBundle::new(
+            lunex::ImageElementBundle::new(
                     &default_widget,
                     lunex::ImageParams::center()
                         .with_depth(50.)
@@ -69,7 +69,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
     // pressed button image tied to button
     let pressed_widget = kot::make_overlay(&mut ui, &button, "pressed", false);
     commands.spawn(
-        lunex::ImageElementBundle::new(
+            lunex::ImageElementBundle::new(
                     &pressed_widget,
                     lunex::ImageParams::center()
                         .with_depth(50.)
@@ -101,15 +101,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
         };
 
     entity_commands.insert(
-        lunex::TextElementBundle::new(
-                button,
-                lunex::TextParams::center()
-                    .with_style(&text_style)
-                    .with_depth(100.)
-                    .with_width(Some(70.)),
-                "HELLO, WORLD!"
-            )
-    );
+            lunex::TextElementBundle::new(
+                    button,
+                    lunex::TextParams::center()
+                        .with_style(&text_style)
+                        .with_depth(100.)
+                        .with_width(Some(70.)),
+                    "HELLO, WORLD!"
+                )
+        );
 
     // add ui tree to ecs (warning: if you queue any UI-dependent callbacks before this, they will fail)
     commands.spawn((ui, kot_builtin::MainUI));
