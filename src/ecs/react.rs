@@ -146,7 +146,7 @@ impl RemovalChecker
 struct DespawnTracker
 {
     parent   : Entity,
-    notifier : Arc<crossbeam::channel::Sender<Entity>>,
+    notifier : crossbeam::channel::Sender<Entity>,
 }
 
 impl Drop for DespawnTracker
@@ -161,7 +161,7 @@ impl Drop for DespawnTracker
 //-------------------------------------------------------------------------------------------------------------------
 
 fn add_despawn_tracker(
-    In((entity, notifier)) : In<(Entity, Arc<crossbeam::channel::Sender<Entity>>)>,
+    In((entity, notifier)) : In<(Entity, crossbeam::channel::Sender<Entity>)>,
     world                  : &mut World
 ){
     // try to get the entity
@@ -484,7 +484,7 @@ struct ReactCache
     //todo: is there a more efficient data structure? need faster cleanup on despawns
     despawn_reactors: HashMap<Entity, Vec<(u64, CallOnce<()>)>>,
     /// Despawn sender (cached for reuse with new despawn trackers)
-    despawn_sender: Arc<crossbeam::channel::Sender<Entity>>,
+    despawn_sender: crossbeam::channel::Sender<Entity>,
     /// Despawn receiver
     despawn_receiver: crossbeam::channel::Receiver<Entity>,
 
@@ -745,7 +745,7 @@ impl Default for ReactCache
             removal_checkers      : Vec::new(),
             removal_buffer        : None,
             despawn_reactors      : HashMap::new(),
-            despawn_sender        : Arc::new(despawn_sender),
+            despawn_sender,
             despawn_receiver,
             resource_reactors     : HashMap::new(),
         }
