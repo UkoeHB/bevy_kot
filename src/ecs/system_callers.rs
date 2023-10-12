@@ -4,13 +4,11 @@
 use bevy::ecs::system::{SystemParam, SystemState, BoxedSystem};
 use bevy::prelude::*;
 use bevy::utils::{AHasher, HashMap};
-
 use fxhash::FxHasher32;
 
 //standard shortcuts
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
-
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -18,7 +16,7 @@ use std::marker::PhantomData;
 /// A system caller may have multiple instances. We need to ensure the local state of these instances is
 /// not shared. This hashmap allows us to dynamically store instance states.
 #[derive(Default, Resource)]
-struct StateInstances<T: 'static + SystemParam>
+struct StateInstances<T: SystemParam + 'static>
 {
     instances: HashMap<CallId, SystemState<T>>,
 }
@@ -26,7 +24,7 @@ struct StateInstances<T: 'static + SystemParam>
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn init_callable_system<S: 'static + SystemParam>(world: &mut World, id: CallId)
+fn init_callable_system<S: SystemParam + 'static>(world: &mut World, id: CallId)
 {
     // 1. obtain the callable system's existing state instances or make a new one
     let mut state_instances =
@@ -146,7 +144,7 @@ pub trait BasicCallableSystem: SystemParam
 /// call::<CallableTest>(&mut world, CallId::new("b"), 1);
 /// ```
 ///
-pub fn call<S: 'static + CallableSystem>(world: &mut World, id: CallId, arg: S::ArgT)
+pub fn call<S: CallableSystem + 'static>(world: &mut World, id: CallId, arg: S::ArgT)
 {
     // 1. make sure the callable system has been cached for this call id
     init_callable_system::<S>(world, id);
@@ -211,7 +209,7 @@ pub fn call<S: 'static + CallableSystem>(world: &mut World, id: CallId, arg: S::
 /// assert_eq!(counter.0, 4);
 /// ```
 ///
-pub fn call_basic<S: 'static + BasicCallableSystem>(world: &mut World, id: CallId)
+pub fn call_basic<S: BasicCallableSystem + 'static>(world: &mut World, id: CallId)
 {
     // 1. make sure the callable system has been cached for this call id
     init_callable_system::<S>(world, id);
@@ -268,7 +266,7 @@ pub fn syscall<I, O, S, Marker>(world: &mut World, input: I, system: S) -> O
 where
     I: Send + 'static,
     O: Send + 'static,
-    S: IntoSystem<I, O, Marker> + Send + 'static + Sync,
+    S: IntoSystem<I, O, Marker> + Send + Sync 'static,
 {
     // get the initialized system
     let mut system =
@@ -300,7 +298,7 @@ struct InitializedSystem<I, O, S>
 where
     I: Send + 'static,
     O: Send + 'static,
-    S: Send + 'static + Sync
+    S: Send + Sync + 'static
 {
     sys      : BoxedSystem<I, O>,
     _phantom : PhantomData<S>
@@ -346,7 +344,7 @@ where
     H: Hash,
     I: Send + 'static,
     O: Send + 'static,
-    S: IntoSystem<I, O, Marker> + Send + 'static + Sync,
+    S: IntoSystem<I, O, Marker> + Send + Sync 'static,
 {
     // the system id
     let sys_id = SysId::new(id);
@@ -409,7 +407,7 @@ struct IdMappedSystems<I, O, S>
 where
     I: Send + 'static,
     O: Send + 'static,
-    S: Send + 'static + Sync
+    S: Send + Sync + 'static
 {
     systems  : HashMap<SysId, Option<BoxedSystem<I, O>>>,
     _phantom : PhantomData<S>
@@ -419,7 +417,7 @@ impl<I, O, S> Default for IdMappedSystems<I, O, S>
 where
     I: Send + 'static,
     O: Send + 'static,
-    S: Send + 'static + Sync
+    S: Send + Sync + 'static
 {
     fn default() -> Self { Self{ systems: HashMap::default(), _phantom: PhantomData::default() } }
 }
