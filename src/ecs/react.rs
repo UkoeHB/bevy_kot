@@ -368,6 +368,8 @@ fn react_to_data_event<E: Send + Sync + 'static>(
 
 /// React to tracked despawns.
 /// - Returns number of callbacks queued.
+//note: we cannot use RemovedComponents here because we need the ability to react to despawns that occur between
+//      when 'register despawn tracker' is queued and executed
 fn react_to_despawns_impl(
     mut commands    : Commands,
     mut react_cache : ResMut<ReactCache>,
@@ -690,6 +692,9 @@ impl ReactCache
 
             for entity in buffer.iter()
             {
+                // ignore entities that don't exist
+                if world.get_entity(*entity).is_none() { continue; }
+
                 // entity-specific component reactors
                 if let Ok(entity_reactors) = query.get(world, *entity)
                 {
@@ -1173,6 +1178,8 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a component `C` is removed from any entity (`C` may be a [`React<T>`] or another component).
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was removed from.
+    /// - If a component is removed from an entity then despawned (or removed due to a despawn) before
+    ///   [`react_to_removals()`] is executed, then the reactor will not be scheduled.
     pub fn add_removal_reactor<C: Component>(
         &mut self,
         reactor : impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
@@ -1188,6 +1195,8 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// component).
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
+    /// - If a component is removed from the entity then despawned (or removed due to a despawn) before
+    ///   [`react_to_removals()`] is executed, then the reactor will not be scheduled.
     pub fn add_entity_removal_reactor<C: Component>(
         &mut self,
         entity  : Entity,

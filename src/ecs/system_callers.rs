@@ -266,7 +266,7 @@ pub fn syscall<I, O, S, Marker>(world: &mut World, input: I, system: S) -> O
 where
     I: Send + 'static,
     O: Send + 'static,
-    S: IntoSystem<I, O, Marker> + Send + Sync 'static,
+    S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
     // get the initialized system
     let mut system =
@@ -344,7 +344,7 @@ where
     H: Hash,
     I: Send + 'static,
     O: Send + 'static,
-    S: IntoSystem<I, O, Marker> + Send + Sync 'static,
+    S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
     // the system id
     let sys_id = SysId::new(id);
