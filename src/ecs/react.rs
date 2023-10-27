@@ -199,6 +199,7 @@ impl<E: Send + Sync + 'static> Default for EventReactors<E> { fn default() -> Se
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Collect component removals.
+///
 /// Note: `RemovedComponents` acts like an event reader, so multiple invocations of this system within one tick will
 /// not see duplicate removals.
 fn collect_component_removals<C: Component>(
@@ -822,6 +823,7 @@ impl<R: Send + Sync + 'static> ReactRes<R>
     /// Mutably access the resource and trigger reactions.
     pub fn get_mut<'a>(&'a mut self, rcommands: &mut ReactCommands) -> &'a mut R
     {
+        // note: we don't use `trigger_resource_mutation()` because that method panics if ReactPlugin was not added
         if let Some(ref mut cache) = rcommands.cache { cache.react_to_resource_mutation::<R>(&mut rcommands.commands); }
         &mut self.resource
     }
@@ -1021,7 +1023,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// Insert a [`React<C>`] component to the specified entity.
-    /// - Reactor is registered after `apply_deferred` is invoked.
+    /// - Reactions are enacted after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
     //todo: consider more ergonomic entity access, e.g. ReactEntityCommands
     pub fn insert<C: Send + Sync + 'static>(&mut self, entity: Entity, component: C)
@@ -1034,12 +1036,21 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// Send a react event.
-    /// - Reactor is registered after `apply_deferred` is invoked.
+    /// - Reactions are enacted after `apply_deferred` is invoked.
     /// - Any reactors to this event will obtain a [`ReactEvent`] wrapping the event value.
     pub fn send<E: Send + Sync + 'static>(&mut self, event: E)
     {
         if self.cache.is_none() { return; }
         self.commands.add(move |world: &mut World| { syscall(world, event, react_to_data_event); });
+    }
+
+    /// Trigger resource mutation reactions.
+    ///
+    /// Useful for initializing state after a reactor is registered.
+    pub fn trigger_resource_mutation<R: Send + Sync + 'static>(&mut self)
+    {
+        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
+        cache.react_to_resource_mutation::<R>(&mut self.commands);
     }
 
     /// Revoke a reactor.

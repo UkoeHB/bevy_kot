@@ -1,6 +1,10 @@
 # Changelog
 
-## [WIP]
+## [0.0.6]
+
+### Added
+
+- `ReactCommands::trigger_resource_mutation()`
 
 
 ## [0.0.5]
