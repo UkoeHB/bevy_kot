@@ -512,7 +512,9 @@ impl ReactCache
         self.removal_checkers.push(RemovalChecker::new::<C>());
     }
 
-    fn register_insertion_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
+    fn register_insertion_reactor<C>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
+    where
+        C: ReactTrait +Send + Sync + 'static
     {
         let callback_id = self.next_callback_id();
         self.component_reactors
@@ -524,7 +526,9 @@ impl ReactCache
         RevokeToken{ reactor_type: ReactorType::ComponentInsertion(TypeId::of::<C>()), callback_id }
     }
 
-    fn register_mutation_reactor<C: Send + Sync + 'static>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
+    fn register_mutation_reactor<C>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
+    where
+        C: ReactTrait +Send + Sync + 'static
     {
         let callback_id = self.next_callback_id();
         self.component_reactors
@@ -635,7 +639,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a component insertion.
-    fn react_to_insertion<C: Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
+    fn react_to_insertion<C: ReactTrait + Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
     {
         // entity-specific component reactors
         commands.add(
@@ -652,7 +656,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a component mutation.
-    fn react_to_mutation<C: Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
+    fn react_to_mutation<C: ReactTrait + Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
     {
         // entity-specific component reactors
         commands.add(
@@ -776,7 +780,10 @@ impl<C: Send + Sync + 'static> React<C>
     /// Mutably access the component and trigger reactions.
     pub fn get_mut<'a>(&'a mut self, rcommands: &mut ReactCommands) -> &'a mut C
     {
-        if let Some(ref mut cache) = rcommands.cache { cache.react_to_mutation::<C>(&mut rcommands.commands, self.entity) }
+        if let Some(ref mut cache) = rcommands.cache
+        {
+            cache.react_to_mutation::<React<C>>(&mut rcommands.commands, self.entity);
+        }
         &mut self.component
     }
 
@@ -802,6 +809,10 @@ impl<C: Send + Sync + 'static> Deref for React<C>
         &self.component
     }
 }
+
+/// Tag trait for identifying `React` components.
+pub trait ReactTrait {}
+impl<C: Send + Sync + 'static> ReactTrait for React<C> {}
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -1032,7 +1043,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         entity_commands.insert( React{ entity, component } );
 
         let Some(ref mut cache) = self.cache else { return; };
-        cache.react_to_insertion::<C>(&mut self.commands, entity);
+        cache.react_to_insertion::<React<C>>(&mut self.commands, entity);
     }
 
     /// Send a react event.
@@ -1114,10 +1125,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         self.commands.add(move |world: &mut World| syscall(world, token.callback_id, revoke_event_reactor::<E>));
     }
 
-    /// React when a [`React<C>`] is inserted on any entity.
+    /// React when a [`React`] component is inserted on any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was inserted to.
-    pub fn add_insertion_reactor<C: Send + Sync + 'static>(
+    pub fn add_insertion_reactor<C: ReactTrait + Send + Sync + 'static>(
         &mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -1127,10 +1138,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_insertion_reactor::<C>(CallbackWith::new(reactor))
     }
 
-    /// React when a [`React<C>`] is inserted on a specific entity.
+    /// React when a [`React`] component is inserted on a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
-    pub fn add_entity_insertion_reactor<C: Send + Sync + 'static>(
+    pub fn add_entity_insertion_reactor<C: ReactTrait + Send + Sync + 'static>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -1150,10 +1161,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         RevokeToken{ reactor_type: ReactorType::EntityInsertion(entity, TypeId::of::<C>()), callback_id }
     }
 
-    /// React when a [`React<C>`] is mutated on any entity.
+    /// React when a [`React`] component is mutated on any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was mutated on.
-    pub fn add_mutation_reactor<C: Send + Sync + 'static>(
+    pub fn add_mutation_reactor<C: ReactTrait + Send + Sync + 'static>(
         &mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -1163,10 +1174,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_mutation_reactor::<C>(CallbackWith::new(reactor))
     }
 
-    /// React when a [`React<C>`] is mutated on a specific entity.
+    /// React when a [`React`] is mutated on a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
-    pub fn add_entity_mutation_reactor<C: Send + Sync + 'static>(
+    pub fn add_entity_mutation_reactor<C: ReactTrait + Send + Sync + 'static>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static

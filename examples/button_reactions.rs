@@ -243,7 +243,7 @@ fn setup_react_count_text(
         );
 
     // add reactor
-    rcommands.add_mutation_reactor::<ButtonCounter>(
+    rcommands.add_mutation_reactor::<kot_ecs::React<ButtonCounter>>(
             |world: &mut World, _: Entity| kot_ecs::syscall(world, (), button_counter_reactor)
         );
 }

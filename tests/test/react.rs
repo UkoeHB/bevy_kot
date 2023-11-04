@@ -74,7 +74,7 @@ fn update_test_recorder_with_event(In(data): In<usize>, mut recorder: ResMut<Tes
 
 fn add_entity_insertion_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands) -> RevokeToken
 {
-    react_commands.add_entity_insertion_reactor::<TestComponent>(
+    react_commands.add_entity_insertion_reactor::<React<TestComponent>>(
             entity,
             move |world| { syscall(world, entity, update_test_recorder_with_component); }
         )
@@ -82,7 +82,7 @@ fn add_entity_insertion_reactor(In(entity): In<Entity>, mut react_commands: Reac
 
 fn add_entity_mutation_reactor(In(entity): In<Entity>, mut react_commands: ReactCommands) -> RevokeToken
 {
-    react_commands.add_entity_mutation_reactor::<TestComponent>(
+    react_commands.add_entity_mutation_reactor::<React<TestComponent>>(
             entity,
             move |world| { syscall(world, entity, update_test_recorder_with_component); }
         )
@@ -98,14 +98,14 @@ fn add_entity_removal_reactor(In(entity): In<Entity>, mut react_commands: ReactC
 
 fn add_insertion_reactor(mut react_commands: ReactCommands) -> RevokeToken
 {
-    react_commands.add_insertion_reactor::<TestComponent>(
+    react_commands.add_insertion_reactor::<React<TestComponent>>(
             move |world, entity| { syscall(world, entity, update_test_recorder_with_component); }
         )
 }
 
 fn add_mutation_reactor(mut react_commands: ReactCommands) -> RevokeToken
 {
-    react_commands.add_mutation_reactor::<TestComponent>(
+    react_commands.add_mutation_reactor::<React<TestComponent>>(
             move |world, entity| { syscall(world, entity, update_test_recorder_with_component); }
         )
 }
@@ -210,7 +210,7 @@ fn pass_component_to_res(
 
 fn add_entity_mutation_reactor_chain_to_res(In(entity): In<Entity>, mut react_commands: ReactCommands)
 {
-    react_commands.add_entity_mutation_reactor::<TestComponent>(
+    react_commands.add_entity_mutation_reactor::<React<TestComponent>>(
             entity,
             move |world| { syscall(world, entity, pass_component_to_res); }
         );

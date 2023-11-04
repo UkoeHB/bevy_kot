@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7]
+
+### Changed
+
+- `ReactCommands` component insertion and mutation reactor registration now requires `React<C>` instead of `C`.
+
+
 ## [0.0.6]
 
 ### Added
