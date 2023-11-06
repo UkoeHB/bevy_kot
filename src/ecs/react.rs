@@ -1128,7 +1128,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a [`React`] component is inserted on any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was inserted to.
-    pub fn add_insertion_reactor<C: ReactTrait + Send + Sync + 'static>(
+    pub fn on_insertion<C: ReactTrait + Send + Sync + 'static>(
         &mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -1141,7 +1141,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a [`React`] component is inserted on a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
-    pub fn add_entity_insertion_reactor<C: ReactTrait + Send + Sync + 'static>(
+    pub fn on_entity_insertion<C: ReactTrait + Send + Sync + 'static>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -1164,7 +1164,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a [`React`] component is mutated on any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was mutated on.
-    pub fn add_mutation_reactor<C: ReactTrait + Send + Sync + 'static>(
+    pub fn on_mutation<C: ReactTrait + Send + Sync + 'static>(
         &mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -1177,7 +1177,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a [`React`] is mutated on a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
-    pub fn add_entity_mutation_reactor<C: ReactTrait + Send + Sync + 'static>(
+    pub fn on_entity_mutation<C: ReactTrait + Send + Sync + 'static>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -1202,7 +1202,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// - Reactor takes the entity the component was removed from.
     /// - If a component is removed from an entity then despawned (or removed due to a despawn) before
     ///   [`react_to_removals()`] is executed, then the reactor will not be scheduled.
-    pub fn add_removal_reactor<C: Component>(
+    pub fn on_removal<C: Component>(
         &mut self,
         reactor : impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -1219,7 +1219,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// - Does nothing if the entity does not exist.
     /// - If a component is removed from the entity then despawned (or removed due to a despawn) before
     ///   [`react_to_removals()`] is executed, then the reactor will not be scheduled.
-    pub fn add_entity_removal_reactor<C: Component>(
+    pub fn on_entity_removal<C: Component>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -1243,7 +1243,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when an entity is despawned.
     /// - Reactor is registered immediately.
     /// - Returns [`None`] if the entity does not exist.
-    pub fn add_despawn_reactor(
+    pub fn on_despawn(
         &mut self,
         entity    : Entity,
         reactonce : impl FnOnce(&mut World) -> () + Send + Sync + 'static
@@ -1259,7 +1259,7 @@ impl<'w, 's> ReactCommands<'w, 's>
 
     /// React when a resource [`ReactRes<R>`] is mutated.
     /// - Reactor is registered immediately.
-    pub fn add_resource_mutation_reactor<R: Send + Sync + 'static>(
+    pub fn on_resource_mutation<R: Send + Sync + 'static>(
         &mut self,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -1272,7 +1272,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a data event is sent.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Reactions only occur for data sent via [`ReactCommands::<E>::send()`].
-    pub fn add_event_reactor<E: Send + Sync + 'static>(
+    pub fn on_event<E: Send + Sync + 'static>(
         &mut self,
         reactor : impl Fn(&mut World, ReactEvent<E>) -> () + Send + Sync + 'static
     ) -> EventRevokeToken<E>
