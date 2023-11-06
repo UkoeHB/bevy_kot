@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.8]
+
+### Changed
+
+- `ReactCommands` reactor registration renames: `add_x_reactor()` -> `on_x()`.
+- `ReactCommands` resource mutation reactor registration now requires `ReactRes<R>` instead of `R`.
+- `ReactEvent` no longer implements `Deref` since it caused confusing results when calling `.clone()` on the event. Use `.get()` instead.
+
+
 ## [0.0.7]
 
 ### Changed
