@@ -514,7 +514,7 @@ impl ReactCache
 
     fn register_insertion_reactor<C>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
     where
-        C: ReactTrait +Send + Sync + 'static
+        C: Reactive +Send + Sync + 'static
     {
         let callback_id = self.next_callback_id();
         self.component_reactors
@@ -528,7 +528,7 @@ impl ReactCache
 
     fn register_mutation_reactor<C>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
     where
-        C: ReactTrait +Send + Sync + 'static
+        C: Reactive +Send + Sync + 'static
     {
         let callback_id = self.next_callback_id();
         self.component_reactors
@@ -639,7 +639,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a component insertion.
-    fn react_to_insertion<C: ReactTrait + Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
+    fn react_to_insertion<C: Reactive + Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
     {
         // entity-specific component reactors
         commands.add(
@@ -656,7 +656,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a component mutation.
-    fn react_to_mutation<C: ReactTrait + Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
+    fn react_to_mutation<C: Reactive + Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
     {
         // entity-specific component reactors
         commands.add(
@@ -765,6 +765,11 @@ impl Default for ReactCache
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Tag trait for identifying reactive objects.
+pub trait Reactive {}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 /// Component wrapper that enables reacting to component mutations.
 /// - WARNING: It is possible to remove a `React` from one entity and manually insert it to another entity. That WILL
 ///            break the react framework. Instead use `react_commands.insert(new_entity, react_component.take());`.
@@ -810,9 +815,7 @@ impl<C: Send + Sync + 'static> Deref for React<C>
     }
 }
 
-/// Tag trait for identifying `React` components.
-pub trait ReactTrait {}
-impl<C: Send + Sync + 'static> ReactTrait for React<C> {}
+impl<C: Send + Sync + 'static> Reactive for React<C> {}
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -835,7 +838,10 @@ impl<R: Send + Sync + 'static> ReactRes<R>
     pub fn get_mut<'a>(&'a mut self, rcommands: &mut ReactCommands) -> &'a mut R
     {
         // note: we don't use `trigger_resource_mutation()` because that method panics if ReactPlugin was not added
-        if let Some(ref mut cache) = rcommands.cache { cache.react_to_resource_mutation::<R>(&mut rcommands.commands); }
+        if let Some(ref mut cache) = rcommands.cache
+        {
+            cache.react_to_resource_mutation::<ReactRes<R>>(&mut rcommands.commands);
+        }
         &mut self.resource
     }
 
@@ -862,6 +868,8 @@ impl<R: Send + Sync + 'static> Deref for ReactRes<R>
     }
 }
 
+impl<R: Send + Sync + 'static> Reactive for ReactRes<R> {}
+
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Data sent to event reactors.
@@ -877,10 +885,12 @@ impl<E: Send + Sync + 'static> ReactEvent<E>
     {
         Self{ data: Arc::new(data) }
     }
+
+    pub fn get(&self) -> &E { &self.data }
 }
 
 impl<E: Send + Sync + 'static> Clone for ReactEvent<E> { fn clone(&self) -> Self { Self{ data: self.data.clone() } } }
-impl<E: Send + Sync + 'static> Deref for ReactEvent<E> { type Target = E; fn deref(&self) -> &E { &self.data } }
+impl<E: Send + Sync + 'static> Reactive for ReactEvent<E> {}
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -1058,7 +1068,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// Trigger resource mutation reactions.
     ///
     /// Useful for initializing state after a reactor is registered.
-    pub fn trigger_resource_mutation<R: Send + Sync + 'static>(&mut self)
+    pub fn trigger_resource_mutation<R: Reactive + Resource + Send + Sync + 'static>(&mut self)
     {
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
         cache.react_to_resource_mutation::<R>(&mut self.commands);
@@ -1128,7 +1138,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a [`React`] component is inserted on any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was inserted to.
-    pub fn on_insertion<C: ReactTrait + Send + Sync + 'static>(
+    pub fn on_insertion<C: Reactive + Component + Send + Sync + 'static>(
         &mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -1141,7 +1151,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a [`React`] component is inserted on a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
-    pub fn on_entity_insertion<C: ReactTrait + Send + Sync + 'static>(
+    pub fn on_entity_insertion<C: Reactive + Component + Send + Sync + 'static>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -1164,7 +1174,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a [`React`] component is mutated on any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was mutated on.
-    pub fn on_mutation<C: ReactTrait + Send + Sync + 'static>(
+    pub fn on_mutation<C: Reactive + Component + Send + Sync + 'static>(
         &mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -1177,7 +1187,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// React when a [`React`] is mutated on a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
-    pub fn on_entity_mutation<C: ReactTrait + Send + Sync + 'static>(
+    pub fn on_entity_mutation<C: Reactive + Component + Send + Sync + 'static>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -1257,9 +1267,9 @@ impl<'w, 's> ReactCommands<'w, 's>
         Some(cache.register_despawn_reactor(entity, CallOnce::new(reactonce)))
     }
 
-    /// React when a resource [`ReactRes<R>`] is mutated.
+    /// React when a [`ReactRes`] resource is mutated.
     /// - Reactor is registered immediately.
-    pub fn on_resource_mutation<R: Send + Sync + 'static>(
+    pub fn on_resource_mutation<R: Reactive + Resource + Send + Sync + 'static>(
         &mut self,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
     ) -> RevokeToken

@@ -55,8 +55,8 @@ fn update_test_recorder_with_component(
 
 /// Copy test component to recorder
 fn update_test_recorder_with_resource(
-    mut recorder  : ResMut<TestReactRecorder>,
-    resource      : Res<ReactRes<TestReactRes>>,
+    mut recorder : ResMut<TestReactRecorder>,
+    resource     : Res<ReactRes<TestReactRes>>,
 ){
     recorder.0 = resource.0;
 }
@@ -135,7 +135,7 @@ fn on_despawn_div2(In(entity): In<Entity>, mut rcommands: ReactCommands) -> Revo
 
 fn on_resource_mutation(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_resource_mutation::<TestReactRes>(
+    rcommands.on_resource_mutation::<ReactRes<TestReactRes>>(
             move |world| { syscall(world, (), update_test_recorder_with_resource); }
         )
 }
@@ -143,7 +143,7 @@ fn on_resource_mutation(mut rcommands: ReactCommands) -> RevokeToken
 fn on_event(mut rcommands: ReactCommands) -> EventRevokeToken<usize>
 {
     rcommands.on_event::<usize>(
-            move |world, event| { syscall(world, *event, update_test_recorder_with_event); }
+            move |world, event| { syscall(world, *event.get(), update_test_recorder_with_event); }
         )
 }
 
@@ -168,7 +168,7 @@ fn remove_from_test_entity(In(entity): In<Entity>, mut commands: Commands)
 
 fn update_test_entity(
     In((entity, new_val)) : In<(Entity, TestComponent)>,
-    mut rcommands    : ReactCommands,
+    mut rcommands         : ReactCommands,
     mut test_entities     : Query<&mut React<TestComponent>>,
 ){
     *test_entities
@@ -181,9 +181,9 @@ fn update_test_entity(
 //-------------------------------------------------------------------------------------------------------------------
 
 fn update_react_res(
-    In(new_val)        : In<usize>,
+    In(new_val)   : In<usize>,
     mut rcommands : ReactCommands,
-    mut react_res      : ResMut<ReactRes<TestReactRes>>
+    mut react_res : ResMut<ReactRes<TestReactRes>>
 ){
     react_res.get_mut(&mut rcommands).0 = new_val;
 }
@@ -200,10 +200,10 @@ fn send_data_event(In(data): In<usize>, mut rcommands: ReactCommands)
 //-------------------------------------------------------------------------------------------------------------------
 
 fn pass_component_to_res(
-    In(entity)         : In<Entity>,
+    In(entity)    : In<Entity>,
     mut rcommands : ReactCommands,
-    mut react_res      : ResMut<ReactRes<TestReactRes>>,
-    test_entities      : Query<&React<TestComponent>>,
+    mut react_res : ResMut<ReactRes<TestReactRes>>,
+    test_entities : Query<&React<TestComponent>>,
 ){
     react_res.get_mut(&mut rcommands).0 = test_entities.get(entity).unwrap().0;
 }
