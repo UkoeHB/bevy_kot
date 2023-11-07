@@ -1,6 +1,6 @@
 //local shortcuts
-use crate::ecs::*;
-use super::*;
+use crate::*;
+use bevy_kot_ecs::*;
 
 //third-party shortcuts
 use bevy::ecs::system::StaticSystemParam;

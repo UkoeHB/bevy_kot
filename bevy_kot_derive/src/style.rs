@@ -21,7 +21,7 @@ pub(crate) fn derive_style_impl(input: TokenStream) -> TokenStream
     let struct_name = &ast.ident;
 
     TokenStream::from(quote! {
-        impl #impl_generics ::bevy_kot::ui::Style for #struct_name #ty_generics #where_clause {}
+        impl #impl_generics ::bevy_kot_ui::Style for #struct_name #ty_generics #where_clause {}
     })
 }
 
@@ -51,7 +51,7 @@ pub(crate) fn derive_style_bundle_impl(input: TokenStream) -> TokenStream
     let struct_name = &ast.ident;
 
     TokenStream::from(quote! {
-        impl #impl_generics ::bevy_kot::ui::StyleBundle for #struct_name #ty_generics #where_clause
+        impl #impl_generics ::bevy_kot_ui::StyleBundle for #struct_name #ty_generics #where_clause
         {
             #[allow(unused_variables)]
             #[inline]

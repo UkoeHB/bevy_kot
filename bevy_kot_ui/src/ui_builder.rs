@@ -1,5 +1,6 @@
 //local shortcuts
-use crate::prelude::{*, Style};
+use crate::{*, Style};
+use bevy_kot_ecs::*;
 
 //third-party shortcuts
 use bevy::ecs::system::SystemParam;

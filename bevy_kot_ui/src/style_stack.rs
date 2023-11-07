@@ -1,5 +1,5 @@
 //local shortcuts
-use super::{*, Style};
+use crate::{*, Style};
 
 //third-party shortcuts
 use bevy::prelude::*;

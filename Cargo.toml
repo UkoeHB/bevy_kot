@@ -1,28 +1,52 @@
-[package]
-name = "bevy_kot"
-description = "koe's Bevy toolkit"
+[workspace.package]
 authors = ["koe <ukoe@protonmail.com>"]
 version = "0.0.11"
 edition = "2021"
-keywords = ["gamedev", "ui", "reactive"]
 license = "MIT OR Apache-2.0"
-readme = "README.md"
 repository = "https://github.com/UkoeHB/bevy_kot"
+
+[package]
+name = "bevy_kot"
+description = "Koe's Bevy toolkit"
+keywords = ["gamedev", "ui", "reactive"]
+readme = "README.md"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[workspace]
+resolver = "2"
+exclude = [
+    "examples",
+    "assets"
+]
+members  = [
+    ".",
+    "bevy_kot_derive",
+    "bevy_kot_ecs",
+    "bevy_kot_ui",
+    "bevy_kot_utils",
+    "tests"
+]
+
+[features]
+default = ["builtin_ui"]
+
+# Exposes builtin UI utilities.
+builtin_ui = ["bevy_kot_ui/builtin"]
 
 [lib]
 path = "src/lib.rs"
 test = false
-
-[[test]]
-name    = "tests"
-path    = "tests/test/mod.rs"
 doctest = false
 
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
-[dependencies]
+[workspace.dependencies]
 bevy             = { version = "0.11", default-features = false }
 bevy_fn_plugin   = { version = "0.1" }
 bevy_lunex       = { version = "0.0.6" }
@@ -31,8 +55,14 @@ crossbeam        = { version = "0.8"}
 fxhash           = { version = "0.2" }
 tracing          = { version = "0.1" }
 
-bevy_kot_derive = { version = "=0.0.11", path = "./bevy_kot_derive" }
+[dependencies]
+bevy_kot_derive = { path = "bevy_kot_derive", default-features = false }
+bevy_kot_ecs    = { path = "bevy_kot_ecs", default-features = false }
+bevy_kot_ui     = { path = "bevy_kot_ui", default-features = false }
+bevy_kot_utils  = { path = "bevy_kot_utils", default-features = false }
 
 [dev-dependencies]
 bevy               = { version = "0.11", default-features = true, features = [ "dynamic_linking" ] }
+bevy_lunex         = { version = "0.0.6" }
+bevy_lunex_core    = { version = "0.0.6" }
 tracing-subscriber = { version = "0.3" }

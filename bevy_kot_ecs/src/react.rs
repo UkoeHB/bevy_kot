@@ -1,5 +1,5 @@
 //local shortcuts
-use crate::ecs::*;
+use crate::*;
 
 //third-party shortcuts
 use bevy::ecs::system::{Command, CommandQueue, SystemParam};

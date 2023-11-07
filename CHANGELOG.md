@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.12]
+
+### Changed
+
+- Refactored into a workspace.
+- Added `builtin_ui` default feature.
+
+
 ## [0.0.11]
 
 ### Changed

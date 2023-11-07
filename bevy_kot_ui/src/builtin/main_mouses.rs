@@ -1,5 +1,5 @@
 //local shortcuts
-use crate::ui::builtin::*;
+use crate::builtin::*;
 
 //third-party shortcuts
 use bevy::prelude::*;

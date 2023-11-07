@@ -1,0 +1,28 @@
+[package]
+name = "bevy_kot_ui"
+description = "UI utilities for bevy_kot"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["builtin"]
+
+# Exposes builtin utilities.
+builtin = []
+
+[lib]
+test    = false
+doctest = false
+
+[dependencies]
+bevy             = { workspace = true }
+bevy_fn_plugin   = { workspace = true }
+bevy_lunex       = { workspace = true }
+bevy_lunex_core  = { workspace = true }
+tracing          = { workspace = true }
+
+bevy_kot_derive = { path = "../bevy_kot_derive" }
+bevy_kot_ecs    = { path = "../bevy_kot_ecs" }
