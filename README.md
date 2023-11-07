@@ -1,6 +1,6 @@
 # Koe's Bevy toolkit
 
-A collection of tools.
+A collection of bevy tools.
 
 
 
@@ -9,6 +9,7 @@ A collection of tools.
 ### UI
 
 - Interactive element builder for [`bevy_lunex`], with a robust backend for handling arbitrary interaction sources.
+- `StyleStack` utility to enable style cascading/overriding when building a UI tree.
 
 
 ### ECS
@@ -16,18 +17,13 @@ A collection of tools.
 - System callers for invoking systems as if they were functions (requires `&mut World`).
 - Entity callbacks.
 - Utilities for adding/removing components from entities (requires `&mut World`).
-- Reactive framework: [`React`] components, [`ReactRes`] resources, and [`ReactEvent`] messages managed by [`ReactCommands`].
+- Reactive framework managed by [`ReactCommands`]: [`React`] components, [`ReactRes`] resources, and [`ReactEvent`] messages.
 
 
 ### Miscellaneous
 
 - [`FPSTracker`] resource with plugin [`FPSTrackerPlugin`].
 
-
-
-## Help Wanted
-
-The more UI examples, the better. Please submit new UI examples highlighting specific designs or patterns. All levels of complexity are welcome, and I will not be a stickler for formatting or code quality.
 
 
 
