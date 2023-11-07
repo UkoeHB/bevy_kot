@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0]
+
+### Changed
+
+- Try to fix dependency issues with downstream projects. Start using minor version number.
+
+
 ## [0.0.12]
 
 ### Changed
