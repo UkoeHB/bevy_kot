@@ -12,5 +12,6 @@ pub mod prelude
     pub use crate::ecs::*;
     pub use crate::misc::*;
     pub use crate::ui::*;
+    pub use crate::ui::builtin::*;
     pub use bevy_kot_derive::*;
 }
