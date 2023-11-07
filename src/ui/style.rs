@@ -15,7 +15,7 @@ pub trait Style: Send + Sync + 'static {}
 impl<S: Style> StyleBundle for S
 {
     #[inline]
-    fn get_styles(self, func: &mut impl FnMut(Arc<dyn Any>))
+    fn get_styles(self, func: &mut impl FnMut(Arc<dyn Any + Send + Sync + 'static>))
     {
         func(Arc::new(self));
     }
@@ -32,7 +32,7 @@ pub trait StyleBundle: Send + Sync + 'static
     /// Calls `func` on each value, in the order of this bundle's [`Style`]s.
     ///
     /// This passes type-erased ownership of the style values to `func`.
-    fn get_styles(self, func: &mut impl FnMut(Arc<dyn Any>));
+    fn get_styles(self, func: &mut impl FnMut(Arc<dyn Any + Send + Sync + 'static>));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -46,7 +46,7 @@ macro_rules! tuple_impl
         {
             #[allow(unused_variables, unused_mut)]
             #[inline(always)]
-            fn get_styles(self, func: &mut impl FnMut(Arc<dyn Any>))
+            fn get_styles(self, func: &mut impl FnMut(Arc<dyn Any + Send + Sync + 'static>))
             {
                 #[allow(non_snake_case)]
                 let ($(mut $name,)*) = self;

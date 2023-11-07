@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10]
+
+### Added
+
+- `UiBuilderCtx` is a Bevy `SystemParam` that wraps resources necessary for building a UI tree.
+
+
 ## [0.0.9]
 
 ### Added

@@ -55,7 +55,7 @@ pub(crate) fn derive_style_bundle_impl(input: TokenStream) -> TokenStream
         {
             #[allow(unused_variables)]
             #[inline]
-            fn get_styles(self, func: &mut impl FnMut(std::sync::Arc<dyn std::any::Any>))
+            fn get_styles(self, func: &mut impl FnMut(std::sync::Arc<dyn std::any::Any + Send + Sync + 'static>))
             {
                 #(#field_get_styles)*
             }

@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use bevy_lunex::prelude::*;
 
 //standard shortcuts
-
+use std::borrow::Borrow;
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -54,6 +54,27 @@ pub fn make_overlay(ui: &mut UiTree, parent: &Widget, overlay_name: &str, visibl
     overlay.fetch_mut(ui).unwrap().set_visibility(visible_by_default);
 
     overlay
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Make a widget with `RelativeLayout`.
+pub fn relative_widget(
+    ui      : &mut UiTree,
+    path    : impl Borrow<str>,
+    x_range : (f32, f32),
+    y_range : (f32, f32)
+) -> Widget
+{
+     Widget::create(
+            ui,
+            path,
+            RelativeLayout{
+                relative_1 : Vec2 { x: x_range.0, y: y_range.0 },
+                relative_2 : Vec2 { x: x_range.1, y: y_range.1 },
+                ..Default::default()
+            }
+        ).unwrap()
 }
 
 //-------------------------------------------------------------------------------------------------------------------

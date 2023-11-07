@@ -1,11 +1,14 @@
 //local shortcuts
-use super::*;
+use super::{*, Style};
 
 //third-party shortcuts
+use bevy::prelude::*;
 
 //standard shortcuts
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use std::vec::Vec;
 
@@ -18,12 +21,24 @@ struct DummyStyle;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+/// A style stack resource parameterized by the associated UI tree's type.
+#[derive(Resource, Default)]
+pub struct StyleStackRes<Ui: LunexUI>(StyleStack, PhantomData<Ui>);
+
+impl<Ui: LunexUI> Deref for StyleStackRes<Ui> { type Target = StyleStack; fn deref(&self) -> &Self::Target { &self.0 }}
+impl<Ui: LunexUI> DerefMut for StyleStackRes<Ui> { fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 /// Manages a stack of styles.
-#[derive(Default)]
+///
+/// The 'root stack frame' is implicit and cannot be popped. Styles in the root frame are permanent unless you call
+/// [`StyleStack::clear()`].
+#[derive(Default, Clone)]
 pub struct StyleStack
 {
     /// Registry of per-style stacks.
-    styles: HashMap<TypeId, Vec<Arc<dyn Any>>>,
+    styles: HashMap<TypeId, Vec<Arc<dyn Any + Send + Sync + 'static>>>,
 
     /// Stack frames.
     stack: Vec<Vec<TypeId>>,
@@ -58,6 +73,14 @@ impl StyleStack
         self.buffers.push(last_frame);
     }
 
+    /// Clear all contents of the style stack.
+    ///
+    /// Equivalent to `*stack = StyleStack::default()`.
+    pub fn clear(&mut self)
+    {
+        *self = StyleStack::default();
+    }
+
     /// Add a style bundle to the top of the current stack frame.
     ///
     /// The styles in this bundle will remain active until the current stack frame is popped. Bundles
@@ -68,9 +91,9 @@ impl StyleStack
     pub fn add(&mut self, bundle: impl StyleBundle)
     {
         let mut func =
-            |style: Arc<dyn Any>|
+            |style: Arc<dyn Any + Send + Sync + 'static>|
             {
-                self.styles.entry((&*style).type_id()).or_default().push(style);
+                self.insert((&*style).type_id(), style);
             };
         bundle.get_styles(&mut func);
     }
@@ -99,7 +122,7 @@ impl StyleStack
             )
     }
 
-    fn insert(&mut self, type_id: TypeId, style: Arc<dyn Any>)
+    fn insert(&mut self, type_id: TypeId, style: Arc<dyn Any + Send + Sync + 'static>)
     {
         self.styles.entry(type_id).or_default().push(style);
         if let Some(top) = self.stack.last_mut()
