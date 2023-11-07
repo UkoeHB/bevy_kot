@@ -2,7 +2,7 @@
 name = "bevy_kot"
 description = "koe's Bevy toolkit"
 authors = ["koe <ukoe@protonmail.com>"]
-version = "0.0.10"
+version = "0.0.11"
 edition = "2021"
 keywords = ["gamedev", "ui", "reactive"]
 license = "MIT OR Apache-2.0"
@@ -31,7 +31,7 @@ crossbeam        = { version = "0.8"}
 fxhash           = { version = "0.2" }
 tracing          = { version = "0.1" }
 
-bevy_kot_derive = { version = "=0.0.10", path = "./bevy_kot_derive" }
+bevy_kot_derive = { version = "=0.0.11", path = "./bevy_kot_derive" }
 
 [dev-dependencies]
 bevy               = { version = "0.11", default-features = true, features = [ "dynamic_linking" ] }
