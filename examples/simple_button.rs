@@ -1,14 +1,10 @@
-//path aliases
-use bevy_kot::ui as kot;
-use bevy_kot::ui::builtin as kot_builtin;
-use bevy_lunex::prelude as lunex;
-
 //local shortcuts
-use kot::RegisterInteractionSourceExt;
+use bevy_kot::prelude::*;
 
 //third-party shortcuts
 use bevy::prelude::*;
 use bevy::window::WindowTheme;
+use bevy_lunex::prelude::*;
 
 //standard shortcuts
 
@@ -16,7 +12,75 @@ use bevy::window::WindowTheme;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
+fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
+{
+    let image = ImageElementBundle::new(
+            area,
+            ImageParams::center()
+                .with_width(Some(100.))
+                .with_height(Some(100.))
+                .with_color(color),
+            ui.asset_server.load("example_button_rect.png"),
+            Vec2::new(250.0, 142.0)
+        );
+    ui.commands().spawn(image);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn build_ui(mut ui: UiBuilder<MainUI>)
+{
+    // root widget
+    let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
+
+    // button widget
+    let button = relative_widget(ui.tree(), root.end("button"), (35., 65.), (40., 60.));
+
+    // default button image tied to button
+    let default_widget = make_overlay(ui.tree(), &button, "default", true);
+    add_button_rect(&mut ui, &default_widget, Color::GRAY);
+
+    // pressed button image tied to button
+    let pressed_widget = make_overlay(ui.tree(), &button, "pressed", false);
+    add_button_rect(&mut ui, &pressed_widget, Color::DARK_GRAY);
+
+    // get text style
+    let text_style = TextStyle{
+        font      : ui.asset_server.load("fonts/FiraSans-Bold.ttf"),
+        font_size : 40.0,
+        color     : Color::WHITE,
+    };
+
+    // button interactivity
+    let mut entity_commands = ui.commands().spawn_empty();
+    InteractiveElementBuilder::new()
+        .with_default_widget(default_widget.clone())
+        .with_pressed_widget(pressed_widget)
+        .press_on_click()
+        .unpress_on_unclick_home_and_abort_on_unclick_away()
+        .abort_press_if_obstructed()
+        .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
+        .unwrap();
+    entity_commands.insert(UIInteractionBarrier::<MainUI>::default());
+
+    // button text
+    entity_commands.insert(
+            TextElementBundle::new(
+                    button,
+                    TextParams::center()
+                        .with_style(&text_style)
+                        .with_depth(100.)
+                        .with_width(Some(70.)),
+                    "HELLO, WORLD!"
+                )
+        );
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn setup(mut commands: Commands)
 {
     // prepare 2D camera
     commands.spawn(
@@ -24,95 +88,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
         );
 
     // make lunex cursor
-    commands.spawn((lunex::Cursor::new(0.0), Transform::default(), kot_builtin::MainMouseCursor));
+    commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
 
-    // create lunex ui tree
-    let mut ui = lunex::UiTree::new("ui");
-
-    // root widget
-    let root = lunex::Widget::create(
-            &mut ui,
-            "root",
-            lunex::RelativeLayout{
-                relative_1 : Vec2 { x: 0.0, y: 0.0 },
-                relative_2 : Vec2 { x: 100.0, y: 100.0 },
-                ..Default::default()
-            }
-        ).unwrap();
-
-    // button widget
-    let button = lunex::Widget::create(
-            &mut ui,
-            root.end("button"),
-            lunex::RelativeLayout{
-                relative_1 : Vec2 { x: 35.0, y: 40.0 },
-                relative_2 : Vec2 { x: 65.0, y: 60.0 },
-                ..Default::default()
-            }
-        ).unwrap();
-
-    // default button image tied to button
-    let default_widget = kot::make_overlay(&mut ui, &button, "default", true);
-    commands.spawn(
-            lunex::ImageElementBundle::new(
-                    &default_widget,
-                    lunex::ImageParams::center()
-                        .with_depth(50.)
-                        .with_width(Some(100.))
-                        .with_height(Some(100.))
-                        .with_color(Color::GRAY),
-                    asset_server.load("example_button_rect.png"),
-                    Vec2::new(250.0, 142.0)
-                )
-        );
-
-    // pressed button image tied to button
-    let pressed_widget = kot::make_overlay(&mut ui, &button, "pressed", false);
-    commands.spawn(
-            lunex::ImageElementBundle::new(
-                    &pressed_widget,
-                    lunex::ImageParams::center()
-                        .with_depth(50.)
-                        .with_width(Some(100.))
-                        .with_height(Some(100.))
-                        .with_color(Color::DARK_GRAY),  //tint when pressed
-                    asset_server.load("example_button_rect.png"),
-                    Vec2::new(250.0, 142.0)
-                )
-        );
-
-    // button interactivity
-    let mut entity_commands = commands.spawn_empty();
-    kot::InteractiveElementBuilder::new()
-        .with_default_widget(default_widget.clone())
-        .with_pressed_widget(pressed_widget)
-        .press_on_click()
-        .unpress_on_unclick_home_and_abort_on_unclick_away()
-        .abort_press_if_obstructed()
-        .build::<kot_builtin::MouseLButtonMain>(&mut entity_commands, button.clone())
-        .unwrap();
-    entity_commands.insert(kot::UIInteractionBarrier::<kot_builtin::MainUI>::default());
-
-    // button text
-    let text_style = TextStyle{
-            font      : asset_server.load("fonts/FiraSans-Bold.ttf"),
-            font_size : 40.0,
-            color     : Color::WHITE,
-        };
-
-    entity_commands.insert(
-            lunex::TextElementBundle::new(
-                    button,
-                    lunex::TextParams::center()
-                        .with_style(&text_style)
-                        .with_depth(100.)
-                        .with_width(Some(70.)),
-                    "HELLO, WORLD!"
-                )
-        );
-
-    // add ui tree to ecs (warning: if you queue any UI-dependent callbacks before this, they will fail)
-    commands.spawn((ui, kot_builtin::MainUI));
+    // prepare lunex ui tree
+    commands.insert_resource(StyleStackRes::<MainUI>::default());
+    commands.spawn((UiTree::new("ui"), MainUI));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -129,11 +109,12 @@ fn main()
                 }
             )
         )
-        .add_plugins(lunex::LunexUiPlugin)
-        //.add_plugins(kot::UIDebugOverlayPlugin)
+        .add_plugins(LunexUiPlugin)
+        //.add_plugins(UIDebugOverlayPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
-        .register_interaction_source(kot_builtin::MouseLButtonMain::default())
-        .add_systems(Startup, setup)
+        .register_interaction_source(MouseLButtonMain::default())
+        .add_systems(PreStartup, setup)
+        .add_systems(Startup, build_ui)
         .run();
 }
 

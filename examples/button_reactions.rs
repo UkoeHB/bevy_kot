@@ -1,15 +1,10 @@
-//path aliases
-use bevy_kot::ecs as kot_ecs;
-use bevy_kot::ui as kot;
-use bevy_kot::ui::builtin as kot_builtin;
-use bevy_lunex::prelude as lunex;
-
 //local shortcuts
-use kot::RegisterInteractionSourceExt;
+use bevy_kot::prelude::*;
 
 //third-party shortcuts
 use bevy::prelude::*;
 use bevy::window::WindowTheme;
+use bevy_lunex::prelude::*;
 
 //standard shortcuts
 use std::fmt::Write;
@@ -43,8 +38,8 @@ impl ReactCounter
 
 /// Callback for the button.
 fn increment_button_counter(
-    mut rcommands : kot_ecs::ReactCommands,
-    mut counter   : Query<&mut kot_ecs::React<ButtonCounter>>
+    mut rcommands : ReactCommands,
+    mut counter   : Query<&mut React<ButtonCounter>>
 ){
     counter.get_single_mut()
         .unwrap()
@@ -57,7 +52,7 @@ fn increment_button_counter(
 
 /// Reactor for mutations of `React<ButtonCounter>`.
 /// - Increment the react counter whenever the button counter reaches an even number
-fn button_counter_reactor(counter: Query<&kot_ecs::React<ButtonCounter>>, mut react_counter: Query<&mut ReactCounter>)
+fn button_counter_reactor(counter: Query<&React<ButtonCounter>>, mut react_counter: Query<&mut ReactCounter>)
 {
     // check if counter is even
     let count: usize = counter.get_single().unwrap().0;
@@ -72,10 +67,7 @@ fn button_counter_reactor(counter: Query<&kot_ecs::React<ButtonCounter>>, mut re
 
 /// Transfer button count into the text element.
 fn update_button_counter_text(
-    mut counter: Query<
-        (&mut Text, &kot_ecs::React<ButtonCounter>),
-        Changed<kot_ecs::React<ButtonCounter>>
-    >,
+    mut counter: Query<(&mut Text, &React<ButtonCounter>), Changed<React<ButtonCounter>>>,
 ){
     if counter.is_empty() { return; }
     let (mut text, counter) = counter.get_single_mut().unwrap();
@@ -98,68 +90,60 @@ fn update_react_counter_text(mut counter: Query<(&mut Text, &ReactCounter), Chan
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup_button(
-    commands     : &mut Commands,
-    asset_server : &AssetServer,
-    ui           : &mut lunex::UiTree,
-    button       : lunex::Widget,
-){
-    // default button image tied to button
-    let default_widget = kot::make_overlay(ui, &button, "default", true);
-    commands.spawn(
-        lunex::ImageElementBundle::new(
-                    &default_widget,
-                    lunex::ImageParams::center()
-                        .with_depth(50.)
-                        .with_width(Some(100.))
-                        .with_height(Some(100.))
-                        .with_color(Color::GRAY),
-                    asset_server.load("example_button_rect.png"),
-                    Vec2::new(250.0, 142.0)
-                )
+fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
+{
+    let image = ImageElementBundle::new(
+            area,
+            ImageParams::center()
+                .with_width(Some(100.))
+                .with_height(Some(100.))
+                .with_color(color),
+            ui.asset_server.load("example_button_rect.png"),
+            Vec2::new(250.0, 142.0)
         );
+    ui.commands().spawn(image);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn setup_button(ui: &mut UiBuilder<MainUI>, button: Widget)
+{
+    // default button image tied to button
+    let default_widget = make_overlay(ui.tree(), &button, "default", true);
+    add_button_rect(ui, &default_widget, Color::GRAY);
 
     // pressed button image tied to button
-    let pressed_widget = kot::make_overlay(ui, &button, "pressed", false);
-    commands.spawn(
-        lunex::ImageElementBundle::new(
-                    &pressed_widget,
-                    lunex::ImageParams::center()
-                        .with_depth(50.)
-                        .with_width(Some(100.))
-                        .with_height(Some(100.))
-                        .with_color(Color::DARK_GRAY),  //tint when pressed
-                    asset_server.load("example_button_rect.png"),
-                    Vec2::new(250.0, 142.0)
-                )
-        );
+    let pressed_widget = make_overlay(ui.tree(), &button, "pressed", false);
+    add_button_rect(ui, &pressed_widget, Color::DARK_GRAY);
+
+    // get text style
+    let text_style = TextStyle{
+        font      : ui.asset_server.load("fonts/FiraSans-Bold.ttf"),
+        font_size : 40.0,
+        color     : Color::WHITE,
+    };
 
     // button interactivity
-    let mut entity_commands = commands.spawn_empty();
-    kot::InteractiveElementBuilder::new()
+    let mut entity_commands = ui.commands().spawn_empty();
+    InteractiveElementBuilder::new()
         .with_default_widget(default_widget.clone())
         .with_pressed_widget(pressed_widget)
         .press_on_click()
         .unpress_on_unclick_home_and_abort_on_unclick_away()
         .abort_press_if_obstructed()
         .unpress_callback(
-            |world: &mut World, _: Vec2| kot_ecs::syscall(world, (), increment_button_counter)
+            |world: &mut World, _: Vec2| syscall(world, (), increment_button_counter)
         )
-        .build::<kot_builtin::MouseLButtonMain>(&mut entity_commands, button.clone())
+        .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
-    entity_commands.insert(kot::UIInteractionBarrier::<kot_builtin::MainUI>::default());
+    entity_commands.insert(UIInteractionBarrier::<MainUI>::default());
 
     // button text
-    let text_style = TextStyle{
-            font      : asset_server.load("fonts/FiraSans-Bold.ttf"),
-            font_size : 40.0,
-            color     : Color::WHITE,
-        };
-
     entity_commands.insert(
-        lunex::TextElementBundle::new(
+        TextElementBundle::new(
                 button,
-                lunex::TextParams::center()
+                TextParams::center()
                     .with_style(&text_style)
                     .with_depth(100.)
                     .with_width(Some(70.)),
@@ -171,31 +155,27 @@ fn setup_button(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup_count_text(
-    rcommands     : &mut kot_ecs::ReactCommands,
-    asset_server  : &AssetServer,
-    ui            : &mut lunex::UiTree,
-    count         : lunex::Widget,
-){
+fn setup_count_text(ui: &mut UiBuilder<MainUI>, count: Widget)
+{
     // text widget
-    let count_text = lunex::Widget::create(
-            ui,
+    let count_text = Widget::create(
+            ui.tree(),
             count.end(""),
-            lunex::SolidLayout::new()
-            .with_scaling(lunex::SolidScale::Fill),
+            SolidLayout::new()
+            .with_scaling(SolidScale::Fill),
         ).unwrap();
 
     let count_text_style = TextStyle {
-            font      : asset_server.load("fonts/FiraSans-Bold.ttf"),
+            font      : ui.asset_server.load("fonts/FiraSans-Bold.ttf"),
             font_size : 45.0,
             color     : Color::WHITE,
         };
 
-    let count_entity_commands = rcommands.commands().spawn(
+    let count_entity_commands = ui.commands().spawn(
             (
-                lunex::TextElementBundle::new(
+                TextElementBundle::new(
                     count_text,
-                    lunex::TextParams::topleft()
+                    TextParams::topleft()
                         .with_style(&count_text_style),
                     "COUNT:  0"  //use initial value to get correct initial text boundary
                 ),
@@ -204,37 +184,33 @@ fn setup_count_text(
 
     // add reactive counter component
     let count_entity = count_entity_commands.id();
-    rcommands.insert(count_entity, ButtonCounter::default());
+    ui.rcommands.insert(count_entity, ButtonCounter::default());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup_react_count_text(
-    rcommands     : &mut kot_ecs::ReactCommands,
-    asset_server  : &AssetServer,
-    ui            : &mut lunex::UiTree,
-    react_count   : lunex::Widget,
-){
+fn setup_react_count_text(ui: &mut UiBuilder<MainUI>, react_count: Widget)
+{
     // text widget
-    let react_count_text = lunex::Widget::create(
-            ui,
+    let react_count_text = Widget::create(
+            ui.tree(),
             react_count.end(""),
-            lunex::SolidLayout::new()
-            .with_scaling(lunex::SolidScale::Fill),
+            SolidLayout::new()
+            .with_scaling(SolidScale::Fill),
         ).unwrap();
 
     let react_count_text_style = TextStyle {
-            font      : asset_server.load("fonts/FiraSans-Bold.ttf"),
+            font      : ui.asset_server.load("fonts/FiraSans-Bold.ttf"),
             font_size : 80.0,
             color     : Color::WHITE,
         };
 
-    rcommands.commands().spawn(
+    ui.rcommands.commands().spawn(
             (
-                lunex::TextElementBundle::new(
+                TextElementBundle::new(
                     react_count_text,
-                    lunex::TextParams::topleft()
+                    TextParams::topleft()
                         .with_style(&react_count_text_style),
                     "EVENS:  0"  //use initial value to get correct initial text boundary
                 ),
@@ -243,76 +219,48 @@ fn setup_react_count_text(
         );
 
     // add reactor
-    rcommands.on_mutation::<kot_ecs::React<ButtonCounter>>(
-            |world: &mut World, _: Entity| kot_ecs::syscall(world, (), button_counter_reactor)
+    ui.rcommands.on_mutation::<React<ButtonCounter>>(
+            |world: &mut World, _: Entity| syscall(world, (), button_counter_reactor)
         );
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup(mut rcommands: kot_ecs::ReactCommands, asset_server: Res<AssetServer>)
+fn build_ui(mut ui: UiBuilder<MainUI>)
+{
+    // root widget
+    let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
+
+    // add button
+    let button = relative_widget(ui.tree(), root.end("button"), (40., 60.), (30., 45.));
+    setup_button(&mut ui, button);
+
+    // add count text
+    let count = relative_widget(ui.tree(), root.end("count"), (45., 55.), (55., 65.));
+    setup_count_text(&mut ui, count);
+
+    // add react count text
+    let react_count = relative_widget(ui.tree(), root.end("react_count"), (45., 55.), (67., 77.));
+    setup_react_count_text(&mut ui, react_count);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn setup(mut commands: Commands)
 {
     // prepare 2D camera
-    rcommands.commands().spawn(
+    commands.spawn(
             Camera2dBundle{ transform: Transform{ translation: Vec3 { x: 0., y: 0., z: 1000. }, ..default() }, ..default() }
         );
 
     // make lunex cursor
-    rcommands.commands().spawn((lunex::Cursor::new(0.0), Transform::default(), kot_builtin::MainMouseCursor));
+    commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
 
-    // create lunex ui tree
-    let mut ui = lunex::UiTree::new("ui");
-
-    // root widget
-    let root = lunex::Widget::create(
-            &mut ui,
-            "root",
-            lunex::RelativeLayout{
-                relative_1 : Vec2 { x: 0.0, y: 0.0 },
-                relative_2 : Vec2 { x: 100.0, y: 100.0 },
-                ..Default::default()
-            }
-        ).unwrap();
-
-    // add button
-    let button = lunex::Widget::create(
-            &mut ui,
-            root.end("button"),
-            lunex::RelativeLayout{
-                relative_1 : Vec2 { x: 40.0, y: 30.0 },
-                relative_2 : Vec2 { x: 60.0, y: 45.0 },
-                ..Default::default()
-            }
-        ).unwrap();
-    setup_button(rcommands.commands(), &asset_server, &mut ui, button);
-
-    // add count text
-    let count = lunex::Widget::create(
-            &mut ui,
-            root.end("count"),
-            lunex::RelativeLayout{
-                relative_1 : Vec2 { x: 45.0, y: 55.0 },
-                relative_2 : Vec2 { x: 55.0, y: 65.0 },
-                ..Default::default()
-            }
-        ).unwrap();
-    setup_count_text(&mut rcommands, &asset_server, &mut ui, count);
-
-    // add react count text
-    let react_count = lunex::Widget::create(
-            &mut ui,
-            root.end("react_count"),
-            lunex::RelativeLayout{
-                relative_1 : Vec2 { x: 45.0, y: 67.0 },
-                relative_2 : Vec2 { x: 55.0, y: 77.0 },
-                ..Default::default()
-            }
-        ).unwrap();
-    setup_react_count_text(&mut rcommands, &asset_server, &mut ui, react_count);
-
-    // add ui tree to ecs (warning: if you queue any UI-dependent callbacks before this, they will fail)
-    rcommands.commands().spawn((ui, kot_builtin::MainUI));
+    // prepare lunex ui tree
+    commands.insert_resource(StyleStackRes::<MainUI>::default());
+    commands.spawn((UiTree::new("ui"), MainUI));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -329,12 +277,13 @@ fn main()
                 }
             )
         )
-        .add_plugins(lunex::LunexUiPlugin)
-        .add_plugins(kot_ecs::ReactPlugin)
+        .add_plugins(LunexUiPlugin)
+        .add_plugins(ReactPlugin)
         //.add_plugins(kot::UIDebugOverlayPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
-        .register_interaction_source(kot_builtin::MouseLButtonMain::default())
-        .add_systems(Startup, setup)
+        .register_interaction_source(MouseLButtonMain::default())
+        .add_systems(PreStartup, setup)
+        .add_systems(Startup, build_ui)
         .add_systems(PostUpdate,
             (
                 update_button_counter_text,

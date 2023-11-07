@@ -40,15 +40,7 @@ pub fn cursor_intersects_widget(
 pub fn make_overlay(ui: &mut UiTree, parent: &Widget, overlay_name: &str, visible_by_default: bool) -> Widget
 {
     // make overlay
-    let overlay = Widget::create(
-            ui,
-            parent.end(overlay_name),
-            RelativeLayout{
-                relative_1: Vec2 { x: 0., y: 0. },
-                relative_2: Vec2 { x: 100., y: 100. },
-                ..Default::default()
-            }
-        ).unwrap();
+    let overlay = relative_widget(ui, parent.end(overlay_name), (0., 100.), (0., 100.));
 
     // set default visibility
     overlay.fetch_mut(ui).unwrap().set_visibility(visible_by_default);
@@ -59,6 +51,8 @@ pub fn make_overlay(ui: &mut UiTree, parent: &Widget, overlay_name: &str, visibl
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Make a widget with `RelativeLayout`.
+/// - Panics if unable to create a widget (mostly likely because the widget name already exists in the tree with the
+///   specified parent).
 pub fn relative_widget(
     ui      : &mut UiTree,
     path    : impl Borrow<str>,
