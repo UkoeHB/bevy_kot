@@ -4,7 +4,7 @@ description = "koe's Bevy toolkit"
 authors = ["koe <ukoe@protonmail.com>"]
 version = "0.0.8"
 edition = "2021"
-keywords = ["gamedev", "ui"]
+keywords = ["gamedev", "ui", "reactive"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/UkoeHB/bevy_kot"
@@ -23,13 +23,15 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-bevy            = { version = "0.11", default-features = false }
-bevy_fn_plugin  = { version = "0.1" }
-bevy_lunex      = { version = "0.0.6" }
-bevy_lunex_core = { version = "0.0.6" }
-crossbeam       = { version = "0.8"}
-fxhash          = { version = "0.2" }
-tracing         = { version = "0.1" }
+bevy             = { version = "0.11", default-features = false }
+bevy_fn_plugin   = { version = "0.1" }
+bevy_lunex       = { version = "0.0.6" }
+bevy_lunex_core  = { version = "0.0.6" }
+crossbeam        = { version = "0.8"}
+fxhash           = { version = "0.2" }
+tracing          = { version = "0.1" }
+
+bevy_kot_derive = { version = "=0.0.8", path = "./bevy_kot_derive" }
 
 [dev-dependencies]
 bevy               = { version = "0.11", default-features = true, features = [ "dynamic_linking" ] }

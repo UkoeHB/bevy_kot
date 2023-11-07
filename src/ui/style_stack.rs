@@ -2,8 +2,6 @@
 use super::*;
 
 //third-party shortcuts
-use bevy::prelude::*;
-use bevy_lunex::prelude::*;
 
 //standard shortcuts
 use std::any::{Any, TypeId};
@@ -12,24 +10,16 @@ use std::sync::Arc;
 use std::vec::Vec;
 
 //-------------------------------------------------------------------------------------------------------------------
-
-/// Identifies style structs.
-//todo: require `Eq` and avoid having duplicate style structs in the cache? maybe too restrictive
-pub trait Style {}
-
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Collection of styles.
-///
-/// All members of a style bundle struct must implement [`Style`].
-pub trait StyleBundle
-{
+/// Dummy style used to hide styles in the stack.
+struct DummyStyle;
 
-}
-
+//-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Manages a stack of styles.
+#[derive(Default)]
 pub struct StyleStack
 {
     /// Registry of per-style stacks.
@@ -59,7 +49,7 @@ impl StyleStack
         // clean up per-style stacks
         for style_id in last_frame.iter()
         {
-            let style_stack = self.styles.get_mut(&style_id) else { continue; };
+            let Some(style_stack) = self.styles.get_mut(&style_id) else { continue; };
             style_stack.pop();
         }
 
@@ -70,29 +60,52 @@ impl StyleStack
 
     /// Add a style bundle to the top of the current stack frame.
     ///
-    /// The styles in this bundle will remain active until the current stack frame is popped.
+    /// The styles in this bundle will remain active until the current stack frame is popped. Bundles
+    /// added after this bundle in the current stack frame will override the styles in this bundle.
     ///
-    /// Note that if multiple instances of the same style are found in the bundle, only the **last**
+    /// Note that if multiple instances of the same style are found in a bundle, only the **last**
     /// instance will be accessible by [`StyleStack::get()`].
     pub fn add(&mut self, bundle: impl StyleBundle)
     {
-        //unpack the styles in the bundle and push them into the cache
+        let mut func =
+            |style: Arc<dyn Any>|
+            {
+                self.styles.entry((&*style).type_id()).or_default().push(style);
+            };
+        bundle.get_styles(&mut func);
+    }
+
+    /// Hide a specific style for the current stack frame.
+    pub fn hide<S: Style>(&mut self)
+    {
+        let type_id = TypeId::of::<S>();
+        self.insert(type_id, Arc::new(DummyStyle));
     }
 
     /// Get a specific style.
     ///
     /// The returned style will be taken from the top of the style stack.
-    pub fn get<S>(&self) -> Option<&S>
+    ///
+    /// Returns `None` if there is no style entry or if the style was hidden with [`StyleStack::hide()`].
+    pub fn get<S: Style>(&self) -> Option<&S>
     {
         self
             .styles
             .get(&TypeId::of::<S>())
-            .map(
+            .map_or(
+                None,
                 |stack|
-                stack
-                    .last()
-                    .map(|style| style.downcast_ref().unwrap())
+                stack.last().map_or(None, |style| style.downcast_ref())
             )
+    }
+
+    fn insert(&mut self, type_id: TypeId, style: Arc<dyn Any>)
+    {
+        self.styles.entry(type_id).or_default().push(style);
+        if let Some(top) = self.stack.last_mut()
+        {
+            top.push(type_id);
+        }
     }
 }
 
