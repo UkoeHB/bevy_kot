@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11]
+
+### Changed
+
+- API cleanup. `UiBuilderCtx` -> `UiBuilder`, etc.
+
+
 ## [0.0.10]
 
 ### Added

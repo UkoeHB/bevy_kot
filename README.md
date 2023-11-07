@@ -10,7 +10,7 @@ A collection of bevy tools.
 
 - Interactive element builder for [`bevy_lunex`], with a robust backend for handling arbitrary interaction sources.
 - `StyleStack` utility to enable style cascading/overriding when building a UI tree.
-- `UiBuilderCtx` utility for building UI trees. It automatically manages `StyleStack` frames.
+- `UiBuilder` utility for building UI trees. It automatically manages `StyleStack` frames.
 
 
 ### ECS

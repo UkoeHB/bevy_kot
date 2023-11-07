@@ -30,7 +30,7 @@ struct StyleB
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn spawn_box(ctx: &mut UiBuilderCtx<MainUI>, area: &Widget, color: Color)
+fn spawn_box(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 {
     let image = ImageElementBundle::new(
             area,
@@ -38,22 +38,22 @@ fn spawn_box(ctx: &mut UiBuilderCtx<MainUI>, area: &Widget, color: Color)
                 .with_width(Some(100.))
                 .with_height(Some(100.))
                 .with_color(color),
-            ctx.asset_server.load("box.png"),
+            ui.asset_server.load("box.png"),
             Vec2::new(236.0, 139.0)
         );
-    ctx.commands().spawn(image);
+    ui.commands().spawn(image);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn section(ctx: &mut UiBuilderCtx<MainUI>, area: &Widget) -> (Widget, Widget)
+fn section(ui: &mut UiBuilder<MainUI>, area: &Widget) -> (Widget, Widget)
 {
-    let widget_a = relative_widget(ctx.ui(), area.end("a"), (0., 50.), (25., 75.));
-    spawn_box(ctx, &widget_a, ctx.get_style::<StyleA>().unwrap().color);
+    let widget_a = relative_widget(ui.tree(), area.end("a"), (0., 50.), (25., 75.));
+    spawn_box(ui, &widget_a, ui.get::<StyleA>().unwrap().color);
 
-    let widget_b = relative_widget(ctx.ui(), area.end("b"), (50., 100.), (25., 75.));
-    spawn_box(ctx, &widget_b, ctx.get_style::<StyleB>().unwrap().color);
+    let widget_b = relative_widget(ui.tree(), area.end("b"), (50., 100.), (25., 75.));
+    spawn_box(ui, &widget_b, ui.get::<StyleB>().unwrap().color);
 
     (widget_a, widget_b)
 }
@@ -61,24 +61,24 @@ fn section(ctx: &mut UiBuilderCtx<MainUI>, area: &Widget) -> (Widget, Widget)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn build_ui(mut ctx: UiBuilderCtx<MainUI>)
+fn build_ui(mut ui: UiBuilder<MainUI>)
 {
     // add base styles
-    ctx.add_style((StyleA{ color: Color::WHITE }, StyleB{ color: Color::BLACK }));
+    ui.add((StyleA{ color: Color::WHITE }, StyleB{ color: Color::BLACK }));
 
     // build ui tree
-    let root = relative_widget(ctx.ui(), "root", (0., 100.), (0., 100.));
-    ctx.div(&root, (), |ctx, area, _| {
-        let (widget_a, widget_b) = section(ctx, &area);
+    let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
+    ui.div(move |ui| {
+        let (widget_a, widget_b) = section(ui, &root);
 
-        ctx.div(&widget_a, (), |ctx, area, _| {
-            ctx.add_style(StyleA{ color: Color::BLUE });
-            section(ctx, &area);
+        ui.div(move |ui| {
+            ui.add(StyleA{ color: Color::BLUE });
+            section(ui, &widget_a);
         });
-        ctx.div(&widget_b, (), |ctx, area, _| {
-            ctx.add_style(StyleA{ color: Color::ORANGE });
-            ctx.add_style(StyleB{ color: Color::GREEN });
-            section(ctx, &area);
+        ui.div(move |ui| {
+            ui.add(StyleA{ color: Color::ORANGE });
+            ui.add(StyleB{ color: Color::GREEN });
+            section(ui, &widget_b);
         });
     });
 }
