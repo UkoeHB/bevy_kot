@@ -1,5 +1,5 @@
 //local shortcuts
-use bevy_kot::prelude::{*, builtin::*};
+use bevy_kot::prelude::*;
 
 //third-party shortcuts
 use bevy::prelude::*;

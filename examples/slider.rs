@@ -1,16 +1,10 @@
-//path aliases
-use bevy_kot::ecs as kot_ecs;
-use bevy_kot::ui as kot;
-use bevy_kot::ui::builtin as kot_builtin;
-use bevy_lunex::prelude as lunex;
-
 //local shortcuts
-use kot::RegisterInteractionSourceExt;
+use bevy_kot::prelude::*;
 
 //third-party shortcuts
 use bevy::prelude::*;
 use bevy::window::WindowTheme;
-use bevy_lunex::prelude::AsLunexVec2;
+use bevy_lunex::prelude::*;
 
 //standard shortcuts
 
@@ -41,8 +35,8 @@ fn initialize_slider_drag(
         (right_edge_min_rel, right_edge_max_rel)
     ))           : In<(Vec2, Entity, (f32, f32))>,
     mut commands : Commands,
-    widgets      : Query<&lunex::Widget>,
-    ui           : Query<&lunex::UiTree, With<kot_builtin::MainUI>>,  //todo: InFocusedWindow
+    widgets      : Query<&Widget>,
+    ui           : Query<&UiTree, With<MainUI>>,  //todo: InFocusedWindow
 ){
     // slider entity
     let Some(mut entity_commands) = commands.get_entity(entity) else { return; };
@@ -52,7 +46,7 @@ fn initialize_slider_drag(
     let Ok(ui) = ui.get_single() else { return; };
     let Ok(widget_branch) = slider_widget.fetch(&ui) else { return; };
     let widget_start_pos = widget_branch.container_get().position_get().get_pos(Vec2::default());
-    let lunex::LayoutPackage::Relative(ref layout) = widget_branch.container_get().layout_get() else { return; };
+    let LayoutPackage::Relative(ref layout) = widget_branch.container_get().layout_get() else { return; };
     let widget_start_displacement_1_x = layout.absolute_1.x;
     let widget_start_displacement_2_x = layout.absolute_2.x;
 
@@ -84,8 +78,8 @@ fn drag_slider(
         cpos_world,
         entity,
     ))     : In<(Vec2, Entity)>,
-    mut ui : Query<&mut lunex::UiTree, With<kot_builtin::MainUI>>,  //todo: InFocusedWindow
-    slider : Query<(&lunex::Widget, &SliderDragState)>,
+    mut ui : Query<&mut UiTree, With<MainUI>>,  //todo: InFocusedWindow
+    slider : Query<(&Widget, &SliderDragState)>,
 ){
     // slider
     let Ok((slider_widget, drag_state)) = slider.get(entity) else { return; };
@@ -101,7 +95,7 @@ fn drag_slider(
 
     // update widget position
     let Ok(widget_branch) = slider_widget.fetch_mut(&mut ui) else { return; };
-    let lunex::LayoutPackage::Relative(ref mut layout) = widget_branch.container_get_mut().layout_get_mut() else { return; };
+    let LayoutPackage::Relative(ref mut layout) = widget_branch.container_get_mut().layout_get_mut() else { return; };
     layout.absolute_1.x = drag_state.widget_start_displacement_1_x + new_widget_x_diff;
     layout.absolute_2.x = drag_state.widget_start_displacement_2_x + new_widget_x_diff;
 }
@@ -109,104 +103,62 @@ fn drag_slider(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
+fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 {
-    // prepare 2D camera
-    commands.spawn(
-            Camera2dBundle{ transform: Transform{ translation: Vec3 { x: 0., y: 0., z: 1000. }, ..default() }, ..default() }
+    let image = ImageElementBundle::new(
+            area,
+            ImageParams::center()
+                .with_width(Some(100.))
+                .with_height(Some(100.))
+                .with_color(color),
+            ui.asset_server.load("example_button_rect.png"),
+            Vec2::new(250.0, 142.0)
         );
+    ui.commands().spawn(image);
+}
 
-    // make lunex cursor
-    commands.spawn((lunex::Cursor::new(0.0), Transform::default(), kot_builtin::MainMouseCursor));
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
 
-    // create lunex ui tree
-    let mut ui = lunex::UiTree::new("ui");
-
+fn build_ui(mut ui: UiBuilder<MainUI>)
+{
     // root widget
-    let root = lunex::Widget::create(
-            &mut ui,
-            "root",
-            lunex::RelativeLayout::new()
-                .with_rel_1(Vec2 { x: 0.0, y: 0.0 })
-                .with_rel_2(Vec2 { x: 100.0, y: 100.0 })
-        ).unwrap();
+    let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
 
     // slider bar widget
     let slider_x_left = 30.0;
     let slider_x_right = 70.0;
     let slider_width = slider_x_right - slider_x_left;
-    let slider_bar = lunex::Widget::create(
-            &mut ui,
-            root.end("slider_bar"),
-            lunex::RelativeLayout::new()
-                .with_rel_1(Vec2 { x: slider_x_left, y: 49.0 })
-                .with_rel_2(Vec2 { x: slider_x_right, y: 51.0 })
-        ).unwrap();
+    let slider_bar = relative_widget(ui.tree(), root.end("slider_bar"), (slider_x_left, slider_x_right), (49., 51.));
 
     // slider bar image tied to slider bar
-    commands.spawn(
-            lunex::ImageElementBundle::new(
-                    &slider_bar,
-                    lunex::ImageParams::center()
-                        .with_width(Some(100.))
-                        .with_height(Some(100.))
-                        .with_color(Color::BLACK),
-                    asset_server.load("example_button_rect.png"),
-                    Vec2::new(250.0, 142.0)
-                )
-        );
+    add_button_rect(&mut ui, &slider_bar, Color::BLACK);
 
     // button widget
     let button_edge_right = 25.0;
     let button_edge_right_max = button_edge_right + slider_width;
     let button_x_range_rel = (button_edge_right, button_edge_right_max);
-    let button = lunex::Widget::create(
-            &mut ui,
-            root.end("button"),
-            lunex::RelativeLayout::new()
-                .with_rel_1(Vec2 { x: button_edge_right, y: 45.0 })
-                .with_rel_2(Vec2 { x: 35.0, y: 55.0 })
-        ).unwrap();
+    let button = relative_widget(ui.tree(), root.end("button"), (button_edge_right, 35.0), (45., 55.));
 
     // default button image tied to button
-    let default_widget = kot::make_overlay(&mut ui, &button, "default", true);
-    commands.spawn(
-        lunex::ImageElementBundle::new(
-                    &default_widget,
-                    lunex::ImageParams::center()
-                        .with_width(Some(100.))
-                        .with_height(Some(100.))
-                        .with_color(Color::GRAY),
-                    asset_server.load("example_button_rect.png"),
-                    Vec2::new(250.0, 142.0)
-                )
-        );
+    let default_widget = make_overlay(ui.tree(), &button, "default", true);
+    add_button_rect(&mut ui, &default_widget, Color::GRAY);
 
     // pressed button image tied to button
-    let pressed_widget = kot::make_overlay(&mut ui, &button, "pressed", false);
-    commands.spawn(
-        lunex::ImageElementBundle::new(
-                    &pressed_widget,
-                    lunex::ImageParams::center()
-                        .with_width(Some(100.))
-                        .with_height(Some(100.))
-                        .with_color(Color::DARK_GRAY),  //tint when pressed
-                    asset_server.load("example_button_rect.png"),
-                    Vec2::new(250.0, 142.0)
-                )
-        );
+    let pressed_widget = make_overlay(ui.tree(), &button, "pressed", false);
+    add_button_rect(&mut ui, &pressed_widget, Color::DARK_GRAY);  //tint when pressed
 
     // slider button home zone covers screen and is positioned slightly above slider button
-    let slider_button_home_zone = kot::make_overlay(&mut ui, &root, "", true);
-    let zone_depth = button.fetch(&ui).unwrap().get_depth() + 0.01;
-    slider_button_home_zone.fetch_mut(&mut ui).unwrap().set_depth(zone_depth);
+    let slider_button_home_zone = make_overlay(ui.tree(), &root, "", true);
+    let zone_depth = button.fetch(ui.tree()).unwrap().get_depth() + 0.01;
+    slider_button_home_zone.fetch_mut(ui.tree()).unwrap().set_depth(zone_depth);
 
     // button entity
-    let mut entity_commands = commands.spawn_empty();
+    let mut entity_commands = ui.commands().spawn_empty();
     let entity = entity_commands.id();
 
     // button as interactive element
-    kot::InteractiveElementBuilder::new()
+    InteractiveElementBuilder::new()
         .with_default_widget(default_widget)
         .with_pressed_widget(pressed_widget)
         .with_press_home_zone(slider_button_home_zone)
@@ -215,18 +167,33 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>)
         .abort_press_if_obstructed()
         .startpress_callback(
             move |world, cpos_world|
-            kot_ecs::syscall(world, (cpos_world, entity, button_x_range_rel), initialize_slider_drag)
+            syscall(world, (cpos_world, entity, button_x_range_rel), initialize_slider_drag)
         )
         .press_home_callback(
             move |world, cpos_world|
-            kot_ecs::syscall(world, (cpos_world, entity), drag_slider)
+            syscall(world, (cpos_world, entity), drag_slider)
         )
-        .build::<kot_builtin::MouseLButtonMain>(&mut entity_commands, button.clone())
+        .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
-    entity_commands.insert(kot::UIInteractionBarrier::<kot_builtin::MainUI>::default());
+    entity_commands.insert(UIInteractionBarrier::<MainUI>::default());
+}
 
-    // add ui tree to ecs
-    commands.spawn((ui, kot_builtin::MainUI));
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn setup(mut commands: Commands)
+{
+    // prepare 2D camera
+    commands.spawn(
+            Camera2dBundle{ transform: Transform{ translation: Vec3 { x: 0., y: 0., z: 1000. }, ..default() }, ..default() }
+        );
+
+    // make lunex cursor
+    commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
+
+    // prepare lunex ui tree
+    commands.insert_resource(StyleStackRes::<MainUI>::default());
+    commands.spawn((UiTree::new("ui"), MainUI));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -243,11 +210,12 @@ fn main()
                 }
             )
         )
-        .add_plugins(lunex::LunexUiPlugin)
-        //.add_plugins(kot::UIDebugOverlayPlugin)
+        .add_plugins(LunexUiPlugin)
+        //.add_plugins(UIDebugOverlayPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
-        .register_interaction_source(kot_builtin::MouseLButtonMain::default())
-        .add_systems(Startup, setup)
+        .register_interaction_source(MouseLButtonMain::default())
+        .add_systems(PreStartup, setup)
+        .add_systems(Startup, build_ui)
         .run();
 }
 
