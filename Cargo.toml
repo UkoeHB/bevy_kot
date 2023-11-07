@@ -1,6 +1,6 @@
 [workspace.package]
 authors = ["koe <ukoe@protonmail.com>"]
-version = "0.0.11"
+version = "0.0.12"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/UkoeHB/bevy_kot"
@@ -22,8 +22,7 @@ exclude = [
     "examples",
     "assets"
 ]
-members  = [
-    ".",
+members = [
     "bevy_kot_derive",
     "bevy_kot_ecs",
     "bevy_kot_ui",
@@ -55,11 +54,14 @@ crossbeam        = { version = "0.8"}
 fxhash           = { version = "0.2" }
 tracing          = { version = "0.1" }
 
+bevy_kot_derive = { path = "bevy_kot_derive", version = "0.0.12", default-features = false }
+bevy_kot_ecs    = { path = "bevy_kot_ecs", version = "0.0.12", default-features = false }
+
 [dependencies]
-bevy_kot_derive = { path = "bevy_kot_derive", default-features = false }
-bevy_kot_ecs    = { path = "bevy_kot_ecs", default-features = false }
-bevy_kot_ui     = { path = "bevy_kot_ui", default-features = false }
-bevy_kot_utils  = { path = "bevy_kot_utils", default-features = false }
+bevy_kot_derive = { path = "bevy_kot_derive", version = "0.0.12", default-features = false }
+bevy_kot_ecs    = { path = "bevy_kot_ecs", version = "0.0.12", default-features = false }
+bevy_kot_ui     = { path = "bevy_kot_ui", version = "0.0.12", default-features = false }
+bevy_kot_utils  = { path = "bevy_kot_utils", version = "0.0.12", default-features = false }
 
 [dev-dependencies]
 bevy               = { version = "0.11", default-features = true, features = [ "dynamic_linking" ] }
