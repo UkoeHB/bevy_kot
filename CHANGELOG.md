@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.9]
+
+### Added
+
+- `StyleStack` utility for style cascading/overriding when building a UI tree. Includes `Style` and `StyleBundle` derives for marking styles and collections of styles.
+
+
 ## [0.0.8]
 
 ### Changed
