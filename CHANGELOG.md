@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0]
+
+### Changed
+
+- `StyleStack::get()` now returns an Arc instead of reference.
+
+
 ## [0.1.0]
 
 ### Changed

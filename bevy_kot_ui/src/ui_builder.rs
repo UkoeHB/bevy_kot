@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use bevy_lunex::prelude::*;
 
 //standard shortcuts
-
+use std::sync::Arc;
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ impl<'w, 's, Ui: LunexUI> UiBuilder<'w, 's, Ui>
     }
 
     /// Get a style from the style stack.
-    pub fn get<S: Style>(&self) -> Option<&S>
+    pub fn get<S: Style>(&self) -> Option<Arc<S>>
     {
         self.style_stack.get::<S>()
     }

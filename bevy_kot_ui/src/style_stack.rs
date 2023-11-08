@@ -110,7 +110,7 @@ impl StyleStack
     /// The returned style will be taken from the top of the style stack.
     ///
     /// Returns `None` if there is no style entry or if the style was hidden with [`StyleStack::hide()`].
-    pub fn get<S: Style>(&self) -> Option<&S>
+    pub fn get<S: Style>(&self) -> Option<Arc<S>>
     {
         self
             .styles
@@ -118,7 +118,7 @@ impl StyleStack
             .map_or(
                 None,
                 |stack|
-                stack.last().map_or(None, |style| style.downcast_ref())
+                stack.last().map_or(None, |style| style.clone().downcast().ok())
             )
     }
 
