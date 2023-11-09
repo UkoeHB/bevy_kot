@@ -66,6 +66,12 @@ impl<'w, 's, Ui: LunexUI> UiBuilder<'w, 's, Ui>
     {
         self.style_stack.get::<S>()
     }
+
+    /// Get a clone of a style from the style stack.
+    pub fn get_clone<S: Style + Clone>(&self) -> Option<S>
+    {
+        self.style_stack.get::<S>().map(|s| (&*s).clone())
+    }
 }
 
 //-------------------------------------------------------------------------------------------------------------------
