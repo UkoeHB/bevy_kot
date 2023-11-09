@@ -143,22 +143,22 @@ pub(crate) struct ReactCache
     component_reactors: HashMap<TypeId, ComponentReactors>,
 
     /// Components with removal reactors (cached to prevent duplicate insertion)
-    pub(crate) tracked_removals: HashSet<TypeId>,
+    tracked_removals: HashSet<TypeId>,
     /// Component removal checkers (as a vec for efficient iteration)
     removal_checkers: Vec<RemovalChecker>,
     /// Removal checker buffer (cached for reuse)
-    pub(crate) removal_buffer: Option<Vec<Entity>>,
+    removal_buffer: Option<Vec<Entity>>,
 
     // Entity despawn reactors
     //todo: is there a more efficient data structure? need faster cleanup on despawns
-    pub(crate) despawn_reactors: HashMap<Entity, Vec<(u64, CallOnce<()>)>>,
+    despawn_reactors: HashMap<Entity, Vec<(u64, CallOnce<()>)>>,
     /// Despawn sender (cached for reuse with new despawn trackers)
-    pub(crate) despawn_sender: crossbeam::channel::Sender<Entity>,
+    despawn_sender: crossbeam::channel::Sender<Entity>,
     /// Despawn receiver
-    pub(crate) despawn_receiver: crossbeam::channel::Receiver<Entity>,
+    despawn_receiver: crossbeam::channel::Receiver<Entity>,
 
     /// Resource mutation reactors
-    pub(crate) resource_reactors: HashMap<TypeId, Vec<(u64, Callback<()>)>>,
+    resource_reactors: HashMap<TypeId, Vec<(u64, Callback<()>)>>,
 }
 
 impl ReactCache
@@ -173,6 +173,16 @@ impl ReactCache
     pub(crate) fn despawn_sender(&self) -> crossbeam::channel::Sender<Entity>
     {
         self.despawn_sender.clone()
+    }
+
+    pub(crate) fn try_recv_despawn(&self) -> Option<Entity>
+    {
+        self.despawn_receiver.try_recv().ok()
+    }
+
+    pub(crate) fn remove_despawn_reactors(&mut self, despawned_entity: Entity) -> Option<Vec<(u64, CallOnce<()>)>>
+    {
+        self.despawn_reactors.remove(&despawned_entity)
     }
 
     pub(crate) fn track_removals<C: Component>(&mut self)

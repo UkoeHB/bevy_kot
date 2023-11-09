@@ -52,10 +52,10 @@ fn react_to_despawns_impl(
 {
     let mut callback_count = 0;
 
-    while let Ok(despawned_entity) = react_cache.despawn_receiver.try_recv()
+    while let Some(despawned_entity) = react_cache.try_recv_despawn()
     {
         // remove prepared callbacks
-        let Some(mut despawn_callbacks) = react_cache.despawn_reactors.remove(&despawned_entity) else { continue; };
+        let Some(mut despawn_callbacks) = react_cache.remove_despawn_reactors(despawned_entity) else { continue; };
 
         // queue despawn callbacks
         for (_, despawn_callback) in despawn_callbacks.drain(..)
