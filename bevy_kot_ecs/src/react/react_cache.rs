@@ -53,7 +53,7 @@ struct RemovalChecker
 
 impl RemovalChecker
 {
-    fn new<C: Component>() -> Self
+    fn new<C: ReactComponent>() -> Self
     {
         Self{
             component_id : TypeId::of::<C>(),
@@ -69,9 +69,9 @@ impl RemovalChecker
 ///
 /// Note: `RemovedComponents` acts like an event reader, so multiple invocations of this system within one tick will
 /// not see duplicate removals.
-fn collect_component_removals<C: Component>(
+fn collect_component_removals<C: ReactComponent>(
     In(mut buffer) : In<Vec<Entity>>,
-    mut removed    : RemovedComponents<C>
+    mut removed    : RemovedComponents<React<C>>
 ) -> Vec<Entity>
 {
     buffer.clear();
@@ -185,7 +185,7 @@ impl ReactCache
         self.despawn_reactors.remove(&despawned_entity)
     }
 
-    pub(crate) fn track_removals<C: Component>(&mut self)
+    pub(crate) fn track_removals<C: ReactComponent>(&mut self)
     {
         // track removals of this component if untracked
         if self.tracked_removals.contains(&TypeId::of::<C>()) { return; };
@@ -195,7 +195,7 @@ impl ReactCache
 
     pub(crate) fn register_insertion_reactor<C>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
     where
-        C: Reactive +Send + Sync + 'static
+        C: ReactComponent
     {
         let callback_id = self.next_callback_id();
         self.component_reactors
@@ -209,7 +209,7 @@ impl ReactCache
 
     pub(crate) fn register_mutation_reactor<C>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
     where
-        C: Reactive +Send + Sync + 'static
+        C: ReactComponent
     {
         let callback_id = self.next_callback_id();
         self.component_reactors
@@ -221,7 +221,7 @@ impl ReactCache
         RevokeToken{ reactor_type: ReactorType::ComponentMutation(TypeId::of::<C>()), callback_id }
     }
 
-    pub(crate) fn register_removal_reactor<C: Send + Sync + 'static>(
+    pub(crate) fn register_removal_reactor<C: ReactComponent>(
         &mut self,
         callback: CallbackWith<(), Entity>
     ) -> RevokeToken
@@ -247,7 +247,7 @@ impl ReactCache
         RevokeToken{ reactor_type: ReactorType::Despawn(entity), callback_id }
     }
 
-    pub(crate) fn register_resource_mutation_reactor<R: Send + Sync + 'static>(
+    pub(crate) fn register_resource_mutation_reactor<R: ReactResource>(
         &mut self,
         callback: Callback<()>
     ) -> RevokeToken
@@ -326,7 +326,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a component insertion.
-    pub(crate) fn react_to_insertion<C: Reactive + Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
+    pub(crate) fn react_to_insertion<C: ReactComponent>(&mut self, commands: &mut Commands, entity: Entity)
     {
         // entity-specific component reactors
         commands.add(
@@ -343,7 +343,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a component mutation.
-    pub(crate) fn react_to_mutation<C: Reactive + Send + Sync + 'static>(&mut self, commands: &mut Commands, entity: Entity)
+    pub(crate) fn react_to_mutation<C: ReactComponent>(&mut self, commands: &mut Commands, entity: Entity)
     {
         // entity-specific component reactors
         commands.add(
@@ -416,7 +416,7 @@ impl ReactCache
     }
 
     /// Queue reactions to a resource mutation.
-    pub(crate) fn react_to_resource_mutation<R: Send + Sync + 'static>(&mut self, commands: &mut Commands)
+    pub(crate) fn react_to_resource_mutation<R: ReactResource>(&mut self, commands: &mut Commands)
     {
         // resource handlers
         let Some(handlers) = self.resource_reactors.get(&TypeId::of::<R>()) else { return; };

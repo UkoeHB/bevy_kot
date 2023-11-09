@@ -10,8 +10,11 @@ use bevy::prelude::*;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-#[derive(Component)]
+#[derive(ReactComponent)]
 struct TestComponent(usize);
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
 
 #[derive(ReactResource, Default)]
 struct TestReactRes(usize);
@@ -74,7 +77,7 @@ fn update_test_recorder_with_event(In(data): In<usize>, mut recorder: ResMut<Tes
 
 fn on_entity_insertion(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_entity_insertion::<React<TestComponent>>(
+    rcommands.on_entity_insertion::<TestComponent>(
             entity,
             move |world| { syscall(world, entity, update_test_recorder_with_component); }
         )
@@ -82,7 +85,7 @@ fn on_entity_insertion(In(entity): In<Entity>, mut rcommands: ReactCommands) -> 
 
 fn on_entity_mutation(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_entity_mutation::<React<TestComponent>>(
+    rcommands.on_entity_mutation::<TestComponent>(
             entity,
             move |world| { syscall(world, entity, update_test_recorder_with_component); }
         )
@@ -90,7 +93,7 @@ fn on_entity_mutation(In(entity): In<Entity>, mut rcommands: ReactCommands) -> R
 
 fn on_entity_removal(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_entity_removal::<React<TestComponent>>(
+    rcommands.on_entity_removal::<TestComponent>(
             entity,
             move |world| { syscall(world, (), infinitize_test_recorder); }
         )
@@ -98,21 +101,21 @@ fn on_entity_removal(In(entity): In<Entity>, mut rcommands: ReactCommands) -> Re
 
 fn on_insertion(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_insertion::<React<TestComponent>>(
+    rcommands.on_insertion::<TestComponent>(
             move |world, entity| { syscall(world, entity, update_test_recorder_with_component); }
         )
 }
 
 fn on_mutation(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_mutation::<React<TestComponent>>(
+    rcommands.on_mutation::<TestComponent>(
             move |world, entity| { syscall(world, entity, update_test_recorder_with_component); }
         )
 }
 
 fn on_removal(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_removal::<React<TestComponent>>(
+    rcommands.on_removal::<TestComponent>(
             move |world, _entity| { syscall(world, (), infinitize_test_recorder); }
         )
 }
@@ -210,7 +213,7 @@ fn pass_component_to_res(
 
 fn on_entity_mutation_chain_to_res(In(entity): In<Entity>, mut rcommands: ReactCommands)
 {
-    rcommands.on_entity_mutation::<React<TestComponent>>(
+    rcommands.on_entity_mutation::<TestComponent>(
             entity,
             move |world| { syscall(world, entity, pass_component_to_res); }
         );

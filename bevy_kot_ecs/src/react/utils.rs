@@ -69,11 +69,6 @@ impl Default for EntityReactors
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Tag trait for identifying reactive objects.
-pub trait Reactive {}
-
-//-------------------------------------------------------------------------------------------------------------------
-
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) enum ReactorType
 {

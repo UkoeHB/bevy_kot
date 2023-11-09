@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0]
+
+### Added
+
+- `ReactRes` and `ReactResMut` system params that mimic `Res`/`ResMut`, with corresponding `World`/`App`/`Commands` methods added via extension traits.
+- `ReactResource` custom derive that mimics `Resource`.
+- `ReactComponent` custom derive that mimics `Component`.
+
+### Changed
+
+- `ReactCommands::on_resource_mutation()` now takes a type that implements `ReactResource`.
+
+
 ## [0.2.0]
 
 ### Changed

@@ -1,5 +1,4 @@
 //local shortcuts
-use crate::*;
 
 //third-party shortcuts
 
@@ -26,6 +25,5 @@ impl<E: Send + Sync + 'static> ReactEvent<E>
 }
 
 impl<E: Send + Sync + 'static> Clone for ReactEvent<E> { fn clone(&self) -> Self { Self{ data: self.data.clone() } } }
-impl<E: Send + Sync + 'static> Reactive for ReactEvent<E> {}
 
 //-------------------------------------------------------------------------------------------------------------------

@@ -71,7 +71,7 @@ impl<E: Send + Sync + 'static> Default for EventReactors<E> { fn default() -> Se
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Add reactor to an entity. The reactor will be invoked when the event occurs on the entity.
-fn register_entity_reactor<C: Send + Sync + 'static>(
+fn register_entity_reactor<C: ReactComponent>(
     In((
         rtype,
         entity,
@@ -284,17 +284,17 @@ impl<'w, 's> ReactCommands<'w, 's>
         &mut self.commands
     }
 
-    /// Insert a [`React<C>`] component to the specified entity.
+    /// Insert a [`ReactComponent`] to the specified entity. It can be queried with [`React<C>`].
     /// - Reactions are enacted after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
     //todo: consider more ergonomic entity access, e.g. ReactEntityCommands
-    pub fn insert<C: Send + Sync + 'static>(&mut self, entity: Entity, component: C)
+    pub fn insert<C: ReactComponent>(&mut self, entity: Entity, component: C)
     {
         let Some(mut entity_commands) = self.commands.get_entity(entity) else { return; };
         entity_commands.insert( React{ entity, component } );
 
         let Some(ref mut cache) = self.cache else { return; };
-        cache.react_to_insertion::<React<C>>(&mut self.commands, entity);
+        cache.react_to_insertion::<C>(&mut self.commands, entity);
     }
 
     /// Send a react event.
@@ -376,10 +376,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         self.commands.add(move |world: &mut World| syscall(world, token.callback_id, revoke_event_reactor::<E>));
     }
 
-    /// React when a [`React`] component is inserted on any entity.
+    /// React when a [`ReactComponent`] is inserted on any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was inserted to.
-    pub fn on_insertion<C: Reactive + Component + Send + Sync + 'static>(
+    pub fn on_insertion<C: ReactComponent>(
         &mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -389,10 +389,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_insertion_reactor::<C>(CallbackWith::new(reactor))
     }
 
-    /// React when a [`React`] component is inserted on a specific entity.
+    /// React when a [`ReactComponent`] is inserted on a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
-    pub fn on_entity_insertion<C: Reactive + Component + Send + Sync + 'static>(
+    pub fn on_entity_insertion<C: ReactComponent>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -412,10 +412,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         RevokeToken{ reactor_type: ReactorType::EntityInsertion(entity, TypeId::of::<C>()), callback_id }
     }
 
-    /// React when a [`React`] component is mutated on any entity.
+    /// React when a [`ReactComponent`] is mutated on any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was mutated on.
-    pub fn on_mutation<C: Reactive + Component + Send + Sync + 'static>(
+    pub fn on_mutation<C: ReactComponent>(
         &mut self,
         reactor: impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -425,10 +425,10 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_mutation_reactor::<C>(CallbackWith::new(reactor))
     }
 
-    /// React when a [`React`] is mutated on a specific entity.
+    /// React when a [`ReactComponent`] is mutated on a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
-    pub fn on_entity_mutation<C: Reactive + Component + Send + Sync + 'static>(
+    pub fn on_entity_mutation<C: ReactComponent>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
@@ -448,12 +448,12 @@ impl<'w, 's> ReactCommands<'w, 's>
         RevokeToken{ reactor_type: ReactorType::EntityMutation(entity, TypeId::of::<C>()), callback_id }
     }
 
-    /// React when a component `C` is removed from any entity (`C` may be a [`React<T>`] or another component).
+    /// React when a [`ReactComponent`] is removed from any entity.
     /// - Reactor is registered immediately.
     /// - Reactor takes the entity the component was removed from.
     /// - If a component is removed from an entity then despawned (or removed due to a despawn) before
     ///   [`react_to_removals()`] is executed, then the reactor will not be scheduled.
-    pub fn on_removal<C: Component>(
+    pub fn on_removal<C: ReactComponent>(
         &mut self,
         reactor : impl Fn(&mut World, Entity) -> () + Send + Sync + 'static
     ) -> RevokeToken
@@ -464,13 +464,12 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.register_removal_reactor::<C>(CallbackWith::new(reactor))
     }
 
-    /// React when a component `C` is removed from a specific entity (`C` may be a [`React<T>`] or another
-    /// component).
+    /// React when a [`ReactComponent`] is removed from a specific entity.
     /// - Reactor is registered after `apply_deferred` is invoked.
     /// - Does nothing if the entity does not exist.
     /// - If a component is removed from the entity then despawned (or removed due to a despawn) before
     ///   [`react_to_removals()`] is executed, then the reactor will not be scheduled.
-    pub fn on_entity_removal<C: Component>(
+    pub fn on_entity_removal<C: ReactComponent>(
         &mut self,
         entity  : Entity,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static

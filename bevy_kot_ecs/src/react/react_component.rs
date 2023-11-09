@@ -71,24 +71,31 @@ fn react_to_despawns_impl(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+/// Tag trait for reactive components.
+///
+/// It is not recommended to add `ReactComponent` and `Component` to the same struct, as it will likely cause confusion.
+pub trait ReactComponent: Send + Sync + 'static {}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 /// Component wrapper that enables reacting to component mutations.
 /// - WARNING: It is possible to remove a `React` from one entity and manually insert it to another entity. That WILL
 ///            break the react framework. Instead use `react_commands.insert(new_entity, react_component.take());`.
 #[derive(Component)]
-pub struct React<C: Send + Sync + 'static>
+pub struct React<C: ReactComponent>
 {
     pub(crate) entity    : Entity,
     pub(crate) component : C,
 }
 
-impl<C: Send + Sync + 'static> React<C>
+impl<C: ReactComponent> React<C>
 {
     /// Mutably access the component and trigger reactions.
     pub fn get_mut<'a>(&'a mut self, rcommands: &mut ReactCommands) -> &'a mut C
     {
         if let Some(ref mut cache) = rcommands.cache
         {
-            cache.react_to_mutation::<React<C>>(&mut rcommands.commands, self.entity);
+            cache.react_to_mutation::<C>(&mut rcommands.commands, self.entity);
         }
         &mut self.component
     }
@@ -106,7 +113,7 @@ impl<C: Send + Sync + 'static> React<C>
     }
 }
 
-impl<C: Send + Sync + 'static> Deref for React<C>
+impl<C: ReactComponent> Deref for React<C>
 {
     type Target = C;
 
@@ -115,8 +122,6 @@ impl<C: Send + Sync + 'static> Deref for React<C>
         &self.component
     }
 }
-
-impl<C: Send + Sync + 'static> Reactive for React<C> {}
 
 //-------------------------------------------------------------------------------------------------------------------
 
