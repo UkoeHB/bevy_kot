@@ -508,9 +508,9 @@ impl<'w, 's> ReactCommands<'w, 's>
         Some(cache.register_despawn_reactor(entity, CallOnce::new(reactonce)))
     }
 
-    /// React when a [`ReactRes`] resource is mutated.
+    /// React when a [`ReactResource`] is mutated.
     /// - Reactor is registered immediately.
-    pub fn on_resource_mutation<R: Reactive + Resource + Send + Sync + 'static>(
+    pub fn on_resource_mutation<R: ReactResource>(
         &mut self,
         reactor : impl Fn(&mut World) -> () + Send + Sync + 'static
     ) -> RevokeToken
