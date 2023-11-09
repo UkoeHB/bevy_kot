@@ -309,7 +309,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// Trigger resource mutation reactions.
     ///
     /// Useful for initializing state after a reactor is registered.
-    pub fn trigger_resource_mutation<R: Reactive + Resource + Send + Sync + 'static>(&mut self)
+    pub fn trigger_resource_mutation<R: ReactResource + Send + Sync + 'static>(&mut self)
     {
         let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
         cache.react_to_resource_mutation::<R>(&mut self.commands);

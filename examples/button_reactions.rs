@@ -13,7 +13,7 @@ use std::fmt::Write;
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Counter for the COUNT text element. Inserted via `ReactCommands` so that mutations will trigger reactions.
-#[derive(Component, Default)]
+#[derive(ReactResource, Default)]
 struct ButtonCounter(usize);
 
 impl ButtonCounter
@@ -39,12 +39,9 @@ impl ReactCounter
 /// Callback for the button.
 fn increment_button_counter(
     mut rcommands : ReactCommands,
-    mut counter   : Query<&mut React<ButtonCounter>>
+    mut counter   : ReactResMut<ButtonCounter>,
 ){
-    counter.get_single_mut()
-        .unwrap()
-        .get_mut(&mut rcommands)
-        .increment();
+    counter.get_mut(&mut rcommands).increment();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -52,11 +49,10 @@ fn increment_button_counter(
 
 /// Reactor for mutations of `React<ButtonCounter>`.
 /// - Increment the react counter whenever the button counter reaches an even number
-fn button_counter_reactor(counter: Query<&React<ButtonCounter>>, mut react_counter: Query<&mut ReactCounter>)
+fn button_counter_reactor(counter: ReactRes<ButtonCounter>, mut react_counter: Query<&mut ReactCounter>)
 {
     // check if counter is even
-    let count: usize = counter.get_single().unwrap().0;
-    if (count % 2) != 0 { return; }
+    if (counter.0 % 2) != 0 { return; }
 
     // increment react counter
     react_counter.get_single_mut().unwrap().increment();
@@ -67,10 +63,11 @@ fn button_counter_reactor(counter: Query<&React<ButtonCounter>>, mut react_count
 
 /// Transfer button count into the text element.
 fn update_button_counter_text(
-    mut counter: Query<(&mut Text, &React<ButtonCounter>), Changed<React<ButtonCounter>>>,
+    In(text_entity) : In<Entity>,
+    counter         : ReactRes<ButtonCounter>,
+    mut text        : Query<&mut Text>,
 ){
-    if counter.is_empty() { return; }
-    let (mut text, counter) = counter.get_single_mut().unwrap();
+    let mut text = text.get_mut(text_entity).unwrap();
     text.sections[0].value.clear();
     let _ = write!(text.sections[0].value, "COUNT: {}", counter.0);
 }
@@ -171,7 +168,7 @@ fn setup_count_text(ui: &mut UiBuilder<MainUI>, count: Widget)
             color     : Color::WHITE,
         };
 
-    let count_entity_commands = ui.commands().spawn(
+    let count_entity = ui.commands().spawn(
             (
                 TextElementBundle::new(
                     count_text,
@@ -180,11 +177,15 @@ fn setup_count_text(ui: &mut UiBuilder<MainUI>, count: Widget)
                     "COUNT:  0"  //use initial value to get correct initial text boundary
                 ),
             )
-        );
+        ).id();
 
-    // add reactive counter component
-    let count_entity = count_entity_commands.id();
-    ui.rcommands.insert(count_entity, ButtonCounter::default());
+    // add reactive counter
+    ui.commands().insert_react_resource(ButtonCounter::default());
+
+    // update button counter text on mutation
+    ui.rcommands.on_resource_mutation::<ButtonCounter>(
+            move |world: &mut World| syscall(world, count_entity, update_button_counter_text)
+        );
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -219,8 +220,8 @@ fn setup_react_count_text(ui: &mut UiBuilder<MainUI>, react_count: Widget)
         );
 
     // add reactor
-    ui.rcommands.on_mutation::<React<ButtonCounter>>(
-            |world: &mut World, _: Entity| syscall(world, (), button_counter_reactor)
+    ui.rcommands.on_resource_mutation::<ButtonCounter>(
+            |world: &mut World| syscall(world, (), button_counter_reactor)
         );
 }
 
@@ -284,12 +285,7 @@ fn main()
         .register_interaction_source(MouseLButtonMain::default())
         .add_systems(PreStartup, setup)
         .add_systems(Startup, build_ui)
-        .add_systems(PostUpdate,
-            (
-                update_button_counter_text,
-                update_react_counter_text,
-            )
-        )
+        .add_systems(PostUpdate, update_react_counter_text)
         .run();
 }
 
