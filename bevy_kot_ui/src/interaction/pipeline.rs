@@ -32,7 +32,7 @@ struct InteractionSourceInfoPack
 //todo: custom system param filter to get only widgets associated with ui in focused window ?? UIInFocusedWindow<LunexUI>
 fn try_get_interaction_source_info_pack<S: InteractionSource>(
     ui              : Query<&UiTree, With<S::LunexUI>>,  //todo: InFocusedWindow
-    cursor          : Query<&Cursor, (With<S::LunexCursor>, Without<Disabled>)>,  //todo: InFocusedWindow
+    cursor_pos      : CursorPos<S::LunexCursor>,
     source          : Res<S>,
     source_param    : StaticSystemParam<S::SourceParam>,
     barrier_param   : StaticSystemParam<<<S as InteractionSource>::LunexCursor as LunexCursor>::BarrierParam>,
@@ -54,15 +54,13 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 {
     // check that ui and cursor are available
     // - note that the cursor is more likely to be unavailable than the ui tree
-    if cursor.is_empty() || ui.is_empty() { return None; };
+    if cursor_pos.available() || ui.is_empty() { return None; };
 
-    let Ok(cursor) = cursor.get_single()
-    else { tracing::error!("multiple cursors with the same tag detected in the focused window"); return None; };
     let Ok(ui) = ui.get_single()
     else { tracing::error!("multiple uis with the same tag detected in the focused window"); return None; };
 
     // get positions
-    let cpos_world = cursor.position_world();
+    let Some(cpos_world) = cursor_pos.get() else { tracing::error!("unable to access the cursor position"); return None; };
     let cpos_lunex = cpos_world.as_lunex(ui.offset);
 
     // find top-most barrier widget under the cursor
@@ -76,7 +74,7 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 
         // check if barrier widget intersects with the cursor
         let Ok(Some(widget_depth)) = S::LunexCursor::cursor_intersects_barrier(
-                *cpos_world,
+                cpos_world,
                 cpos_lunex,
                 ui,
                 widget,
@@ -101,7 +99,7 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 
         // check if element widget intersects with the cursor
         let Ok(Some(widget_depth)) = S::LunexCursor::cursor_intersects_element(
-                *cpos_world,
+                cpos_world,
                 cpos_lunex,
                 ui,
                 widget,
@@ -126,7 +124,7 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 
         // check if press home zone widget intersects with the cursor
         let Ok(Some(widget_depth)) = S::LunexCursor::cursor_intersects_press_home_zone(
-                *cpos_world,
+                cpos_world,
                 cpos_lunex,
                 ui,
                 &press_home_zone.0,
@@ -160,7 +158,7 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 
             // check if target's element is hovered
             if let Ok(Some(_)) = S::LunexCursor::cursor_intersects_element(
-                    *cpos_world,
+                    cpos_world,
                     cpos_lunex,
                     ui,
                     widget,
@@ -180,7 +178,7 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 
     // assemble the info pack
     Some(InteractionSourceInfoPack{
-            cpos_world     : *cpos_world,
+            cpos_world,
             just_clicked   : source.just_clicked(&source_param),
             is_clicked     : source.is_clicked(&source_param),
             just_unclicked : source.just_unclicked(&source_param),
