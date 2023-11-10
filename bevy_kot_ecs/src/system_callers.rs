@@ -7,6 +7,7 @@ use bevy::utils::{AHasher, HashMap};
 use fxhash::FxHasher32;
 
 //standard shortcuts
+use std::any::TypeId;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
@@ -347,10 +348,10 @@ where
     S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
     // the system id
-    let sys_id = SysId::new(id);
+    let sys_id = SysId::new::<S>(id);
 
     // get resource storing the id-mapped systems
-    let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O, S>>(
+    let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O>>(
             || IdMappedSystems::default()
         );
 
@@ -374,7 +375,7 @@ where
     system.apply_deferred(world);
 
     // re-acquire mutable access to id-mapped systems
-    let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O, S>>(
+    let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O>>(
             || IdMappedSystems::default()
         );
 
@@ -389,37 +390,140 @@ where
     result
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct SysId(u64);
-
-impl SysId
+/// Directly invoke a named system.
+///
+/// Returns `Err` if the system cannot be found.
+pub fn direct_named_syscall<I, O>(world: &mut World, sys_id: SysId, input: I) -> Result<O, ()>
+where
+    I: Send + 'static,
+    O: Send + 'static,
 {
-    fn new(id: impl Hash) -> Self
+    // get resource storing the id-mapped systems
+    let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O>>(
+            || IdMappedSystems::default()
+        );
+
+    // take the initialized system
+    let mut system =
+        match id_mapped_systems.systems.get_mut(&sys_id).map_or(None, |node| node.take())
+        {
+            Some(system) => system,
+            None => return Err(()),
+        };
+
+    // run the system
+    let result = system.run(input, world);
+
+    // apply any pending changes
+    system.apply_deferred(world);
+
+    // re-acquire mutable access to id-mapped systems
+    let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O>>(
+            || IdMappedSystems::default()
+        );
+
+    // put the system back
+    // - we ignore overwrites
+    match id_mapped_systems.systems.get_mut(&sys_id)
     {
-        let mut hasher = AHasher::default();
-        id.hash(&mut hasher);
-        SysId(hasher.finish())
+        Some(node) => { let _ = node.replace(system); },
+        None       => { let _ = id_mapped_systems.systems.insert(sys_id, Some(system)); },
+    }
+
+    Ok(result)
+}
+
+/// Register a named system for future use.
+///
+/// Over-writes the existing system with the same id and type, if one exists.
+///
+/// Useful for inserting a closure-type system that captures non-Copy data when you need to invoke the system
+/// multiple times.
+pub fn register_named_system<H, I, O, S, Marker>(world: &mut World, id: H, system: S)
+where
+    H: Hash,
+    I: Send + 'static,
+    O: Send + 'static,
+    S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
+{
+    // the system id
+    let sys_id = SysId::new::<S>(id);
+
+    // initialize the system
+    let mut sys = IntoSystem::into_system(system);
+    sys.initialize(world);
+    let boxed_system = Box::new(sys);
+
+    // get resource storing the id-mapped systems
+    let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O>>(
+        || IdMappedSystems::default()
+    );
+
+    // insert the system
+    match id_mapped_systems.systems.get_mut(&sys_id)
+    {
+        Some(node) => { let _ = node.replace(boxed_system); },
+        None       => { let _ = id_mapped_systems.systems.insert(sys_id, Some(boxed_system)); },
     }
 }
 
-#[derive(Resource)]
-struct IdMappedSystems<I, O, S>
-where
-    I: Send + 'static,
-    O: Send + 'static,
-    S: Send + Sync + 'static
+/// System identifier for use in named systems.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SysId(u64, TypeId);
+
+impl SysId
 {
-    systems  : HashMap<SysId, Option<BoxedSystem<I, O>>>,
-    _phantom : PhantomData<S>
+    pub fn new<S: 'static>(id: impl Hash) -> Self
+    {
+        let mut hasher = AHasher::default();
+        id.hash(&mut hasher);
+        SysId(hasher.finish(), TypeId::of::<S>())
+    }
+
+    pub fn id(&self) -> u64
+    {
+        self.0
+    }
+
+    pub fn type_id(&self) -> TypeId
+    {
+        self.1
+    }
 }
 
-impl<I, O, S> Default for IdMappedSystems<I, O, S>
+/// Tracks named systems.
+#[derive(Resource)]
+pub(crate) struct IdMappedSystems<I, O>
 where
     I: Send + 'static,
     O: Send + 'static,
-    S: Send + Sync + 'static
 {
-    fn default() -> Self { Self{ systems: HashMap::default(), _phantom: PhantomData::default() } }
+    systems: HashMap<SysId, Option<BoxedSystem<I, O>>>,
+}
+
+impl<I, O> IdMappedSystems<I, O>
+where
+    I: Send + 'static,
+    O: Send + 'static,
+{
+    pub(crate) fn _revoke<S: 'static>(&mut self, id: impl Hash)
+    {
+        let id = SysId::new::<S>(id);
+        let _ = self.systems.remove(&id);
+    }
+
+    pub(crate) fn revoke_sysid(&mut self, id: SysId)
+    {
+        let _ = self.systems.remove(&id);
+    }
+}
+
+impl<I, O> Default for IdMappedSystems<I, O>
+where
+    I: Send + 'static,
+    O: Send + 'static,
+{
+    fn default() -> Self { Self{ systems: HashMap::default() } }
 }
 
 //-------------------------------------------------------------------------------------------------------------------

@@ -15,9 +15,9 @@ use std::vec::Vec;
 
 struct ComponentReactors
 {
-    insertion_callbacks : Vec<(u64, CallbackWith<(), Entity>)>,
-    mutation_callbacks  : Vec<(u64, CallbackWith<(), Entity>)>,
-    removal_callbacks   : Vec<(u64, CallbackWith<(), Entity>)>,
+    insertion_callbacks : Vec<SysId>,
+    mutation_callbacks  : Vec<SysId>,
+    removal_callbacks   : Vec<SysId>,
 }
 
 impl ComponentReactors
@@ -102,9 +102,9 @@ fn react_to_entity_event_impl(
 
     // queue callbacks
     let mut callback_count = 0;
-    for (_, cb) in callbacks
+    for sys_id in callbacks
     {
-        enque_reaction(commands, cb.clone());
+        enque_reaction(commands, *sys_id, ());
         callback_count += 1;
     }
 
@@ -133,7 +133,7 @@ fn react_to_entity_event(
 #[derive(Resource)]
 pub(crate) struct ReactCache
 {
-    /// Callback id source. Used for reactor revocation.
+    /// Callback id source. Used for reactor revocation and ensuring reactors have unique Local state.
     callback_counter: u64,
 
     /// query to get read-access to entity reactors
@@ -158,7 +158,10 @@ pub(crate) struct ReactCache
     despawn_receiver: crossbeam::channel::Receiver<Entity>,
 
     /// Resource mutation reactors
-    resource_reactors: HashMap<TypeId, Vec<(u64, Callback<()>)>>,
+    resource_reactors: HashMap<TypeId, Vec<SysId>>,
+
+    /// Data event reactors
+    event_reactors: HashMap<TypeId, Vec<(SysId, CallOnce<()>)>>,
 }
 
 impl ReactCache
@@ -193,47 +196,37 @@ impl ReactCache
         self.removal_checkers.push(RemovalChecker::new::<C>());
     }
 
-    pub(crate) fn register_insertion_reactor<C>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
-    where
-        C: ReactComponent
+    pub(crate) fn register_insertion_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> RevokeToken
     {
-        let callback_id = self.next_callback_id();
         self.component_reactors
             .entry(TypeId::of::<C>())
             .or_default()
             .insertion_callbacks
-            .push((callback_id, callback));
+            .push(sys_id);
 
-        RevokeToken{ reactor_type: ReactorType::ComponentInsertion(TypeId::of::<C>()), callback_id }
+        RevokeToken{ reactor_type: ReactorType::ComponentInsertion(TypeId::of::<C>()), sys_id }
     }
 
-    pub(crate) fn register_mutation_reactor<C>(&mut self, callback: CallbackWith<(), Entity>) -> RevokeToken
-    where
-        C: ReactComponent
+    pub(crate) fn register_mutation_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> RevokeToken
     {
-        let callback_id = self.next_callback_id();
         self.component_reactors
             .entry(TypeId::of::<C>())
             .or_default()
             .mutation_callbacks
-            .push((callback_id, callback));
+            .push(sys_id);
 
-        RevokeToken{ reactor_type: ReactorType::ComponentMutation(TypeId::of::<C>()), callback_id }
+        RevokeToken{ reactor_type: ReactorType::ComponentMutation(TypeId::of::<C>()), sys_id }
     }
 
-    pub(crate) fn register_removal_reactor<C: ReactComponent>(
-        &mut self,
-        callback: CallbackWith<(), Entity>
-    ) -> RevokeToken
+    pub(crate) fn register_removal_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> RevokeToken
     {
-        let callback_id = self.next_callback_id();
         self.component_reactors
             .entry(TypeId::of::<C>())
             .or_default()
             .removal_callbacks
-            .push((callback_id, callback));
+            .push(sys_id);
 
-        RevokeToken{ reactor_type: ReactorType::ComponentRemoval(TypeId::of::<C>()), callback_id }
+        RevokeToken{ reactor_type: ReactorType::ComponentRemoval(TypeId::of::<C>()), sys_id }
     }
 
     pub(crate) fn register_despawn_reactor(&mut self, entity: Entity, callonce: CallOnce<()>) -> RevokeToken
@@ -244,25 +237,31 @@ impl ReactCache
             .or_default()
             .push((callback_id, callonce));
 
-        RevokeToken{ reactor_type: ReactorType::Despawn(entity), callback_id }
+        RevokeToken{ reactor_type: ReactorType::Despawn(entity), sys_id: SysId::new::<()>(callback_id) }
     }
 
-    pub(crate) fn register_resource_mutation_reactor<R: ReactResource>(
-        &mut self,
-        callback: Callback<()>
-    ) -> RevokeToken
+    pub(crate) fn register_resource_mutation_reactor<R: ReactResource>(&mut self, sys_id: SysId) -> RevokeToken
     {
-        let callback_id = self.next_callback_id();
         self.resource_reactors
             .entry(TypeId::of::<R>())
             .or_default()
-            .push((callback_id, callback));
+            .push(sys_id);
 
-        RevokeToken{ reactor_type: ReactorType::ResourceMutation(TypeId::of::<R>()), callback_id }
+        RevokeToken{ reactor_type: ReactorType::ResourceMutation(TypeId::of::<R>()), sys_id }
+    }
+
+    pub(crate) fn register_event_reactor<E: 'static>(&mut self, sys_id: SysId, revoker: CallOnce<()>) -> RevokeToken
+    {
+        self.event_reactors
+            .entry(TypeId::of::<E>())
+            .or_default()
+            .push((sys_id, revoker));
+
+        RevokeToken{ reactor_type: ReactorType::Event(TypeId::of::<E>()), sys_id }
     }
 
     /// Revoke a component insertion reactor.
-    pub(crate) fn revoke_component_reactor(&mut self, rtype: EntityReactType, comp_id: TypeId, callback_id: u64)
+    pub(crate) fn revoke_component_reactor(&mut self, rtype: EntityReactType, comp_id: TypeId, sys_id: SysId)
     {
         // get cached callbacks
         let Some(component_reactors) = self.component_reactors.get_mut(&comp_id) else { return; };
@@ -274,9 +273,9 @@ impl ReactCache
         };
 
         // revoke reactor
-        for (idx, (id, _)) in callbacks.iter().enumerate()
+        for (idx, id) in callbacks.iter().enumerate()
         {
-            if *id != callback_id { continue; }
+            if *id != sys_id { continue; }
             let _ = callbacks.remove(idx);  //todo: consider swap_remove()
 
             break;
@@ -307,15 +306,15 @@ impl ReactCache
     }
 
     /// Revoke a resource mutation reactor.
-    pub(crate) fn revoke_resource_mutation_reactor(&mut self, resource_id: TypeId, callback_id: u64)
+    pub(crate) fn revoke_resource_mutation_reactor(&mut self, resource_id: TypeId, sys_id: SysId)
     {
         // get callbacks
         let Some(callbacks) = self.resource_reactors.get_mut(&resource_id) else { return; };
 
         // revoke reactor
-        for (idx, (id, _)) in callbacks.iter().enumerate()
+        for (idx, id) in callbacks.iter().enumerate()
         {
-            if *id != callback_id { continue; }
+            if *id != sys_id { continue; }
             let _ = callbacks.remove(idx);  //todo: consider swap_remove()
             break;
         }
@@ -323,6 +322,29 @@ impl ReactCache
         // cleanup empty hashmap entries
         if callbacks.len() > 0 { return; }
         let _ = self.resource_reactors.remove(&resource_id);
+    }
+
+    /// Revoke an event reactor.
+    pub(crate) fn revoke_event_reactor(&mut self, event_id: TypeId, sys_id: SysId) -> Option<CallOnce<()>>
+    {
+        // get callbacks
+        let Some(callbacks) = self.event_reactors.get_mut(&event_id) else { return None; };
+
+        // revoke reactor
+        let mut maybe_revoker: Option<CallOnce<()>> = None;
+        for (idx, (id, _)) in callbacks.iter().enumerate()
+        {
+            if *id != sys_id { continue; }
+            let (_, revoker) = callbacks.remove(idx);  //todo: consider swap_remove()
+            maybe_revoker = Some(revoker);
+            break;
+        }
+
+        // cleanup empty hashmap entries
+        if callbacks.len() > 0 { return maybe_revoker; }
+        let _ = self.event_reactors.remove(&event_id);
+
+        maybe_revoker
     }
 
     /// Queue reactions to a component insertion.
@@ -336,9 +358,9 @@ impl ReactCache
 
         // entity-agnostic component reactors
         let Some(handlers) = self.component_reactors.get(&TypeId::of::<C>()) else { return; };
-        for (_, cb) in handlers.insertion_callbacks.iter()
+        for sys_id in handlers.insertion_callbacks.iter()
         {
-            enque_reaction(commands, cb.call_with(entity));
+            enque_reaction(commands, *sys_id, entity);
         }
     }
 
@@ -353,9 +375,9 @@ impl ReactCache
 
         // entity-agnostic component reactors
         let Some(handlers) = self.component_reactors.get(&TypeId::of::<C>()) else { return; };
-        for (_, cb) in handlers.mutation_callbacks.iter()
+        for sys_id in handlers.mutation_callbacks.iter()
         {
-            enque_reaction(commands, cb.call_with(entity));
+            enque_reaction(commands, *sys_id, entity);
         }
     }
 
@@ -400,9 +422,9 @@ impl ReactCache
 
                 // entity-agnostic component reactors
                 let Some(reactors) = self.component_reactors.get(&checker.component_id) else { continue; };
-                for (_, cb) in reactors.removal_callbacks.iter()
+                for sys_id in reactors.removal_callbacks.iter()
                 {
-                    enque_reaction(&mut commands, cb.call_with(*entity));
+                    enque_reaction(&mut commands, *sys_id, *entity);
                     callback_count += 1;
                 }
             }
@@ -420,9 +442,22 @@ impl ReactCache
     {
         // resource handlers
         let Some(handlers) = self.resource_reactors.get(&TypeId::of::<R>()) else { return; };
-        for (_, cb) in handlers.iter()
+        for sys_id in handlers.iter()
         {
-            enque_reaction(commands, cb.clone());
+            enque_reaction(commands, *sys_id, ());
+        }
+    }
+
+    /// Queue reactions to an event.
+    pub(crate) fn react_to_event<E: Send + Sync + 'static>(&mut self, commands: &mut Commands, event: E)
+    {
+        // resource handlers
+        let Some(handlers) = self.event_reactors.get(&TypeId::of::<E>()) else { return; };
+
+        let event = ReactEvent::new(event);
+        for (sys_id, _) in handlers.iter()
+        {
+            enque_reaction(commands, *sys_id, event.clone());
         }
     }
 }
@@ -445,6 +480,7 @@ impl Default for ReactCache
             despawn_sender,
             despawn_receiver,
             resource_reactors     : HashMap::new(),
+            event_reactors        : HashMap::new(),
         }
     }
 }

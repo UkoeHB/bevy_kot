@@ -60,7 +60,7 @@ fn react_to_despawns_impl(
         // queue despawn callbacks
         for (_, despawn_callback) in despawn_callbacks.drain(..)
         {
-            enque_reaction(&mut commands, despawn_callback);
+            enque_command(&mut commands, despawn_callback);
             callback_count += 1;
         }
     }

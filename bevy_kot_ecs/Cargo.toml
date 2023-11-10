@@ -15,3 +15,6 @@ bevy             = { workspace = true }
 bevy_fn_plugin   = { workspace = true }
 crossbeam        = { workspace = true }
 fxhash           = { workspace = true }
+tracing          = { workspace = true }
+
+bevy_eventlistener_core = { version = "0.5" }

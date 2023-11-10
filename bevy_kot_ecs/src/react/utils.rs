@@ -8,18 +8,34 @@ use bevy::prelude::*;
 //standard shortcuts
 use core::any::TypeId;
 use std::collections::HashMap;
-use std::marker::PhantomData;
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Queue a react callback, followed by a call to `apply_deferred`, then react to all removals and despawns.
+/// Queue a command, followed by a call to `apply_deferred`, then react to all removals and despawns.
 /// - We want to apply any side effects or chained reactions before any sibling reactions/commands.
-pub(crate) fn enque_reaction(commands: &mut Commands, cb: impl Command)
+pub(crate) fn enque_command(commands: &mut Commands, cb: impl Command)
 {
     commands.add(
             move |world: &mut World|
             {
                 cb.apply(world);
+                syscall(world, (), apply_deferred);
+                react_to_all_removals_and_despawns(world);
+            }
+        );
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Queue a react callback, followed by a call to `apply_deferred`, then react to all removals and despawns.
+/// - We want to apply any side effects or chained reactions before any sibling reactions/commands.
+pub(crate) fn enque_reaction<I: Send + Sync + 'static>(commands: &mut Commands, sys_id: SysId, input: I)
+{
+    commands.add(
+            move |world: &mut World|
+            {
+                let Ok(()) = direct_named_syscall::<I, ()>(world, sys_id, input)
+                else { tracing::error!(?sys_id, "recursive reactions are not supported"); return; };
                 syscall(world, (), apply_deferred);
                 react_to_all_removals_and_despawns(world);
             }
@@ -40,9 +56,9 @@ pub(crate) enum EntityReactType
 #[derive(Component)]
 pub(crate) struct EntityReactors
 {
-    pub(crate) insertion_callbacks : HashMap<TypeId, Vec<(u64, Callback<()>)>>,
-    pub(crate) mutation_callbacks  : HashMap<TypeId, Vec<(u64, Callback<()>)>>,
-    pub(crate) removal_callbacks   : HashMap<TypeId, Vec<(u64, Callback<()>)>>,
+    pub(crate) insertion_callbacks : HashMap<TypeId, Vec<SysId>>,
+    pub(crate) mutation_callbacks  : HashMap<TypeId, Vec<SysId>>,
+    pub(crate) removal_callbacks   : HashMap<TypeId, Vec<SysId>>,
 }
 
 impl EntityReactors
@@ -80,6 +96,7 @@ pub(crate) enum ReactorType
     ComponentRemoval(TypeId),
     Despawn(Entity),
     ResourceMutation(TypeId),
+    Event(TypeId),
 }
 
 /// Token for revoking reactors (event reactors use [`EventRevokeToken`]).
@@ -89,19 +106,7 @@ pub(crate) enum ReactorType
 pub struct RevokeToken
 {
     pub(crate) reactor_type : ReactorType,
-    pub(crate) callback_id  : u64,
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
-/// Token for revoking event reactors (non-event reactors use [`RevokeToken`]).
-///
-/// See [`ReactCommands::revoke_event_reactor()`].
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct EventRevokeToken<E>
-{
-    pub(crate) callback_id : u64,
-    pub(crate) _p          : PhantomData<E>
+    pub(crate) sys_id       : SysId,
 }
 
 //-------------------------------------------------------------------------------------------------------------------

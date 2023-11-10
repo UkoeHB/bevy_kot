@@ -7,10 +7,14 @@
 - `ReactRes` and `ReactResMut` system params that mimic `Res`/`ResMut`, with corresponding `World`/`App`/`Commands` methods added via extension traits.
 - `ReactResource` custom derive that mimics `Resource`.
 - `ReactComponent` custom derive that mimics `Component`.
+- `ReactCommands` reactor registration now accepts `IntoSystem` callbacks.
+- Added `direct_named_syscall()` and `register_named_syscall()`.
 
 ### Changed
 
 - `ReactCommands::on_resource_mutation()` now takes a type that implements `ReactResource`.
+- `EventRevokeToken` was removed in favor of unified `RevokeToken`s for all reactors.
+- Named systems are now mapped to both the input id and the system type, instead of just the input id. This allows the internal named systems cache to not be parameterized by the system type, which makes it easier to access.
 
 
 ## [0.2.0]
