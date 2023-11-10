@@ -11,113 +11,12 @@ use core::any::TypeId;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn prepare_reactor<I, O, S, Marker>(commands: &mut Commands, callback_id: u64, reactor: S) -> SysId
-where
-    I: Send + Sync + 'static,
-    O: Send + Sync + 'static,
-    S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
-{
-    let sys_id = SysId::new_raw::<ReactCallback<S>>(callback_id);
-    commands.add(move |world: &mut World| register_named_system(world, sys_id, reactor));
-    sys_id
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
 fn revoke_named_system<I: Send + Sync + 'static>(sys_id: SysId) -> impl FnOnce(&mut World) + Send + Sync + 'static
 {
     move |world: &mut World|
     {
         let Some(mut cache) = world.get_resource_mut::<IdMappedSystems<I, ()>>() else { return; };
         cache.revoke_sysid(sys_id);
-    }
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-/// Tag for tracking despawns of entities with despawn reactors.
-#[derive(Component)]
-struct DespawnTracker
-{
-    parent   : Entity,
-    notifier : crossbeam::channel::Sender<Entity>,
-}
-
-impl Drop for DespawnTracker
-{
-    fn drop(&mut self)
-    {
-        let _ = self.notifier.send(self.parent);
-    }
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-fn add_despawn_tracker(
-    In((entity, notifier)) : In<(Entity, crossbeam::channel::Sender<Entity>)>,
-    world                  : &mut World
-){
-    // try to get the entity
-    // - if entity doesn't exist, then notify the reactor in case we have despawn reactors waiting
-    let Some(mut entity_mut) = world.get_entity_mut(entity)
-    else
-    {
-        let _ = notifier.send(entity);
-        return;
-    };
-
-    // leave if entity already has a despawn tracker
-    // - we don't want to accidentally trigger `DespawnTracker::drop()` by replacing the existing component
-    if entity_mut.contains::<DespawnTracker>() { return; }
-
-    // insert a new despawn tracker
-    entity_mut.insert(DespawnTracker{ parent: entity, notifier });
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-/// Add reactor to an entity. The reactor will be invoked when the event occurs on the entity.
-fn register_entity_reactor<C: ReactComponent>(
-    In((
-        rtype,
-        entity,
-        sys_id
-    ))                  : In<(EntityReactType, Entity, SysId)>,
-    mut commands        : Commands,
-    mut entity_reactors : Query<&mut EntityReactors>,
-){
-    // callback adder
-    let add_callback_fn =
-        move |entity_reactors: &mut EntityReactors|
-        {
-            let callbacks = match rtype
-            {
-                EntityReactType::Insertion => entity_reactors.insertion_callbacks.entry(TypeId::of::<C>()).or_default(),
-                EntityReactType::Mutation  => entity_reactors.mutation_callbacks.entry(TypeId::of::<C>()).or_default(),
-                EntityReactType::Removal   => entity_reactors.removal_callbacks.entry(TypeId::of::<C>()).or_default(),
-            };
-            callbacks.push(sys_id);
-        };
-
-    // add callback to entity
-    match entity_reactors.get_mut(entity)
-    {
-        Ok(mut entity_reactors) => add_callback_fn(&mut entity_reactors),
-        _ =>
-        {
-            let Some(mut entity_commands) = commands.get_entity(entity) else { return; };
-
-            // make new reactor tracker for the entity
-            let mut entity_reactors = EntityReactors::default();
-
-            // add callback and insert to entity
-            add_callback_fn(&mut entity_reactors);
-            entity_commands.insert(entity_reactors);
-        }
     }
 }
 
@@ -327,158 +226,14 @@ impl<'w, 's> ReactCommands<'w, 's>
         }
     }
 
-    /// React when a [`ReactComponent`] is inserted on any entity.
-    /// - Reactor takes the entity the component was inserted to.
-    pub fn on_insertion<C: ReactComponent, Marker>(
+    /// Register a reactor to an ECS change.
+    pub fn on<I, R: ReactorRegistrator<Input = I>, Marker>(
         &mut self,
-        reactor: impl IntoSystem<Entity, (), Marker> + Send + Sync + 'static
+        registrator : R,
+        reactor     : impl IntoSystem<I, (), Marker> + Send + Sync + 'static
     ) -> RevokeToken
     {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-
-        let sys_id = prepare_reactor(&mut self.commands, cache.next_callback_id(), reactor);
-        cache.register_insertion_reactor::<C>(sys_id)
-    }
-
-    /// React when a [`ReactComponent`] is inserted on a specific entity.
-    /// - Does nothing if the entity does not exist.
-    pub fn on_entity_insertion<C: ReactComponent, Marker>(
-        &mut self,
-        entity  : Entity,
-        reactor : impl IntoSystem<(), (), Marker> + Send + Sync + 'static
-    ) -> RevokeToken
-    {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-
-        let sys_id = prepare_reactor(&mut self.commands, cache.next_callback_id(), reactor);
-        self.commands.add(
-                move |world: &mut World|
-                syscall(world, (EntityReactType::Insertion, entity, sys_id), register_entity_reactor::<C>)
-            );
-
-        RevokeToken{ reactor_type: ReactorType::EntityInsertion(entity, TypeId::of::<C>()), sys_id }
-    }
-
-    /// React when a [`ReactComponent`] is mutated on any entity.
-    /// - Reactor takes the entity the component was mutated on.
-    pub fn on_mutation<C: ReactComponent, Marker>(
-        &mut self,
-        reactor: impl IntoSystem<Entity, (), Marker> + Send + Sync + 'static
-    ) -> RevokeToken
-    {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-
-        let sys_id = prepare_reactor(&mut self.commands, cache.next_callback_id(), reactor);
-        cache.register_mutation_reactor::<C>(sys_id)
-    }
-
-    /// React when a [`ReactComponent`] is mutated on a specific entity.
-    /// - Does nothing if the entity does not exist.
-    pub fn on_entity_mutation<C: ReactComponent, Marker>(
-        &mut self,
-        entity  : Entity,
-        reactor : impl IntoSystem<(), (), Marker> + Send + Sync + 'static
-    ) -> RevokeToken
-    {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-
-        let sys_id = prepare_reactor(&mut self.commands, cache.next_callback_id(), reactor);
-        self.commands.add(
-                move |world: &mut World|
-                syscall(world, (EntityReactType::Mutation, entity, sys_id), register_entity_reactor::<C>)
-            );
-
-        RevokeToken{ reactor_type: ReactorType::EntityMutation(entity, TypeId::of::<C>()), sys_id }
-    }
-
-    /// React when a [`ReactComponent`] is removed from any entity.
-    /// - Reactor takes the entity the component was removed from.
-    /// - If a component is removed from an entity then despawned (or removed due to a despawn) before
-    ///   [`react_to_removals()`] is executed, then the reactor will not be scheduled.
-    pub fn on_removal<C: ReactComponent, Marker>(
-        &mut self,
-        reactor: impl IntoSystem<Entity, (), Marker> + Send + Sync + 'static
-    ) -> RevokeToken
-    {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.track_removals::<C>();
-
-        let sys_id = prepare_reactor(&mut self.commands, cache.next_callback_id(), reactor);
-        cache.register_removal_reactor::<C>(sys_id)
-    }
-
-    /// React when a [`ReactComponent`] is removed from a specific entity.
-    /// - Does nothing if the entity does not exist.
-    /// - If a component is removed from the entity then despawned (or removed due to a despawn) before
-    ///   [`react_to_removals()`] is executed, then the reactor will not be scheduled.
-    pub fn on_entity_removal<C: ReactComponent, Marker>(
-        &mut self,
-        entity  : Entity,
-        reactor : impl IntoSystem<(), (), Marker> + Send + Sync + 'static
-    ) -> RevokeToken
-    {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.track_removals::<C>();
-
-        let sys_id = prepare_reactor(&mut self.commands, cache.next_callback_id(), reactor);
-        self.commands.add(
-                move |world: &mut World|
-                syscall(world, (EntityReactType::Removal, entity, sys_id), register_entity_reactor::<C>)
-            );
-
-        RevokeToken{ reactor_type: ReactorType::EntityRemoval(entity, TypeId::of::<C>()), sys_id }
-    }
-
-    /// React when an entity is despawned.
-    /// - Returns [`None`] if the entity does not exist.
-    pub fn on_despawn<Marker>(
-        &mut self,
-        entity    : Entity,
-        reactonce : impl IntoSystem<(), (), Marker> + Send + Sync + 'static,
-    ) -> Option<RevokeToken>
-    {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        let Some(_) = self.commands.get_entity(entity) else { return None; };
-        let notifier =  cache.despawn_sender();
-        self.commands.add(move |world: &mut World| syscall(world, (entity, notifier), add_despawn_tracker));
-
-        Some(cache.register_despawn_reactor(
-                entity,
-                CallOnce::new(
-                    move |world|
-                    {
-                        let mut system = IntoSystem::into_system(reactonce);
-                        system.initialize(world);
-                        system.run((), world);
-                        system.apply_deferred(world);
-                    }
-                ),
-            ))
-    }
-
-    /// React when a [`ReactResource`] is mutated.
-    pub fn on_resource_mutation<R: ReactResource, Marker>(
-        &mut self,
-        reactor: impl IntoSystem<(), (), Marker> + Send + Sync + 'static
-    ) -> RevokeToken
-    {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-
-        let sys_id = prepare_reactor(&mut self.commands, cache.next_callback_id(), reactor);
-        cache.register_resource_mutation_reactor::<R>(sys_id)
-    }
-
-    /// React when a data event is sent.
-    /// - Reactions only occur for data sent via [`ReactCommands::<E>::send()`].
-    pub fn on_event<E: Send + Sync + 'static, Marker>(
-        &mut self,
-        reactor: impl IntoSystem<ReactEvent<E>, (), Marker> + Send + Sync + 'static
-    ) -> RevokeToken
-    {
-        let Some(ref mut cache) = self.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-
-        let sys_id = prepare_reactor(&mut self.commands, cache.next_callback_id(), reactor);
-        cache.register_event_reactor::<E>(sys_id, CallOnce::new(revoke_named_system::<ReactEvent<E>>(sys_id)))
+        registrator.register(self, reactor)
     }
 }
 

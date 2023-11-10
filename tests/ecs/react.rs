@@ -77,58 +77,56 @@ fn update_test_recorder_with_event(In(data): In<ReactEvent<usize>>, mut recorder
 
 fn on_entity_insertion(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_entity_insertion::<TestComponent, _>(
-            entity,
+    rcommands.on(entity_insertion::<TestComponent>(entity),
             move |world: &mut World| syscall(world, entity, update_test_recorder_with_component)
         )
 }
 
 fn on_entity_mutation(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_entity_mutation::<TestComponent, _>(
-            entity,
+    rcommands.on(entity_mutation::<TestComponent>(entity),
             move |world: &mut World| syscall(world, entity, update_test_recorder_with_component)
         )
 }
 
 fn on_entity_removal(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_entity_removal::<TestComponent, _>(entity, infinitize_test_recorder)
+    rcommands.on(entity_removal::<TestComponent>(entity), infinitize_test_recorder)
 }
 
 fn on_insertion(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_insertion::<TestComponent, _>(update_test_recorder_with_component)
+    rcommands.on(insertion::<TestComponent>(), update_test_recorder_with_component)
 }
 
 fn on_mutation(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_mutation::<TestComponent, _>(update_test_recorder_with_component)
+    rcommands.on(mutation::<TestComponent>(), update_test_recorder_with_component)
 }
 
 fn on_removal(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_removal::<TestComponent, _>(|_, world: &mut World| syscall(world, (), infinitize_test_recorder))
+    rcommands.on(removal::<TestComponent>(), |_, world: &mut World| syscall(world, (), infinitize_test_recorder))
 }
 
 fn on_despawn(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_despawn(entity, infinitize_test_recorder).unwrap()
+    rcommands.on(despawn(entity), infinitize_test_recorder)
 }
 
 fn on_despawn_div2(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_despawn(entity, test_recorder_div2).unwrap()
+    rcommands.on(despawn(entity), test_recorder_div2)
 }
 
 fn on_resource_mutation(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_resource_mutation::<TestReactRes, _>(update_test_recorder_with_resource)
+    rcommands.on(resource_mutation::<TestReactRes>(), update_test_recorder_with_resource)
 }
 
 fn on_event(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_event::<usize, _>(update_test_recorder_with_event)
+    rcommands.on(event::<usize>(), update_test_recorder_with_event)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -185,7 +183,7 @@ fn send_data_event(In(data): In<usize>, mut rcommands: ReactCommands)
 
 fn on_entity_mutation_chain_to_res(In(entity): In<Entity>, mut rcommands: ReactCommands)
 {
-    rcommands.on_entity_mutation::<TestComponent, _>(entity,
+    rcommands.on(entity_mutation::<TestComponent>(entity),
             move
             |
                 mut rcommands : ReactCommands,

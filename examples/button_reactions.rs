@@ -183,7 +183,7 @@ fn setup_count_text(ui: &mut UiBuilder<MainUI>, count: Widget)
     ui.commands().insert_react_resource(ButtonCounter::default());
 
     // update button counter text on mutation
-    ui.rcommands.on_resource_mutation::<ButtonCounter, _>(
+    ui.rcommands.on(resource_mutation::<ButtonCounter>(),
             move |world: &mut World| syscall(world, count_entity, update_button_counter_text)
         );
 }
@@ -220,7 +220,7 @@ fn setup_react_count_text(ui: &mut UiBuilder<MainUI>, react_count: Widget)
         );
 
     // add reactor
-    ui.rcommands.on_resource_mutation::<ButtonCounter, _>(
+    ui.rcommands.on(resource_mutation::<ButtonCounter>(),
             |world: &mut World| syscall(world, (), button_counter_reactor)
         );
 }
