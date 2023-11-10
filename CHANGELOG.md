@@ -8,7 +8,7 @@
 - `ReactResource` custom derive that mimics `Resource`.
 - `ReactComponent` custom derive that mimics `Component`.
 - `ReactCommands` reactor registration now accepts `IntoSystem` callbacks.
-- Added `direct_named_syscall()` and `register_named_syscall()`.
+- Added `named_syscall_direct()` and `register_named_syscall()`.
 
 ### Changed
 

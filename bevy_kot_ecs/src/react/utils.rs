@@ -8,18 +8,28 @@ use bevy::prelude::*;
 //standard shortcuts
 use core::any::TypeId;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Queue a command, followed by a call to `apply_deferred`, then react to all removals and despawns.
+/// Wrapper type for callbacks.
+///
+/// Used to domain-separate named react systems from other named_syscall regimes.
+pub(crate) struct ReactCallback<S>(PhantomData<S>);
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Queue a command with a call to react to all removals and despawns.
 /// - We want to apply any side effects or chained reactions before any sibling reactions/commands.
+///
+/// Note that we assume the specified command internally handles its deferred state. We don't want to call
+/// `apply_deferred` here since the global `apply_deferred` is inefficient.
 pub(crate) fn enque_command(commands: &mut Commands, cb: impl Command)
 {
     commands.add(
             move |world: &mut World|
             {
                 cb.apply(world);
-                syscall(world, (), apply_deferred);
                 react_to_all_removals_and_despawns(world);
             }
         );
@@ -27,16 +37,15 @@ pub(crate) fn enque_command(commands: &mut Commands, cb: impl Command)
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Queue a react callback, followed by a call to `apply_deferred`, then react to all removals and despawns.
+/// Queue a named system with a call to react to all removals and despawns.
 /// - We want to apply any side effects or chained reactions before any sibling reactions/commands.
 pub(crate) fn enque_reaction<I: Send + Sync + 'static>(commands: &mut Commands, sys_id: SysId, input: I)
 {
     commands.add(
             move |world: &mut World|
             {
-                let Ok(()) = direct_named_syscall::<I, ()>(world, sys_id, input)
+                let Ok(()) = named_syscall_direct::<I, ()>(world, sys_id, input)
                 else { tracing::error!(?sys_id, "recursive reactions are not supported"); return; };
-                syscall(world, (), apply_deferred);
                 react_to_all_removals_and_despawns(world);
             }
         );

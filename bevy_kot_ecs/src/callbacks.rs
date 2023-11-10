@@ -1,7 +1,7 @@
 //local shortcuts
 
 //third-party shortcuts
-use bevy::ecs::system::Command;
+use bevy::ecs::system::{Command, BoxedSystem};
 use bevy::prelude::*;
 
 //standard shortcuts
@@ -194,6 +194,50 @@ impl<T: Send + Sync + 'static, I, O> SysCall<T, I, O>
     pub fn call(&self, world: &mut World, in_val: I) -> O
     {
         (self.callback)(world, in_val)
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Represents a system callback.
+#[derive(Default)]
+pub enum CallbackSystem<I, O>
+{
+    #[default]
+    Empty,
+    New(BoxedSystem<I, O>),
+    Initialized(BoxedSystem<I, O>),
+}
+
+impl<I, O> CallbackSystem<I, O>
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+{
+    pub fn new<Marker, S>(system: S) -> Self
+    where
+        S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
+    {
+        CallbackSystem::New(Box::new(IntoSystem::into_system(system)))
+    }
+
+    pub fn run(&mut self, world: &mut World, input: I) -> Option<O>
+    {
+        let mut system = match std::mem::take(self)
+        {
+            CallbackSystem::Empty => return None,
+            CallbackSystem::New(mut system) =>
+            {
+                system.initialize(world);
+                system
+            }
+            CallbackSystem::Initialized(system) => system,
+        };
+        let result = system.run(input, world);
+        system.apply_deferred(world);
+        *self = CallbackSystem::Initialized(system);
+
+        Some(result)
     }
 }
 

@@ -393,7 +393,7 @@ where
 /// Directly invoke a named system.
 ///
 /// Returns `Err` if the system cannot be found.
-pub fn direct_named_syscall<I, O>(world: &mut World, sys_id: SysId, input: I) -> Result<O, ()>
+pub fn named_syscall_direct<I, O>(world: &mut World, sys_id: SysId, input: I) -> Result<O, ()>
 where
     I: Send + 'static,
     O: Send + 'static,
@@ -439,16 +439,17 @@ where
 ///
 /// Useful for inserting a closure-type system that captures non-Copy data when you need to invoke the system
 /// multiple times.
-pub fn register_named_system<H, I, O, S, Marker>(world: &mut World, id: H, system: S)
+///
+/// We pass in `sys_id` directly to enable direct control over defining the id. Manually defining the id may
+/// be appropriate if you are potentially generating large numbers of named systems and want to ensure there
+/// are no collisions. It may also be appropriate if you have multiple naming regimes and want to domain-separate
+/// the system ids (e.g. via type wrappers: `SysId::new_raw::<Wrapper<S>>(counter)`)
+pub fn register_named_system<I, O, S, Marker>(world: &mut World, sys_id: SysId, system: S)
 where
-    H: Hash,
     I: Send + 'static,
     O: Send + 'static,
     S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
-    // the system id
-    let sys_id = SysId::new::<S>(id);
-
     // initialize the system
     let mut sys = IntoSystem::into_system(system);
     sys.initialize(world);
@@ -478,6 +479,11 @@ impl SysId
         let mut hasher = AHasher::default();
         id.hash(&mut hasher);
         SysId(hasher.finish(), TypeId::of::<S>())
+    }
+
+    pub fn new_raw<S: 'static>(id: u64) -> Self
+    {
+        SysId(id, TypeId::of::<S>())
     }
 
     pub fn id(&self) -> u64

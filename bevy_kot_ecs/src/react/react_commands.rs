@@ -17,8 +17,9 @@ where
     O: Send + Sync + 'static,
     S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
-    commands.add(move |world: &mut World| register_named_system(world, callback_id, reactor));
-    SysId::new::<S>(callback_id)
+    let sys_id = SysId::new_raw::<ReactCallback<S>>(callback_id);
+    commands.add(move |world: &mut World| register_named_system(world, sys_id, reactor));
+    sys_id
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -73,9 +74,7 @@ fn add_despawn_tracker(
     if entity_mut.contains::<DespawnTracker>() { return; }
 
     // insert a new despawn tracker
-    entity_mut.insert(
-            DespawnTracker{ parent: entity, notifier }
-        );
+    entity_mut.insert(DespawnTracker{ parent: entity, notifier });
 }
 
 //-------------------------------------------------------------------------------------------------------------------

@@ -237,7 +237,7 @@ impl ReactCache
             .or_default()
             .push((callback_id, callonce));
 
-        RevokeToken{ reactor_type: ReactorType::Despawn(entity), sys_id: SysId::new::<()>(callback_id) }
+        RevokeToken{ reactor_type: ReactorType::Despawn(entity), sys_id: SysId::new_raw::<ReactCallback<()>>(callback_id) }
     }
 
     pub(crate) fn register_resource_mutation_reactor<R: ReactResource>(&mut self, sys_id: SysId) -> RevokeToken
