@@ -38,7 +38,6 @@ impl ReactCounter
 
 /// Callback for the button.
 fn increment_button_counter(
-    In(_)         : In<Vec2>,
     mut rcommands : ReactCommands,
     mut counter   : ReactResMut<ButtonCounter>,
 ){

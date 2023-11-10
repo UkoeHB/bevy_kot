@@ -30,11 +30,11 @@ struct SliderDragState
 
 fn initialize_slider_drag(
     In((
-        cpos_world,
         entity,
         (right_edge_min_rel, right_edge_max_rel)
-    ))           : In<(Vec2, Entity, (f32, f32))>,
+    ))           : In<(Entity, (f32, f32))>,
     mut commands : Commands,
+    cpos_world   : CursorPos<MainMouseCursor>,
     widgets      : Query<&Widget>,
     ui           : Query<&UiTree, With<MainUI>>,  //todo: InFocusedWindow
 ){
@@ -51,6 +51,7 @@ fn initialize_slider_drag(
     let widget_start_displacement_2_x = layout.absolute_2.x;
 
     // cursor start position
+    let Some(cpos_world) = cpos_world.get() else { return; };
     let cpos_lunex = cpos_world.as_lunex(ui.offset);
 
     // denormalize edge min/max to absolute coordinates
@@ -74,12 +75,10 @@ fn initialize_slider_drag(
 //-------------------------------------------------------------------------------------------------------------------
 
 fn drag_slider(
-    In((
-        cpos_world,
-        entity,
-    ))     : In<(Vec2, Entity)>,
-    mut ui : Query<&mut UiTree, With<MainUI>>,  //todo: InFocusedWindow
-    slider : Query<(&Widget, &SliderDragState)>,
+    In(entity) : In<Entity>,
+    cpos_world : CursorPos<MainMouseCursor>,
+    mut ui     : Query<&mut UiTree, With<MainUI>>,  //todo: InFocusedWindow
+    slider     : Query<(&Widget, &SliderDragState)>,
 ){
     // slider
     let Ok((slider_widget, drag_state)) = slider.get(entity) else { return; };
@@ -88,6 +87,7 @@ fn drag_slider(
     let Ok(mut ui) = ui.get_single_mut() else { return; };
 
     // get new position for widget
+    let Some(cpos_world) = cpos_world.get() else { return; };
     let cpos_lunex = cpos_world.as_lunex(ui.offset);
     let drag_diff = cpos_lunex.x - drag_state.drag_start_x;
     let new_widget_x = (drag_state.widget_start_x + drag_diff).max(drag_state.right_edge_min).min(drag_state.right_edge_max);
@@ -165,14 +165,8 @@ fn build_ui(mut ui: UiBuilder<MainUI>)
         .press_on_click()
         .unpress_on_unclick_home_or_away()
         .abort_press_if_obstructed()
-        .on_startpress(
-            move |In(cpos_world): In<Vec2>, world: &mut World|
-            syscall(world, (cpos_world, entity, button_x_range_rel), initialize_slider_drag)
-        )
-        .on_press_home(
-            move |In(cpos_world): In<Vec2>, world: &mut World|
-            syscall(world, (cpos_world, entity), drag_slider)
-        )
+        .on_startpress(move |world: &mut World| syscall(world, (entity, button_x_range_rel), initialize_slider_drag))
+        .on_press_home(move |world: &mut World| syscall(world, entity, drag_slider))
         .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
     entity_commands.insert(UIInteractionBarrier::<MainUI>::default());

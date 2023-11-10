@@ -49,6 +49,14 @@ where
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+fn named_syscall_direct_basic(world: &mut World, sys_id: SysId)
+{
+    let _ = named_syscall_direct::<(), ()>(world, sys_id, ());
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
 fn check_press_invariants(builder: &InteractiveElementBuilder) -> Result<(), InteractiveElementBuilderError>
 {
     // check press_away consistency
@@ -345,7 +353,7 @@ fn maybe_build_action_start_press<H, V>(
     no_hover_on_pressed          : bool,
     no_hover_on_pressed_selected : bool,
     hover_fixer                  : &H,
-    startpress_callback          : CallbackSystem<Vec2, ()>,
+    startpress_callback          : CallbackSystem<(), ()>,
     update_widget_visibility     : &V,
 )
 where
@@ -359,11 +367,11 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let startpress_callback_id = try_register_named_system::<StartPress, Vec2>(entity_commands, startpress_callback);
+    let startpress_callback_id = try_register_named_system::<StartPress, ()>(entity_commands, startpress_callback);
 
     // callback
-    let press_start_callback = CallbackWith::<StartPress, Vec2>::new(
-            move |world: &mut World, cpos_world: Vec2|
+    let press_start_callback = Callback::<StartPress>::new(
+            move |world: &mut World|
             {
                 // try to add Pressed::Home to entity
                 if !try_add_component_to_entity(world, element_entity, Pressed::Home) { return; }
@@ -375,10 +383,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = startpress_callback_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = startpress_callback_id { named_syscall_direct_basic(world, id); }
 
                 // update visibility
                 vis_updater(world);
@@ -400,7 +405,7 @@ fn maybe_build_action_unpress<H, V>(
     no_hover_on_pressed          : bool,
     no_hover_on_pressed_selected : bool,
     hover_fixer                  : &H,
-    unpress_callback             : CallbackSystem<Vec2, ()>,
+    unpress_callback             : CallbackSystem<(), ()>,
     update_widget_visibility     : &V,
 )
 where
@@ -414,11 +419,11 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let unpress_callback_id = try_register_named_system::<UnPress, Vec2>(entity_commands, unpress_callback);
+    let unpress_callback_id = try_register_named_system::<UnPress, ()>(entity_commands, unpress_callback);
 
     // callback
-    let unpress_callback = CallbackWith::<UnPress, Vec2>::new(
-            move |world: &mut World, cpos_world: Vec2|
+    let unpress_callback = Callback::<UnPress>::new(
+            move |world: &mut World|
             {
                 // try to remove `Pressed` from entity
                 let Some(_) = try_remove_component_from_entity::<Pressed>(world, element_entity) else { return; };
@@ -430,10 +435,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = unpress_callback_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = unpress_callback_id { named_syscall_direct_basic(world, id); }
 
                 // update visibility
                 vis_updater(world);
@@ -454,7 +456,7 @@ fn maybe_build_action_abort_press<H, V>(
     no_hover_on_pressed          : bool,
     no_hover_on_pressed_selected : bool,
     hover_fixer                  : &H,
-    abortpress_callback          : CallbackSystem<Vec2, ()>,
+    abortpress_callback          : CallbackSystem<(), ()>,
     update_widget_visibility     : &V,
 )
 where
@@ -469,11 +471,11 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let abortpress_callback_id = try_register_named_system::<AbortPress, Vec2>(entity_commands, abortpress_callback);
+    let abortpress_callback_id = try_register_named_system::<AbortPress, ()>(entity_commands, abortpress_callback);
 
     // callback
-    let abort_press_callback = CallbackWith::<AbortPress, Vec2>::new(
-            move |world: &mut World, cpos_world: Vec2|
+    let abort_press_callback = Callback::<AbortPress>::new(
+            move |world: &mut World|
             {
                 // try to remove `Pressed` from entity
                 let Some(_) = try_remove_component_from_entity::<Pressed>(world, element_entity) else { return; };
@@ -482,10 +484,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = abortpress_callback_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = abortpress_callback_id { named_syscall_direct_basic(world, id); }
 
                 // update visibility
                 vis_updater(world);
@@ -539,10 +538,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = select_callback_id
-                {
-                    let _ = named_syscall_direct::<(), ()>(world, id, ());
-                }
+                if let Some(id) = select_callback_id { named_syscall_direct_basic(world, id); }
 
                 // update visibility
                 vis_updater(world);
@@ -590,10 +586,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = deselect_callback_id
-                {
-                    let _ = named_syscall_direct::<(), ()>(world, id, ());
-                }
+                if let Some(id) = deselect_callback_id { named_syscall_direct_basic(world, id); }
 
                 // update visibility
                 vis_updater(world);
@@ -612,29 +605,26 @@ fn maybe_build_responder_on_click(
     element_entity    : Entity,
     press_on_click    : bool,
     select_on_click   : bool,
-    on_click_callback : CallbackSystem<Vec2, ()>,
+    on_click_callback : CallbackSystem<(), ()>,
 ){
     // check if responder is needed
     if !(press_on_click || select_on_click || on_click_callback.has_system()) { return; }
 
     // register the callback
-    let on_click_callback_id = try_register_named_system::<Deselect, Vec2>(entity_commands, on_click_callback);
+    let on_click_callback_id = try_register_named_system::<Deselect, ()>(entity_commands, on_click_callback);
 
     // callback
-    let on_click_callback = CallbackWith::<OnClick, Vec2>::new(
-            move |world: &mut World, cpos_world: Vec2|
+    let on_click_callback = Callback::<OnClick>::new(
+            move |world: &mut World|
             {
                 // [option] action: start press
-                if press_on_click { let _ = try_callback_with::<StartPress, Vec2>(world, element_entity, cpos_world); }
+                if press_on_click { let _ = try_callback::<StartPress>(world, element_entity); }
 
                 // [option] action: select
                 if select_on_click { let _ = try_callback::<Select>(world, element_entity); }
 
                 // invoke user-defined callback
-                if let Some(id) = on_click_callback_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = on_click_callback_id { named_syscall_direct_basic(world, id); }
             }
         );
 
@@ -649,26 +639,23 @@ fn maybe_build_responder_on_click_hold(
     entity_commands       : &mut EntityCommands,
     element_entity        : Entity,
     press_on_clickhold    : bool,
-    on_clickhold_callback : CallbackSystem<Vec2, ()>,
+    on_clickhold_callback : CallbackSystem<(), ()>,
 ){
     // check if responder is needed
     if !(press_on_clickhold || on_clickhold_callback.has_system()) { return; }
 
     // register the callback
-    let on_clickhold_callback_id = try_register_named_system::<Deselect, Vec2>(entity_commands, on_clickhold_callback);
+    let on_clickhold_callback_id = try_register_named_system::<Deselect, ()>(entity_commands, on_clickhold_callback);
 
     // callback
-    let on_click_hold_callback = CallbackWith::<OnClickHold, Vec2>::new(
-            move |world: &mut World, cpos_world: Vec2|
+    let on_click_hold_callback = Callback::<OnClickHold>::new(
+            move |world: &mut World|
             {
                 // [option] action: start press
-                if press_on_clickhold { let _ = try_callback_with::<StartPress, Vec2>(world, element_entity, cpos_world); }
+                if press_on_clickhold { let _ = try_callback::<StartPress>(world, element_entity); }
 
                 // invoke user-defined callback
-                if let Some(id) = on_clickhold_callback_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = on_clickhold_callback_id { named_syscall_direct_basic(world, id); }
             }
         );
 
@@ -689,8 +676,8 @@ fn maybe_build_responder_on_click_hold_home<H, V>(
     no_hover_on_pressed          : bool,
     no_hover_on_pressed_selected : bool,
     hover_fixer                  : &H,
-    press_home_start_callback    : CallbackSystem<Vec2, ()>,
-    press_home_callback          : CallbackSystem<Vec2, ()>,
+    press_home_start_callback    : CallbackSystem<(), ()>,
+    press_home_callback          : CallbackSystem<(), ()>,
     update_widget_visibility     : &V,
 )
 where
@@ -704,18 +691,15 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callbacks
-    let press_home_start_id = try_register_named_system::<PressHomeStart, Vec2>(entity_commands, press_home_start_callback);
-    let press_home_id = try_register_named_system::<PressHomeAlways, Vec2>(entity_commands, press_home_callback);
+    let press_home_start_id = try_register_named_system::<PressHomeStart, ()>(entity_commands, press_home_start_callback);
+    let press_home_id = try_register_named_system::<PressHomeAlways, ()>(entity_commands, press_home_callback);
 
     // callback
-    let on_click_hold_home_callback = CallbackWith::<OnClickHoldHome, Vec2>::new(
-            move |world: &mut World, cpos_world: Vec2|
+    let on_click_hold_home_callback = Callback::<OnClickHoldHome>::new(
+            move |world: &mut World|
             {
                 // invoke user-defined callback: press home (always)
-                if let Some(id) = press_home_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = press_home_id { named_syscall_direct_basic(world, id); }
 
                 // try to update `Pressed` component to `Pressed::Home`
                 // - we leave if already in `Pressed::Home` because the remaining work is only needed when transitioning
@@ -726,10 +710,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback: press home (start)
-                if let Some(id) = press_home_start_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = press_home_start_id { named_syscall_direct_basic(world, id); }
 
                 // update visibility
                 vis_updater(world);
@@ -758,10 +739,10 @@ fn maybe_build_responder_on_click_hold_away<H, V>(
     no_hover_on_pressed            : bool,
     no_hover_on_pressed_selected   : bool,
     hover_fixer                    : &H,
-    press_away_start_callback      : CallbackSystem<Vec2, ()>,
-    press_away_always_callback     : CallbackSystem<Vec2, ()>,
-    press_away_present_callback    : CallbackSystem<Vec2, ()>,
-    press_away_obstructed_callback : CallbackSystem<Vec2, ()>,
+    press_away_start_callback      : CallbackSystem<(), ()>,
+    press_away_always_callback     : CallbackSystem<(), ()>,
+    press_away_present_callback    : CallbackSystem<(), ()>,
+    press_away_obstructed_callback : CallbackSystem<(), ()>,
     update_widget_visibility       : &V,
 )
 where
@@ -775,39 +756,37 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callbacks
-    let press_away_start_id = try_register_named_system::<PressAwayStart, Vec2>(
+    let press_away_start_id = try_register_named_system::<PressAwayStart, ()>(
             entity_commands,
             press_away_start_callback
         );
-    let press_away_always_id = try_register_named_system::<PressAwayAlways, Vec2>(
+    let press_away_always_id = try_register_named_system::<PressAwayAlways, ()>(
             entity_commands,
             press_away_always_callback
         );
-    let press_away_present_id = try_register_named_system::<PressAwayPresent, Vec2>(
+    let press_away_present_id = try_register_named_system::<PressAwayPresent, ()>(
             entity_commands,
             press_away_present_callback
         );
-    let press_away_obstructed_id = try_register_named_system::<PressAwayObstructed, Vec2>(
+    let press_away_obstructed_id = try_register_named_system::<PressAwayObstructed, ()>(
             entity_commands,
             press_away_obstructed_callback
         );
 
     // callback
-    let on_click_hold_away_callback = CallbackWith::<OnClickHoldAway, (Vec2, bool)>::new(
-            move | world: &mut World, (cpos_world, is_present): (Vec2, bool) |
+    let on_click_hold_away_callback = CallbackWith::<OnClickHoldAway, bool>::new(
+            move |world: &mut World, is_present: bool|
             {
                 // [option] action: abort press
-                if abort_press_on_press_away
-                { let _ = try_callback_with::<AbortPress, Vec2>(world, element_entity, cpos_world); return; }
+                if abort_press_on_press_away { let _ = try_callback::<AbortPress>(world, element_entity); return; }
 
                 // [option] action: abort press
                 // - note: must check this before unpress_on_press_away (they are overlapping options)
                 if abort_press_if_obstructed && !is_present
-                { let _ = try_callback_with::<AbortPress, Vec2>(world, element_entity, cpos_world); return; }
+                { let _ = try_callback::<AbortPress>(world, element_entity); return; }
 
                 // [option] action: unpress
-                if unpress_on_press_away
-                { let _ = try_callback_with::<UnPress, Vec2>(world, element_entity, cpos_world); return; }
+                if unpress_on_press_away { let _ = try_callback::<UnPress>(world, element_entity); return; }
 
                 // try to update `Pressed` component to `Pressed::Away`
                 let press_away_started = try_update_component_if_different(world, element_entity, Pressed::Away);
@@ -817,33 +796,21 @@ where
                     if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                     // invoke user-defined callback: press away start
-                    if let Some(id) = press_away_start_id
-                    {
-                        let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                    }
+                    if let Some(id) = press_away_start_id { named_syscall_direct_basic(world, id); }
                 }
 
                 // invoke user-defined callback: press away (always)
-                if let Some(id) = press_away_always_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = press_away_always_id { named_syscall_direct_basic(world, id); }
 
                 // invoke user-defined callback: press away (if present)
                 if is_present
                 {
-                    if let Some(id) = press_away_present_id
-                    {
-                        let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                    }
+                    if let Some(id) = press_away_present_id { named_syscall_direct_basic(world, id); }
                 }
                 // invoke user-defined callback: press away (if obstructed)
                 else
                 {
-                    if let Some(id) = press_away_obstructed_id
-                    {
-                        let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                    }
+                    if let Some(id) = press_away_obstructed_id { named_syscall_direct_basic(world, id); }
                 }
 
                 // update visibility
@@ -865,39 +832,33 @@ fn maybe_build_responder_on_unclick(
     unpress_on_unclick_home     : bool,
     abort_press_on_unclick_away : bool,
     unpress_on_unclick_away     : bool,
-    on_unclick_callback         : CallbackSystem<(Vec2, bool), ()>,
+    on_unclick_callback         : CallbackSystem<bool, ()>,
 ){
     // check if responder is needed
     if !need_press { return; }
 
     // register the callback
-    let on_unclick_id = try_register_named_system::<OnUnClick, (Vec2, bool)>(entity_commands, on_unclick_callback);
+    let on_unclick_id = try_register_named_system::<OnUnClick, bool>(entity_commands, on_unclick_callback);
 
     // callback
-    let on_unclick_callback = CallbackWith::<OnUnClick, (Vec2, bool)>::new(
-            move | world: &mut World, (cpos_world, unclick_on_home): (Vec2, bool) |
+    let on_unclick_callback = CallbackWith::<OnUnClick, bool>::new(
+            move | world: &mut World, unclick_on_home: bool|
             {
                 // invoke user-defined callback
-                if let Some(id) = on_unclick_id
-                {
-                    let _ = named_syscall_direct::<(Vec2, bool), ()>(world, id, (cpos_world, unclick_on_home));
-                }
+                if let Some(id) = on_unclick_id { let _ = named_syscall_direct::<bool, ()>(world, id, unclick_on_home); }
 
                 if unclick_on_home
                 {
                     // [option] action: unpress
-                    if unpress_on_unclick_home
-                    { let _ = try_callback_with::<UnPress, Vec2>(world, element_entity, cpos_world); }
+                    if unpress_on_unclick_home { let _ = try_callback::<UnPress>(world, element_entity); }
                 }
                 else
                 {
                     // [option] action: abort press
-                    if abort_press_on_unclick_away
-                    { let _ = try_callback_with::<AbortPress, Vec2>(world, element_entity, cpos_world); }
+                    if abort_press_on_unclick_away { let _ = try_callback::<AbortPress>(world, element_entity); }
 
                     // [option] action: unpress
-                    if unpress_on_unclick_away
-                    { let _ = try_callback_with::<UnPress, Vec2>(world, element_entity, cpos_world); }
+                    if unpress_on_unclick_away { let _ = try_callback::<UnPress>(world, element_entity); }
                 }
             }
         );
@@ -919,8 +880,8 @@ fn maybe_build_responder_on_hover<V>(
     no_hover_on_pressed          : bool,
     no_hover_on_pressed_selected : bool,
     select_on_hover_start        : bool,
-    on_hover_start_callback      : CallbackSystem<Vec2, ()>,
-    on_hover_callback            : CallbackSystem<Vec2, ()>,
+    on_hover_start_callback      : CallbackSystem<(), ()>,
+    on_hover_callback            : CallbackSystem<(), ()>,
     update_widget_visibility     : &V,
 )
 where
@@ -932,12 +893,12 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callbacks
-    let on_hover_start_id = try_register_named_system::<OnHoverStart, Vec2>(entity_commands, on_hover_start_callback);
-    let on_hover_id = try_register_named_system::<OnHover, Vec2>(entity_commands, on_hover_callback);
+    let on_hover_start_id = try_register_named_system::<OnHoverStart, ()>(entity_commands, on_hover_start_callback);
+    let on_hover_id = try_register_named_system::<OnHover, ()>(entity_commands, on_hover_callback);
 
     // callback
-    let on_hover_callback = CallbackWith::<OnHover, Vec2>::new(
-            move |world: &mut World, cpos_world: Vec2|
+    let on_hover_callback = Callback::<OnHover>::new(
+            move |world: &mut World|
             {
                 // check if hovering is allowed
                 if !hover_is_allowed_with_world(
@@ -957,17 +918,11 @@ where
                     if select_on_hover_start { let _ = try_callback::<Select>(world, element_entity); }
 
                     // invoke user-defined callback: hover start
-                    if let Some(id) = on_hover_start_id
-                    {
-                        let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                    }
+                    if let Some(id) = on_hover_start_id { named_syscall_direct_basic(world, id); }
                 }
 
                 // invoke user-defined callback: hover
-                if let Some(id) = on_hover_id
-                {
-                    let _ = named_syscall_direct::<Vec2, ()>(world, id, cpos_world);
-                }
+                if let Some(id) = on_hover_id { named_syscall_direct_basic(world, id); }
 
                 // update visibility
                 if started_hovering { vis_updater(world); }
@@ -1007,10 +962,7 @@ where
                 let Some(_) = try_remove_component_from_entity::<Hovered>(world, element_entity) else { return; };
 
                 // invoke user-defined callback
-                if let Some(id) = on_unhover_id
-                {
-                    let _ = named_syscall_direct::<(), ()>(world, id, ());
-                }
+                if let Some(id) = on_unhover_id { named_syscall_direct_basic(world, id); }
 
                 // update visibility
                 vis_updater(world);
@@ -1181,22 +1133,22 @@ pub struct InteractiveElementBuilder
     no_hover_on_selected           : bool,
     no_hover_on_pressed_selected   : bool,
 
-    on_click_callback              : CallbackSystem<Vec2, ()>,
-    on_clickhold_callback          : CallbackSystem<Vec2, ()>,
-    on_unclick_callback            : CallbackSystem<(Vec2, bool), ()>,
-    on_hover_start_callback        : CallbackSystem<Vec2, ()>,
-    on_hover_callback              : CallbackSystem<Vec2, ()>,
+    on_click_callback              : CallbackSystem<(), ()>,
+    on_clickhold_callback          : CallbackSystem<(), ()>,
+    on_unclick_callback            : CallbackSystem<bool, ()>,
+    on_hover_start_callback        : CallbackSystem<(), ()>,
+    on_hover_callback              : CallbackSystem<(), ()>,
     on_unhover_callback            : CallbackSystem<(), ()>,
 
-    startpress_callback            : CallbackSystem<Vec2, ()>,
-    press_home_start_callback      : CallbackSystem<Vec2, ()>,
-    press_home_callback            : CallbackSystem<Vec2, ()>,
-    press_away_start_callback      : CallbackSystem<Vec2, ()>,
-    press_away_always_callback     : CallbackSystem<Vec2, ()>,
-    press_away_present_callback    : CallbackSystem<Vec2, ()>,
-    press_away_obstructed_callback : CallbackSystem<Vec2, ()>,
-    unpress_callback               : CallbackSystem<Vec2, ()>,
-    abortpress_callback            : CallbackSystem<Vec2, ()>,
+    startpress_callback            : CallbackSystem<(), ()>,
+    press_home_start_callback      : CallbackSystem<(), ()>,
+    press_home_callback            : CallbackSystem<(), ()>,
+    press_away_start_callback      : CallbackSystem<(), ()>,
+    press_away_always_callback     : CallbackSystem<(), ()>,
+    press_away_present_callback    : CallbackSystem<(), ()>,
+    press_away_obstructed_callback : CallbackSystem<(), ()>,
+    unpress_callback               : CallbackSystem<(), ()>,
+    abortpress_callback            : CallbackSystem<(), ()>,
 
     select_callback                : CallbackSystem<(), ()>,
     deselect_callback              : CallbackSystem<(), ()>,
@@ -1447,30 +1399,27 @@ impl InteractiveElementBuilder
     }
 
     /// Callback invoked when a click is detected on the element (i.e. just clicked).
-    /// - Takes the world position of the cursor.
-    pub fn on_click<Marker>(mut self, callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static) -> Self
+    pub fn on_click<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.on_click_callback = CallbackSystem::new(callback);
         self
     }
 
     /// Callback invoked when click hold is detected on the element.
-    /// - Takes the world position of the cursor.
     /// - Invoked every tick while true.
-    pub fn on_clickhold<Marker>(mut self, callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static) -> Self
+    pub fn on_clickhold<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.on_clickhold_callback = CallbackSystem::new(callback);
         self
     }
 
     /// Callback invoked when an unclick is detected and the press home zone is pressed.
-    /// - Takes the world position of the cursor.
     /// - Takes a bool indicating if the cursor was above or away from the press home zone when the unclick occurred.
     /// - WARNING: You must specify a press activator and deactivator to use this, since unclicks only make sense in the
     ///            context of pressing the element.
     pub fn on_unclick<Marker>(
         mut self,
-        callback: impl IntoSystem<(Vec2, bool), (), Marker> + Send + Sync + 'static
+        callback: impl IntoSystem<bool, (), Marker> + Send + Sync + 'static
     ) -> Self
     {
         self.on_unclick_callback = CallbackSystem::new(callback);
@@ -1478,17 +1427,15 @@ impl InteractiveElementBuilder
     }
 
     /// Callback invoked when the element just started being hovered.
-    /// - Takes the world position of the cursor.
-    pub fn on_hover_start<Marker>(mut self, callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static) -> Self
+    pub fn on_hover_start<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.on_hover_start_callback = CallbackSystem::new(callback);
         self
     }
 
     /// Callback invoked when the element is being hovered.
-    /// - Takes the world position of the cursor.
     /// - Invoked every tick while true.
-    pub fn on_hover<Marker>(mut self, callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static) -> Self
+    pub fn on_hover<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.on_hover_callback = CallbackSystem::new(callback);
         self
@@ -1502,18 +1449,16 @@ impl InteractiveElementBuilder
     }
 
     /// Callback invoked when the element is just pressed.
-    /// - Takes the world position of the cursor.
-    pub fn on_startpress<Marker>(mut self, callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static) -> Self
+    pub fn on_startpress<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.startpress_callback = CallbackSystem::new(callback);
         self
     }
 
     /// Callback invoked when the element just transitioned to `Pressed::Home`.
-    /// - Takes the world position of the cursor.
     pub fn on_press_home_start<Marker>(
         mut self,
-        callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static,
+        callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static,
     ) -> Self
     {
         self.press_home_start_callback = CallbackSystem::new(callback);
@@ -1521,19 +1466,17 @@ impl InteractiveElementBuilder
     }
 
     /// Callback invoked when the element is in state `Pressed::Home`.
-    /// - Takes the world position of the cursor.
     /// - Invoked every tick while true.
-    pub fn on_press_home<Marker>(mut self, callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static) -> Self
+    pub fn on_press_home<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.press_home_callback = CallbackSystem::new(callback);
         self
     }
 
     /// Callback invoked when the element just transitioned to `Pressed::Away`.
-    /// - Takes the world position of the cursor.
     pub fn on_press_away_start<Marker>(
         mut self,
-        callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static,
+        callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static,
     ) -> Self
     {
         self.press_away_start_callback = CallbackSystem::new(callback);
@@ -1541,11 +1484,10 @@ impl InteractiveElementBuilder
     }
 
     /// Callback invoked when the element is in state `Pressed::Away`.
-    /// - Takes the world position of the cursor.
     /// - Invoked every tick while true.
     pub fn on_press_away_always<Marker>(
         mut self,
-        callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static,
+        callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static,
     ) -> Self
     {
         self.press_away_always_callback = CallbackSystem::new(callback);
@@ -1554,11 +1496,10 @@ impl InteractiveElementBuilder
 
     /// Callback invoked when the element is in state `Pressed::Away` if the element is present (is visible and the
     /// event does not occur above an interaction barrier higher than the press home zone).
-    /// - Takes the world position of the cursor.
     /// - Invoked every tick while true.
     pub fn on_press_away_present<Marker>(
         mut self,
-        callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static,
+        callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static,
     ) -> Self
     {
         self.press_away_present_callback = CallbackSystem::new(callback);
@@ -1567,11 +1508,10 @@ impl InteractiveElementBuilder
 
     /// Callback invoked when the element is in state `Pressed::Away` if the element is obstructed (is invisible or the
     /// event occurs above an interaction barrier higher than the press home zone).
-    /// - Takes the world position of the cursor.
     /// - Invoked every tick while true.
     pub fn on_press_away_obstructed<Marker>(
         mut self,
-        callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static,
+        callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static,
     ) -> Self
     {
         self.press_away_obstructed_callback = CallbackSystem::new(callback);
@@ -1579,23 +1519,20 @@ impl InteractiveElementBuilder
     }
 
     /// Callback invoked when the element is unpressed.
-    /// - Takes the world position of the cursor.
-    pub fn on_unpress<Marker>(mut self, callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static) -> Self
+    pub fn on_unpress<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.unpress_callback = CallbackSystem::new(callback);
         self
     }
 
     /// Callback invoked when press is aborted on the element.
-    /// - Takes the world position of the cursor.
-    pub fn on_abortpress<Marker>(mut self, callback: impl IntoSystem<Vec2, (), Marker> + Send + Sync + 'static) -> Self
+    pub fn on_abortpress<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.abortpress_callback = CallbackSystem::new(callback);
         self
     }
 
     /// Callback invoked when the element is selected.
-    /// - Takes the world position of the cursor.
     pub fn on_select<Marker>(mut self, callback: impl IntoSystem<(), (), Marker> + Send + Sync + 'static) -> Self
     {
         self.select_callback = CallbackSystem::new(callback);

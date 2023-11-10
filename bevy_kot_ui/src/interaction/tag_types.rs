@@ -64,19 +64,16 @@ pub struct Hovered;
 
 /* Interactive element actions */
 
-/// Callback added to interactive element: `CallbackWith<StartPress, Vec2>`
-/// - Inputs: world position of cursor.
+/// Callback added to interactive element: `Callback<StartPress>`
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct StartPress;
 
-/// Callback added to interactive element: `CallbackWith<UnPress, Vec2>`
-/// - Inputs: world position of cursor.
+/// Callback added to interactive element: `Callback<UnPress>`
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct UnPress;
 
-/// Callback added to interactive element: `CallbackWith<AbortPress, Vec2>`
-/// - Inputs: world position of cursor.
+/// Callback added to interactive element: `Callback<AbortPress>`
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct AbortPress;
@@ -96,23 +93,20 @@ pub struct Deselect;
 
 /// Callback invoked when an interaction source is just clicked over the entity.
 ///
-/// Callback added to interactive element: `CallbackWith<OnClick, Vec2>`.
-/// - Inputs: world position of cursor.
+/// Callback added to interactive element: `Callback<OnClick>`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnClick;
 
 /// Callback invoked when an interaction source is clicking over the entity.
 ///
-/// Callback added to interactive element: `CallbackWith<OnClickHold, Vec2>`.
-/// - Inputs: world position of cursor.
+/// Callback added to interactive element: `Callback<OnClickHold>`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnClickHold;
 
 /// Callback invoked when an interaction source is clicking over the entity's press home zone
 /// when the entity is pressed.
 ///
-/// Callback added to interactive element: `CallbackWith<OnClickHoldHome, Vec2>`.
-/// - Inputs: world position of cursor.
+/// Callback added to interactive element: `Callback<OnClickHoldHome>`.
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnClickHoldHome;
@@ -120,24 +114,23 @@ pub struct OnClickHoldHome;
 /// Callback invoked when an interaction source is clicking away from the entity's press home zone
 /// when the entity is pressed.
 ///
-/// Callback added to interactive element: `CallbackWith<OnClickHoldAway, (Vec2, bool)>`.
-/// - Inputs: world position of cursor, true/false if element is present.
+/// Callback added to interactive element: `CallbackWith<OnClickHoldAway, bool>`.
+/// - Inputs: true/false if element is present.
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnClickHoldAway;
 
 /// Callback invoked when an interaction source just unclicked and the entity is pressed.
 ///
-/// Callback added to interactive element: `CallbackWith<OnUnClick, (Vec2, bool)>`.
-/// - Inputs: world position of cursor, true/false if element is under cursor.
+/// Callback added to interactive element: `CallbackWith<OnUnClick, bool>`.
+/// - Inputs: true/false if element is under cursor.
 /// - Only invoked when the element is `Pressed`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnUnClick;
 
 /// Callback invoked when an interaction source is hovering over the entity.
 ///
-/// Callback added to interactive element: `CallbackWith<OnHover, Vec2>`.
-/// - Inputs: world position of cursor.
+/// Callback added to interactive element: `Callback<OnHover>`.
 #[derive(Default, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct OnHover;
 

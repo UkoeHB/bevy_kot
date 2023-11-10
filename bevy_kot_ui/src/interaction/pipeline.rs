@@ -16,7 +16,6 @@ use std::fmt::Debug;
 #[derive(Copy, Clone, Debug)]
 struct InteractionSourceInfoPack
 {
-    cpos_world        : Vec2,
     just_clicked      : bool,
     is_clicked        : bool,
     just_unclicked    : bool,
@@ -178,7 +177,6 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 
     // assemble the info pack
     Some(InteractionSourceInfoPack{
-            cpos_world,
             just_clicked   : source.just_clicked(&source_param),
             is_clicked     : source.is_clicked(&source_param),
             just_unclicked : source.just_unclicked(&source_param),
@@ -195,7 +193,7 @@ fn handle_just_clicked<S: InteractionSource>(
     In(info_pack) : In<InteractionSourceInfoPack>,
     mut commands  : Commands,
     widgets       : Query<
-        &CallbackWith<OnClick, Vec2>,
+        &Callback<OnClick>,
         (With<ElementInteractionTargeter<S::LunexUI, S::LunexCursor>>, With<ElementInteractionSource<S>>)
     >,
 ){
@@ -213,7 +211,7 @@ fn handle_just_clicked<S: InteractionSource>(
     let Ok(callback) = widgets.get(highest_entity) else { return; };
 
     // queue the callback
-    commands.add(callback.call_with(info_pack.cpos_world));
+    commands.add(callback.clone());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -223,7 +221,7 @@ fn handle_is_clicked<S: InteractionSource>(
     In(info_pack) : In<InteractionSourceInfoPack>,
     mut commands  : Commands,
     widgets       : Query<
-        &CallbackWith<OnClickHold, Vec2>,
+        &Callback<OnClickHold>,
         (With<ElementInteractionTargeter<S::LunexUI, S::LunexCursor>>, With<ElementInteractionSource<S>>)
     >,
 ){
@@ -241,7 +239,7 @@ fn handle_is_clicked<S: InteractionSource>(
     let Ok(callback) = widgets.get(highest_entity) else { return; };
 
     // queue the callback
-    commands.add(callback.call_with(info_pack.cpos_world));
+    commands.add(callback.clone());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -251,7 +249,7 @@ fn handle_is_clicked_home<S: InteractionSource>(
     In(info_pack) : In<InteractionSourceInfoPack>,
     mut commands  : Commands,
     widgets       : Query<
-        &CallbackWith<OnClickHoldHome, Vec2>,
+        &Callback<OnClickHoldHome>,
         (With<Pressed>, With<ElementInteractionTargeter<S::LunexUI, S::LunexCursor>>, With<ElementInteractionSource<S>>)
     >,
 ){
@@ -268,7 +266,7 @@ fn handle_is_clicked_home<S: InteractionSource>(
     let Ok(callback) = widgets.get(highest_entity) else { return; };
 
     // queue the callback
-    commands.add(callback.call_with(info_pack.cpos_world));
+    commands.add(callback.clone());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -279,7 +277,7 @@ fn handle_is_clicked_away<S: InteractionSource>(
     mut commands  : Commands,
     ui            : Query<&UiTree, With<S::LunexUI>>,  //todo: InFocusedWindow
     widgets       : Query<
-        (Entity, &Widget, &CallbackWith<OnClickHoldAway, (Vec2, bool)>),
+        (Entity, &Widget, &CallbackWith<OnClickHoldAway, bool>),
         (With<Pressed>, With<ElementInteractionTargeter<S::LunexUI, S::LunexCursor>>, With<ElementInteractionSource<S>>)
     >,
 ){
@@ -310,7 +308,7 @@ fn handle_is_clicked_away<S: InteractionSource>(
             };
 
         // queue the callback
-        commands.add(callback.call_with((info_pack.cpos_world, is_present)));
+        commands.add(callback.call_with(is_present));
     }
 }
 
@@ -321,7 +319,7 @@ fn handle_just_unclicked<S: InteractionSource>(
     In(info_pack)   : In<InteractionSourceInfoPack>,
     mut commands    : Commands,
     unclick_widgets : Query<
-        (Entity, &CallbackWith<OnUnClick, (Vec2, bool)>),
+        (Entity, &CallbackWith<OnUnClick, bool>),
         (With<Pressed>, With<ElementInteractionTargeter<S::LunexUI, S::LunexCursor>>, With<ElementInteractionSource<S>>)
     >,
 ){
@@ -338,7 +336,7 @@ fn handle_just_unclicked<S: InteractionSource>(
         let under_cursor = info_pack.targeted == Some(entity);
 
         // queue the callback
-        commands.add(unclick_callback.call_with((info_pack.cpos_world, under_cursor)));
+        commands.add(unclick_callback.call_with(under_cursor));
     }
 }
 
@@ -349,7 +347,7 @@ fn handle_hover<S: InteractionSource>(
     In(info_pack) : In<InteractionSourceInfoPack>,
     mut commands  : Commands,
     widgets       : Query<
-        &CallbackWith<OnHover, Vec2>,
+        &Callback<OnHover>,
         (With<ElementInteractionTargeter<S::LunexUI, S::LunexCursor>>, With<ElementInteractionSource<S>>)
     >,
 ){
@@ -366,7 +364,7 @@ fn handle_hover<S: InteractionSource>(
     let Ok(callback) = widgets.get(highest_entity) else { return; };
 
     // queue the callback
-    commands.add(callback.call_with(info_pack.cpos_world));
+    commands.add(callback.clone());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
