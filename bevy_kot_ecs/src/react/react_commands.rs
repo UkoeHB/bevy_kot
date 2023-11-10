@@ -227,6 +227,11 @@ impl<'w, 's> ReactCommands<'w, 's>
     }
 
     /// Register a reactor to an ECS change.
+    ///
+    /// Example:
+    /// ```no_run
+    /// rcommands.on(resource_mutation::<MyRes>(), my_reactor_system);
+    /// ```
     pub fn on<I, R: ReactorRegistrator<Input = I>, Marker>(
         &mut self,
         registrator : R,

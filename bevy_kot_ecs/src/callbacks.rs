@@ -221,6 +221,12 @@ where
         CallbackSystem::New(Box::new(IntoSystem::into_system(system)))
     }
 
+    pub fn initialize(&mut self, world: &mut World)
+    {
+        let CallbackSystem::New(system) = self else { return; };
+        system.initialize(world);
+    }
+
     pub fn run(&mut self, world: &mut World, input: I) -> Option<O>
     {
         let mut system = match std::mem::take(self)
@@ -238,6 +244,52 @@ where
         *self = CallbackSystem::Initialized(system);
 
         Some(result)
+    }
+
+    pub fn take_initialized(self, world: &mut World) -> Option<BoxedSystem<I, O>>
+    {
+        match self
+        {
+            CallbackSystem::Empty => None,
+            CallbackSystem::New(mut system) =>
+            {
+                system.initialize(world);
+                Some(system)
+            }
+            CallbackSystem::Initialized(system) => Some(system),
+        }
+    }
+
+    pub fn has_system(&self) -> bool
+    {
+        !self.is_empty()
+    }
+
+    pub fn is_empty(&self) -> bool
+    {
+        match &self
+        {
+            CallbackSystem::Empty => true,
+            _ => false
+        }
+    }
+
+    pub fn is_new(&self) -> bool
+    {
+        match &self
+        {
+            CallbackSystem::New(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_initialized(&self) -> bool
+    {
+        match &self
+        {
+            CallbackSystem::Initialized(_) => true,
+            _ => false
+        }
     }
 }
 

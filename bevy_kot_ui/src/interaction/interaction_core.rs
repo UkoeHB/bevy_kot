@@ -406,7 +406,8 @@ impl RegisterInteractionSourceExt for App
     ///   `interaction_pipeline<[source]>` systems in schedule `First`.
     fn register_interaction_source<S: InteractionSource>(&mut self, interaction_source: S) -> &mut Self
     {
-        self.init_resource::<InteractionSourceRunner<S>>()
+        self.init_resource::<InteractiveCallbackTracker>()  //todo: redundant with multiple sources
+            .init_resource::<InteractionSourceRunner<S>>()
             .insert_resource(interaction_source)
             .add_systems(First,
                 interaction_pipeline::<S>
@@ -414,6 +415,7 @@ impl RegisterInteractionSourceExt for App
                     .run_if(resource_exists::<S>())
                     .in_set(InteractionSourceSet)
             )
+            .add_systems(Last, cleanup_interactive_callbacks)  //todo: redundant with multiple sources
     }
 }
 

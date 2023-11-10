@@ -38,6 +38,7 @@ impl ReactCounter
 
 /// Callback for the button.
 fn increment_button_counter(
+    In(_)         : In<Vec2>,
     mut rcommands : ReactCommands,
     mut counter   : ReactResMut<ButtonCounter>,
 ){
@@ -129,9 +130,7 @@ fn setup_button(ui: &mut UiBuilder<MainUI>, button: Widget)
         .press_on_click()
         .unpress_on_unclick_home_and_abort_on_unclick_away()
         .abort_press_if_obstructed()
-        .unpress_callback(
-            |world: &mut World, _: Vec2| syscall(world, (), increment_button_counter)
-        )
+        .on_unpress(increment_button_counter)
         .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
     entity_commands.insert(UIInteractionBarrier::<MainUI>::default());

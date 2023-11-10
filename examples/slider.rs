@@ -165,12 +165,12 @@ fn build_ui(mut ui: UiBuilder<MainUI>)
         .press_on_click()
         .unpress_on_unclick_home_or_away()
         .abort_press_if_obstructed()
-        .startpress_callback(
-            move |world, cpos_world|
+        .on_startpress(
+            move |In(cpos_world): In<Vec2>, world: &mut World|
             syscall(world, (cpos_world, entity, button_x_range_rel), initialize_slider_drag)
         )
-        .press_home_callback(
-            move |world, cpos_world|
+        .on_press_home(
+            move |In(cpos_world): In<Vec2>, world: &mut World|
             syscall(world, (cpos_world, entity), drag_slider)
         )
         .build::<MouseLButtonMain>(&mut entity_commands, button.clone())

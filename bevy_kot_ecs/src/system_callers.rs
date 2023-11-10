@@ -1,4 +1,5 @@
 //local shortcuts
+use crate::*;
 
 //third-party shortcuts
 use bevy::ecs::system::{SystemParam, SystemState, BoxedSystem};
@@ -446,14 +447,20 @@ where
 /// the system ids (e.g. via type wrappers: `SysId::new_raw::<Wrapper<S>>(counter)`)
 pub fn register_named_system<I, O, S, Marker>(world: &mut World, sys_id: SysId, system: S)
 where
-    I: Send + 'static,
-    O: Send + 'static,
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
     S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
-    // initialize the system
-    let mut sys = IntoSystem::into_system(system);
-    sys.initialize(world);
-    let boxed_system = Box::new(sys);
+    register_named_system_from(world, sys_id, CallbackSystem::new(system));
+}
+
+pub fn register_named_system_from<I, O>(world: &mut World, sys_id: SysId, callback: CallbackSystem<I, O>)
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+{
+    // initialize the callback
+    let Some(boxed_system) = callback.take_initialized(world) else { return; };
 
     // get resource storing the id-mapped systems
     let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O>>(
@@ -499,7 +506,7 @@ impl SysId
 
 /// Tracks named systems.
 #[derive(Resource)]
-pub(crate) struct IdMappedSystems<I, O>
+pub struct IdMappedSystems<I, O>
 where
     I: Send + 'static,
     O: Send + 'static,
@@ -512,13 +519,13 @@ where
     I: Send + 'static,
     O: Send + 'static,
 {
-    pub(crate) fn _revoke<S: 'static>(&mut self, id: impl Hash)
+    pub fn _revoke<S: 'static>(&mut self, id: impl Hash)
     {
         let id = SysId::new::<S>(id);
         let _ = self.systems.remove(&id);
     }
 
-    pub(crate) fn revoke_sysid(&mut self, id: SysId)
+    pub fn revoke_sysid(&mut self, id: SysId)
     {
         let _ = self.systems.remove(&id);
     }
