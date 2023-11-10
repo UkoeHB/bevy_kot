@@ -8,13 +8,15 @@
 - `ReactResource` custom derive that mimics `Resource`.
 - `ReactComponent` custom derive that mimics `Component`.
 - `ReactCommands` reactor registration now accepts `IntoSystem` callbacks.
-- Added `named_syscall_direct()` and `register_named_syscall()`.
+- `InteractiveElementBuilder` callbacks now implement `IntoSystem`.
+- Added `named_syscall_direct()`, `register_named_syscall()`, and `register_named_syscall_from()`.
 
 ### Changed
 
-- `ReactCommands::on_resource_mutation()` now takes a type that implements `ReactResource`.
+- `ReactCommands` now requires reactive types implement `ReactComponent` and `ReactResource`.
 - `EventRevokeToken` was removed in favor of unified `RevokeToken`s for all reactors.
 - Named systems are now mapped to both the input id and the system type, instead of just the input id. This allows the internal named systems cache to not be parameterized by the system type, which makes it easier to access.
+- `InteractiveElementBuilder` callbacks no longer take the cursor world position as input. Use `CursorWorldPos` system parameter to access the current cursor instead.
 
 
 ## [0.2.0]
