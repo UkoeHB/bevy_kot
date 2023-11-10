@@ -30,7 +30,8 @@
 
 ### Changed
 
-- Try to fix dependency issues with downstream projects. Start using minor version number.
+- Try to fix dependency issues with downstream projects.
+- Start using minor version number.
 
 
 ## [0.0.12]
