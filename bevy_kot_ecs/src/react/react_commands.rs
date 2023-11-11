@@ -147,10 +147,10 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// Send an event.
     /// - The event is send and reactions are enacted after `apply_deferred` is invoked.
     /// - Reactors can access the event with the bevy `EventReader<E>` system parameter.
-    pub fn send<E: Event>(&mut self, event: E)
+    pub fn send<E: Send + Sync + 'static>(&mut self, event: E)
     {
         if self.cache.is_none() { return; }
-        self.commands().add(move |world: &mut World| world.send_event(event));
+        self.commands().add(move |world: &mut World| world.send_event(ReactEventInner(event)));
         let Some(ref mut cache) = self.cache else { return; };
         cache.react_to_event::<E>(&mut self.commands);
     }

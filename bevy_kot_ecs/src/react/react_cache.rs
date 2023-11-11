@@ -445,7 +445,7 @@ impl ReactCache
     }
 
     /// Queue reactions to an event.
-    pub(crate) fn react_to_event<E: Event>(&mut self, commands: &mut Commands)
+    pub(crate) fn react_to_event<E: 'static>(&mut self, commands: &mut Commands)
     {
         // resource handlers
         let Some(handlers) = self.event_reactors.get(&TypeId::of::<E>()) else { return; };

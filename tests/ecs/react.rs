@@ -22,7 +22,6 @@ struct TestReactRes(usize);
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-#[derive(Event)]
 struct IntEvent(usize);
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -73,7 +72,7 @@ fn update_test_recorder_with_resource(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn update_test_recorder_with_event(mut events: EventReader<IntEvent>, mut recorder: ResMut<TestReactRecorder>)
+fn update_test_recorder_with_event(mut events: ReactEvents<IntEvent>, mut recorder: ResMut<TestReactRecorder>)
 {
     for event in events.iter()
     {
@@ -579,7 +578,7 @@ fn react_event()
     // setup
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
-        .add_event::<IntEvent>()
+        .add_react_event::<IntEvent>()
         .init_resource::<TestReactRecorder>();
     let mut world = &mut app.world;
 
@@ -759,7 +758,7 @@ fn revoke_event_reactor()
     // setup
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
-        .add_event::<IntEvent>()
+        .add_react_event::<IntEvent>()
         .init_resource::<TestReactRecorder>();
     let mut world = &mut app.world;
 

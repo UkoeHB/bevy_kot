@@ -2,6 +2,17 @@
 
 ## [0.4.0]
 
+### Added
+
+- `ReactEvents` acts like `EventReader`. Reactive events can be registered on `App`s with `add_react_event()`.
+
+### Changed
+
+- You no longer need to implement `Event` on reactive event data.
+
+
+## [0.4.0]
+
 ### Changed
 
 - Refactored reactive events to use Bevy `Event` for better ergonomics when writing event reactors.

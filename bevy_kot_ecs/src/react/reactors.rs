@@ -2,7 +2,6 @@
 use crate::*;
 
 //third-party shortcuts
-use bevy::ecs::event::Event;
 use bevy::prelude::*;
 
 //standard shortcuts
@@ -384,10 +383,10 @@ pub fn resource_mutation<R: ReactResource>() -> ResourceMutation<R> { ResourceMu
 
 /// Reactor registration handle for events.
 /// - Reactions only occur for events sent via [`ReactCommands::<E>::send()`].
-pub struct ReactEvent<E: Event>(PhantomData<E>);
-impl<E: Event> Default for ReactEvent<E> { fn default() -> Self { Self(PhantomData::default()) } }
+pub struct Event<E: Send + Sync + 'static>(PhantomData<E>);
+impl<E: Send + Sync + 'static> Default for Event<E> { fn default() -> Self { Self(PhantomData::default()) } }
 
-impl<E: Event> ReactorRegistrator for ReactEvent<E>
+impl<E: Send + Sync + 'static> ReactorRegistrator for Event<E>
 {
     type Input = ();
 
@@ -403,7 +402,7 @@ impl<E: Event> ReactorRegistrator for ReactEvent<E>
     }
 }
 
-/// Obtain an [`ReactEvent`] reactor registration handle.
-pub fn event<E: Event>() -> ReactEvent<E> { ReactEvent::default() }
+/// Obtain a [`Event`] reactor registration handle.
+pub fn event<E: Send + Sync + 'static>() -> Event<E> { Event::default() }
 
 //-------------------------------------------------------------------------------------------------------------------
