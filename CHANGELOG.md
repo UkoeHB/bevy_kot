@@ -1,6 +1,13 @@
 # Changelog
 
-## [0.4.0]
+## [0.6.0]
+
+### Changed
+
+- Improved `ReactEvents` API.
+
+
+## [0.5.0]
 
 ### Added
 

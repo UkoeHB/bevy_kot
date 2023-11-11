@@ -23,7 +23,7 @@ pub struct ReactEvents<'w, 's, E: Send + Sync + 'static>
 
 impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
 {
-    pub fn iter(&mut self) -> impl Iterator<Item = &E> + '_
+    pub fn read(&mut self) -> impl Iterator<Item = &E> + '_
     {
         self.reader.iter().map(|e| &e.0)
     }
@@ -31,6 +31,21 @@ impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
     pub fn next(&mut self) -> Option<&E>
     {
         self.iter().next()
+    }
+
+    pub fn is_empty(&self) -> bool
+    {
+        self.reader.is_empty()
+    }
+
+    pub fn len(&self) -> usize
+    {
+        self.reader.len()
+    }
+
+    pub fn clear(&mut self)
+    {
+        self.reader.clear()
     }
 }
 
