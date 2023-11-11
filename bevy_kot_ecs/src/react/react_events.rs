@@ -59,8 +59,7 @@ pub(crate) struct ReactEventInner<E: Send + Sync + 'static>
 #[derive(SystemParam)]
 pub struct ReactEvents<'w, 's, E: Send + Sync + 'static>
 {
-    /// Event counter recording the last-seen react event. Used to prevent this param from exposing events sent before
-    /// a system was registered.
+    /// Event counter recording the id of the last react event sent before the system with this param was registered.
     sync: Local<'s, ReactEventSync>,
     /// Reads events.
     reader: EventReader<'w, 's, ReactEventInner<E>>,
@@ -68,10 +67,19 @@ pub struct ReactEvents<'w, 's, E: Send + Sync + 'static>
 
 impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
 {
+    /// Get the next available event.
+    ///
+    /// It is recommended to call this exactly once per event reactor invocation.
+    pub fn next(&mut self) -> Option<&E>
+    {
+        self.iter().next()
+    }
+
     /// Iterate over all currently-pending react events.
     ///
-    /// It is recommended to instead use [`ReactEvents::next()`] once per invocation of an event reactor system, since
-    /// event reactors are invoked once per event.
+    /// It is recommended to use [`ReactEvents::next()`] instead. Event reactors are invoked once per react event, so
+    /// `.next()` will always give the event that triggered your system (assuming you only call `.next()` once per
+    /// invocation).
     pub fn iter(&mut self) -> impl Iterator<Item = &E> + '_
     {
         let floor = self.sync.0;
@@ -86,22 +94,16 @@ impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
             )
     }
 
-    /// Get the next available event.
-    pub fn next(&mut self) -> Option<&E>
-    {
-        self.iter().next()
-    }
-
     /// Check if the events queue is empty.
     pub fn is_empty(&self) -> bool
     {
         self.reader.is_empty()
     }
 
+    /*
     /// Get number of pending events.
     ///
-    //todo: this is not accurate since we may need to ignore some events in the internal reader 
-    /*
+    //todo: this is not accurate since we may need to ignore some events in the internal reader
     pub fn len(&self) -> usize
     {
         self.reader.len()
