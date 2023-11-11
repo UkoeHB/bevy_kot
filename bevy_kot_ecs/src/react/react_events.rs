@@ -27,6 +27,11 @@ impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
     {
         self.reader.iter().map(|e| &e.0)
     }
+
+    pub fn next(&mut self) -> Option<&E>
+    {
+        self.iter().next()
+    }
 }
 
 //-------------------------------------------------------------------------------------------------------------------
