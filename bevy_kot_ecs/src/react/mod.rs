@@ -5,7 +5,7 @@ mod react_commands;
 mod react_component;
 mod react_events;
 mod react_resource;
-mod reactors;
+mod reactor_registration;
 mod utils;
 
 //API exports
@@ -15,5 +15,5 @@ pub use crate::react::react_commands::*;
 pub use crate::react::react_component::*;
 pub use crate::react::react_events::*;
 pub use crate::react::react_resource::*;
-pub use crate::react::reactors::*;
+pub use crate::react::reactor_registration::*;
 pub use crate::react::utils::*;

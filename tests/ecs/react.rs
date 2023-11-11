@@ -74,10 +74,8 @@ fn update_test_recorder_with_resource(
 
 fn update_test_recorder_with_event(mut events: ReactEvents<IntEvent>, mut recorder: ResMut<TestReactRecorder>)
 {
-    for event in events.iter()
-    {
-        recorder.0 = event.0;
-    }
+    let Some(event) = events.next() else { return; };
+    recorder.0 = event.0;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -589,6 +587,31 @@ fn react_event()
     // send event (reaction)
     syscall(&mut world, 222, send_event);
     assert_eq!(world.resource::<TestReactRecorder>().0, 222);
+
+    // send event (reaction)
+    syscall(&mut world, 1, send_event);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 1);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+#[test]
+fn react_event_out_of_order()
+{
+    // setup
+    let mut app = App::new();
+    app.add_plugins(ReactPlugin)
+        .add_react_event::<IntEvent>()
+        .init_resource::<TestReactRecorder>();
+    let mut world = &mut app.world;
+
+    // send event (no reaction)
+    syscall(&mut world, 222, send_event);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // add reactor (no reaction to prior event)
+    syscall(&mut world, (), on_event);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
 
     // send event (reaction)
     syscall(&mut world, 1, send_event);

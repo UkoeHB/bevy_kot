@@ -11,15 +11,38 @@ use std::marker::PhantomData;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn prepare_reactor<I, O, S, Marker>(commands: &mut Commands, callback_id: u64, reactor: S) -> SysId
+fn prep_and_prepare_reactor<I, O, S, Marker>(
+    commands: &mut Commands,
+    callback_id: u64,
+    reactor: S,
+    prep: impl FnOnce(&mut World) + Send + Sync + 'static,
+) -> SysId
 where
     I: Send + Sync + 'static,
     O: Send + Sync + 'static,
     S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
     let sys_id = SysId::new_raw::<ReactCallback<S>>(callback_id);
-    commands.add(move |world: &mut World| register_named_system(world, sys_id, reactor));
+    commands.add(
+            move |world: &mut World|
+            {
+                (prep)(world);
+                register_named_system(world, sys_id, reactor);
+            }
+        );
     sys_id
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+fn prepare_reactor<I, O, S, Marker>(commands: &mut Commands, callback_id: u64, reactor: S) -> SysId
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+    S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
+{
+    prep_and_prepare_reactor(commands, callback_id, reactor, |_|())
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -397,7 +420,13 @@ impl<E: Send + Sync + 'static> ReactorRegistrator for Event<E>
     {
         let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
 
-        let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
+        // make sure the ReactEventCounter is initialized before registering the event reactor
+        let sys_id = prep_and_prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor,
+                |world: &mut World|
+                {
+                    let _ = world.get_resource_or_insert_with::<ReactEventCounter>(|| ReactEventCounter::default());
+                }
+            );
         cache.register_event_reactor::<E>(sys_id)
     }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0]
+
+### Changed
+
+- The first time `ReactEvents::next()` is invoked by a reactor system, it always returns the first event sent after the system was registered. All older events will be ignored.
+- Improved `ReactEvents` API.
+
+
 ## [0.6.0]
 
 ### Changed
