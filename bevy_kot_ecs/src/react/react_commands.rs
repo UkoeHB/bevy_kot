@@ -2,7 +2,7 @@
 use crate::*;
 
 //third-party shortcuts
-use bevy::ecs::system::{Command, SystemParam};
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
 //standard shortcuts
@@ -144,13 +144,15 @@ impl<'w, 's> ReactCommands<'w, 's>
         cache.react_to_insertion::<C>(&mut self.commands, entity);
     }
 
-    /// Send a react event.
-    /// - Reactions are enacted after `apply_deferred` is invoked.
-    /// - Any reactors to this event will obtain a [`ReactEvent`] wrapping the event value.
-    pub fn send<E: Send + Sync + 'static>(&mut self, event: E)
+    /// Send an event.
+    /// - The event is send and reactions are enacted after `apply_deferred` is invoked.
+    /// - Reactors can access the event with the bevy `EventReader<E>` system parameter.
+    pub fn send<E: Event>(&mut self, event: E)
     {
+        if self.cache.is_none() { return; }
+        self.commands().add(move |world: &mut World| world.send_event(event));
         let Some(ref mut cache) = self.cache else { return; };
-        cache.react_to_event(&mut self.commands, event);
+        cache.react_to_event::<E>(&mut self.commands);
     }
 
     /// Trigger resource mutation reactions.
@@ -220,8 +222,8 @@ impl<'w, 's> ReactCommands<'w, 's>
             }
             ReactorType::Event(event_id) =>
             {
-                let Some(revoker) = cache.revoke_event_reactor(event_id, sys_id) else { return; };
-                self.commands.add(move |world: &mut World| revoker.apply(world));
+                cache.revoke_event_reactor(event_id, sys_id);
+                self.commands.add(revoke_named_system::<()>(sys_id));
             }
         }
     }

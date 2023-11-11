@@ -22,6 +22,12 @@ struct TestReactRes(usize);
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+#[derive(Event)]
+struct IntEvent(usize);
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
 #[derive(Resource, Default)]
 struct TestReactRecorder(usize);
 
@@ -67,9 +73,12 @@ fn update_test_recorder_with_resource(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn update_test_recorder_with_event(In(data): In<ReactEvent<usize>>, mut recorder: ResMut<TestReactRecorder>)
+fn update_test_recorder_with_event(mut events: EventReader<IntEvent>, mut recorder: ResMut<TestReactRecorder>)
 {
-    recorder.0 = *data.get();
+    for event in events.iter()
+    {
+        recorder.0 = event.0;
+    }
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -126,7 +135,7 @@ fn on_resource_mutation(mut rcommands: ReactCommands) -> RevokeToken
 
 fn on_event(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on(event::<usize>(), update_test_recorder_with_event)
+    rcommands.on(event::<IntEvent>(), update_test_recorder_with_event)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -173,9 +182,9 @@ fn update_react_res(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn send_data_event(In(data): In<usize>, mut rcommands: ReactCommands)
+fn send_event(In(data): In<usize>, mut rcommands: ReactCommands)
 {
-    rcommands.send(data);
+    rcommands.send(IntEvent(data));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -565,11 +574,12 @@ fn react_resource_mutation()
 //-------------------------------------------------------------------------------------------------------------------
 
 #[test]
-fn react_data_event()
+fn react_event()
 {
     // setup
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
+        .add_event::<IntEvent>()
         .init_resource::<TestReactRecorder>();
     let mut world = &mut app.world;
 
@@ -578,11 +588,11 @@ fn react_data_event()
     assert_eq!(world.resource::<TestReactRecorder>().0, 0);
 
     // send event (reaction)
-    syscall(&mut world, 222, send_data_event);
+    syscall(&mut world, 222, send_event);
     assert_eq!(world.resource::<TestReactRecorder>().0, 222);
 
     // send event (reaction)
-    syscall(&mut world, 1, send_data_event);
+    syscall(&mut world, 1, send_event);
     assert_eq!(world.resource::<TestReactRecorder>().0, 1);
 }
 
@@ -744,11 +754,12 @@ fn revoke_component_mutation_reactor()
 //-------------------------------------------------------------------------------------------------------------------
 
 #[test]
-fn revoke_data_event_reactor()
+fn revoke_event_reactor()
 {
     // setup
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
+        .add_event::<IntEvent>()
         .init_resource::<TestReactRecorder>();
     let mut world = &mut app.world;
 
@@ -757,14 +768,14 @@ fn revoke_data_event_reactor()
     assert_eq!(world.resource::<TestReactRecorder>().0, 0);
 
     // send event (reaction)
-    syscall(&mut world, 222, send_data_event);
+    syscall(&mut world, 222, send_event);
     assert_eq!(world.resource::<TestReactRecorder>().0, 222);
 
     // revoke reactor
     syscall(&mut world, revoke_token, revoke_reactor);
 
     // send event (no reaction)
-    syscall(&mut world, 1, send_data_event);
+    syscall(&mut world, 1, send_event);
     assert_eq!(world.resource::<TestReactRecorder>().0, 222);
 }
 

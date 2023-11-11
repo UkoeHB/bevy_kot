@@ -2,6 +2,7 @@
 use crate::*;
 
 //third-party shortcuts
+use bevy::ecs::event::Event;
 use bevy::prelude::*;
 
 //standard shortcuts
@@ -381,28 +382,28 @@ pub fn resource_mutation<R: ReactResource>() -> ResourceMutation<R> { ResourceMu
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Reactor registration handle for data events.
-/// - Reactions only occur for data sent via [`ReactCommands::<E>::send()`].
-pub struct Event<E: Send + Sync + 'static>(PhantomData<E>);
-impl<E: Send + Sync + 'static> Default for Event<E> { fn default() -> Self { Self(PhantomData::default()) } }
+/// Reactor registration handle for events.
+/// - Reactions only occur for events sent via [`ReactCommands::<E>::send()`].
+pub struct ReactEvent<E: Event>(PhantomData<E>);
+impl<E: Event> Default for ReactEvent<E> { fn default() -> Self { Self(PhantomData::default()) } }
 
-impl<E: Send + Sync + 'static> ReactorRegistrator for Event<E>
+impl<E: Event> ReactorRegistrator for ReactEvent<E>
 {
-    type Input = ReactEvent<E>;
+    type Input = ();
 
     fn register<Marker>(self,
         rcommands : &mut ReactCommands,
-        reactor   : impl IntoSystem<ReactEvent<E>, (), Marker> + Send + Sync + 'static
+        reactor   : impl IntoSystem<(), (), Marker> + Send + Sync + 'static
     ) -> RevokeToken
     {
         let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
 
         let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
-        cache.register_event_reactor::<E>(sys_id, CallOnce::new(revoke_named_system::<ReactEvent<E>>(sys_id)))
+        cache.register_event_reactor::<E>(sys_id)
     }
 }
 
-/// Obtain an [`Event`] reactor registration handle.
-pub fn event<E: Send + Sync + 'static>() -> Event<E> { Event::default() }
+/// Obtain an [`ReactEvent`] reactor registration handle.
+pub fn event<E: Event>() -> ReactEvent<E> { ReactEvent::default() }
 
 //-------------------------------------------------------------------------------------------------------------------

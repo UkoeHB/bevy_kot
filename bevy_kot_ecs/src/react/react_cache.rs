@@ -161,7 +161,7 @@ pub(crate) struct ReactCache
     resource_reactors: HashMap<TypeId, Vec<SysId>>,
 
     /// Data event reactors
-    event_reactors: HashMap<TypeId, Vec<(SysId, CallOnce<()>)>>,
+    event_reactors: HashMap<TypeId, Vec<SysId>>,
 }
 
 impl ReactCache
@@ -250,12 +250,12 @@ impl ReactCache
         RevokeToken{ reactor_type: ReactorType::ResourceMutation(TypeId::of::<R>()), sys_id }
     }
 
-    pub(crate) fn register_event_reactor<E: 'static>(&mut self, sys_id: SysId, revoker: CallOnce<()>) -> RevokeToken
+    pub(crate) fn register_event_reactor<E: 'static>(&mut self, sys_id: SysId) -> RevokeToken
     {
         self.event_reactors
             .entry(TypeId::of::<E>())
             .or_default()
-            .push((sys_id, revoker));
+            .push(sys_id);
 
         RevokeToken{ reactor_type: ReactorType::Event(TypeId::of::<E>()), sys_id }
     }
@@ -325,26 +325,22 @@ impl ReactCache
     }
 
     /// Revoke an event reactor.
-    pub(crate) fn revoke_event_reactor(&mut self, event_id: TypeId, sys_id: SysId) -> Option<CallOnce<()>>
+    pub(crate) fn revoke_event_reactor(&mut self, event_id: TypeId, sys_id: SysId)
     {
         // get callbacks
-        let Some(callbacks) = self.event_reactors.get_mut(&event_id) else { return None; };
+        let Some(callbacks) = self.event_reactors.get_mut(&event_id) else { return; };
 
         // revoke reactor
-        let mut maybe_revoker: Option<CallOnce<()>> = None;
-        for (idx, (id, _)) in callbacks.iter().enumerate()
+        for (idx, id) in callbacks.iter().enumerate()
         {
             if *id != sys_id { continue; }
-            let (_, revoker) = callbacks.remove(idx);  //todo: consider swap_remove()
-            maybe_revoker = Some(revoker);
+            let _ = callbacks.remove(idx);  //todo: consider swap_remove()
             break;
         }
 
         // cleanup empty hashmap entries
-        if callbacks.len() > 0 { return maybe_revoker; }
+        if callbacks.len() > 0 { return; }
         let _ = self.event_reactors.remove(&event_id);
-
-        maybe_revoker
     }
 
     /// Queue reactions to a component insertion.
@@ -449,15 +445,13 @@ impl ReactCache
     }
 
     /// Queue reactions to an event.
-    pub(crate) fn react_to_event<E: Send + Sync + 'static>(&mut self, commands: &mut Commands, event: E)
+    pub(crate) fn react_to_event<E: Event>(&mut self, commands: &mut Commands)
     {
         // resource handlers
         let Some(handlers) = self.event_reactors.get(&TypeId::of::<E>()) else { return; };
-
-        let event = ReactEvent::new(event);
-        for (sys_id, _) in handlers.iter()
+        for sys_id in handlers.iter()
         {
-            enque_reaction(commands, *sys_id, event.clone());
+            enque_reaction(commands, *sys_id, ());
         }
     }
 }

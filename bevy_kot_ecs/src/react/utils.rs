@@ -53,17 +53,6 @@ pub(crate) fn enque_reaction<I: Send + Sync + 'static>(commands: &mut Commands, 
 
 //-------------------------------------------------------------------------------------------------------------------
 
-pub(crate) fn revoke_named_system<I: Send + Sync + 'static>(sys_id: SysId) -> impl FnOnce(&mut World) + Send + Sync + 'static
-{
-    move |world: &mut World|
-    {
-        let Some(mut cache) = world.get_resource_mut::<IdMappedSystems<I, ()>>() else { return; };
-        cache.revoke_sysid(sys_id);
-    }
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
 pub(crate) enum EntityReactType
 {
     Insertion,

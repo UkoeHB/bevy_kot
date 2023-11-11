@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0]
+
+### Changed
+
+- Refactored reactive events to use Bevy `Event` for better ergonomics when writing event reactors.
+
+
 ## [0.3.1]
 
 ### Changed
