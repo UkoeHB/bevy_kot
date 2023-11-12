@@ -26,7 +26,7 @@ impl InteractiveCallbackTracker
 
     pub(crate) fn remove(&mut self, entity: Entity) -> Vec<SysId>
     {
-        self.cache.remove(&entity).unwrap_or(Vec::default())
+        self.cache.remove(&entity).unwrap_or_else(|| Vec::default())
     }
 }
 
@@ -42,8 +42,7 @@ pub(crate) fn cleanup_interactive_callbacks(
     mut despawns : RemovedComponents<InteractiveElementTag>,
     mut tracker  : ResMut<InteractiveCallbackTracker>,
     mut cache1   : Option<ResMut<IdMappedSystems<(), ()>>>,
-    mut cache2   : Option<ResMut<IdMappedSystems<Vec2, ()>>>,
-    mut cache3   : Option<ResMut<IdMappedSystems<(Vec2, bool), ()>>>,
+    mut cache2   : Option<ResMut<IdMappedSystems<bool, ()>>>,
 ){
     despawns.iter().for_each(
             |entity|
@@ -53,7 +52,6 @@ pub(crate) fn cleanup_interactive_callbacks(
                 {
                     if let Some(cache1) = &mut cache1 { cache1.revoke_sysid(sys_id); }
                     if let Some(cache2) = &mut cache2 { cache2.revoke_sysid(sys_id); }
-                    if let Some(cache3) = &mut cache3 { cache3.revoke_sysid(sys_id); }
                 }
             }
         );
