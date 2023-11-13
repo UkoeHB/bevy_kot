@@ -124,7 +124,7 @@ fn setup_button(ui: &mut UiBuilder<MainUI>, button: Widget)
     // button interactivity
     let mut entity_commands = ui.commands().spawn_empty();
     InteractiveElementBuilder::new()
-        .with_default_widget(default_widget.clone())
+        .with_default_widget(default_widget)
         .with_pressed_widget(pressed_widget)
         .press_on_click()
         .unpress_on_unclick_home_and_abort_on_unclick_away()

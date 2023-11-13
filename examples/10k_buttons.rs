@@ -113,7 +113,7 @@ fn spawn_button(ui: &mut UiBuilder<MainUI>, area: &Widget, x: f32, y: f32)
     // button interactivity
     let mut entity_commands = ui.commands().spawn_empty();
     InteractiveElementBuilder::new()
-        .with_default_widget(default_widget.clone())
+        .with_default_widget(default_widget)
         .with_pressed_widget(pressed_widget)
         .press_on_click_or_hold()
         .unpress_on_press_away_or_unclick_any()
