@@ -38,11 +38,7 @@ impl<R: ReactResource> ReactResInner<R>
     /// Mutably access the resource and trigger reactions.
     pub fn get_mut<'a>(&'a mut self, rcommands: &mut ReactCommands) -> &'a mut R
     {
-        // note: we don't use `trigger_resource_mutation()` because that method panics if ReactPlugin was not added
-        if let Some(ref mut cache) = rcommands.cache
-        {
-            cache.react_to_resource_mutation::<R>(&mut rcommands.commands);
-        }
+        rcommands.trigger_resource_mutation::<R>();
         &mut self.resource
     }
 

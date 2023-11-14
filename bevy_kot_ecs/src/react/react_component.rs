@@ -93,10 +93,7 @@ impl<C: ReactComponent> React<C>
     /// Mutably access the component and trigger reactions.
     pub fn get_mut<'a>(&'a mut self, rcommands: &mut ReactCommands) -> &'a mut C
     {
-        if let Some(ref mut cache) = rcommands.cache
-        {
-            cache.react_to_mutation::<C>(&mut rcommands.commands, self.entity);
-        }
+        rcommands.cache.react_to_mutation::<C>(&mut rcommands.commands, self.entity);
         &mut self.component
     }
 

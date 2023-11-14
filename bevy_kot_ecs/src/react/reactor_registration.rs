@@ -164,10 +164,9 @@ impl<C: ReactComponent> ReactorRegistrator for Insertion<C>
         reactor   : impl IntoSystem<Entity, (), Marker> + Send + Sync + 'static
     ) -> RevokeToken
     {
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
 
-        let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
-        cache.register_insertion_reactor::<C>(sys_id)
+        let sys_id = prepare_reactor(&mut rcommands.commands, rcommands.cache.next_callback_id(), reactor);
+        rcommands.cache.register_insertion_reactor::<C>(sys_id)
     }
 }
 
@@ -190,10 +189,9 @@ impl<C: ReactComponent> ReactorRegistrator for Mutation<C>
         reactor   : impl IntoSystem<Entity, (), Marker> + Send + Sync + 'static
     ) -> RevokeToken
     {
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
 
-        let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
-        cache.register_mutation_reactor::<C>(sys_id)
+        let sys_id = prepare_reactor(&mut rcommands.commands, rcommands.cache.next_callback_id(), reactor);
+        rcommands.cache.register_mutation_reactor::<C>(sys_id)
     }
 }
 
@@ -216,11 +214,10 @@ impl<C: ReactComponent> ReactorRegistrator for Removal<C>
         reactor   : impl IntoSystem<Entity, (), Marker> + Send + Sync + 'static
     ) -> RevokeToken
     {
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.track_removals::<C>();
+        rcommands.cache.track_removals::<C>();
 
-        let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
-        cache.register_removal_reactor::<C>(sys_id)
+        let sys_id = prepare_reactor(&mut rcommands.commands, rcommands.cache.next_callback_id(), reactor);
+        rcommands.cache.register_removal_reactor::<C>(sys_id)
     }
 }
 
@@ -243,9 +240,8 @@ impl<C: ReactComponent> ReactorRegistrator for EntityInsertion<C>
     ) -> RevokeToken
     {
         let entity = self.0;
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
 
-        let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
+        let sys_id = prepare_reactor(&mut rcommands.commands, rcommands.cache.next_callback_id(), reactor);
         rcommands.commands.add(
                 move |world: &mut World|
                 syscall(world, (EntityReactType::Insertion, entity, sys_id), register_entity_reactor::<C>)
@@ -277,9 +273,8 @@ impl<C: ReactComponent> ReactorRegistrator for EntityMutation<C>
     ) -> RevokeToken
     {
         let entity = self.0;
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
 
-        let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
+        let sys_id = prepare_reactor(&mut rcommands.commands, rcommands.cache.next_callback_id(), reactor);
         rcommands.commands.add(
                 move |world: &mut World|
                 syscall(world, (EntityReactType::Mutation, entity, sys_id), register_entity_reactor::<C>)
@@ -313,10 +308,9 @@ impl<C: ReactComponent> ReactorRegistrator for EntityRemoval<C>
     ) -> RevokeToken
     {
         let entity = self.0;
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-        cache.track_removals::<C>();
+        rcommands.cache.track_removals::<C>();
 
-        let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
+        let sys_id = prepare_reactor(&mut rcommands.commands, rcommands.cache.next_callback_id(), reactor);
         rcommands.commands.add(
                 move |world: &mut World|
                 syscall(world, (EntityReactType::Removal, entity, sys_id), register_entity_reactor::<C>)
@@ -335,7 +329,7 @@ pub fn entity_removal<C: ReactComponent>(entity: Entity) -> EntityRemoval<C>
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Reactor registration handle for entity despawns.
-/// - Returns [`None`] if the entity does not exist.
+/// - Returns a dummy revoke token if the entity does not exist.
 pub struct Despawn(Entity);
 
 impl ReactorRegistrator for Despawn
@@ -348,18 +342,17 @@ impl ReactorRegistrator for Despawn
     ) -> RevokeToken
     {
         let entity = self.0;
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
 
         // if the entity doesn't exist, return a dummy revoke token
         let Some(_) = rcommands.commands.get_entity(entity)
         else { return RevokeToken{ reactor_type: ReactorType::Despawn(entity), sys_id: SysId::new_raw::<()>(0u64) }; };
 
         // add despawn tracker
-        let notifier =  cache.despawn_sender();
+        let notifier = rcommands.cache.despawn_sender();
         rcommands.commands.add(move |world: &mut World| syscall(world, (entity, notifier), add_despawn_tracker));
 
         // register despawn reactor
-        cache.register_despawn_reactor(
+        rcommands.cache.register_despawn_reactor(
                 entity,
                 CallOnce::new(
                     move |world|
@@ -392,10 +385,8 @@ impl<R: ReactResource> ReactorRegistrator for ResourceMutation<R>
         reactor   : impl IntoSystem<(), (), Marker> + Send + Sync + 'static
     ) -> RevokeToken
     {
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-
-        let sys_id = prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor);
-        cache.register_resource_mutation_reactor::<R>(sys_id)
+        let sys_id = prepare_reactor(&mut rcommands.commands, rcommands.cache.next_callback_id(), reactor);
+        rcommands.cache.register_resource_mutation_reactor::<R>(sys_id)
     }
 }
 
@@ -418,16 +409,8 @@ impl<E: Send + Sync + 'static> ReactorRegistrator for Event<E>
         reactor   : impl IntoSystem<(), (), Marker> + Send + Sync + 'static
     ) -> RevokeToken
     {
-        let Some(ref mut cache) = rcommands.cache else { panic!("reactors are unsupported without ReactPlugin"); };
-
-        // make sure the ReactEventCounter is initialized before registering the event reactor
-        let sys_id = prep_and_prepare_reactor(&mut rcommands.commands, cache.next_callback_id(), reactor,
-                |world: &mut World|
-                {
-                    let _ = world.get_resource_or_insert_with::<ReactEventCounter>(|| ReactEventCounter::default());
-                }
-            );
-        cache.register_event_reactor::<E>(sys_id)
+        let sys_id = prepare_reactor(&mut rcommands.commands, rcommands.cache.next_callback_id(), reactor);
+        rcommands.cache.register_event_reactor::<E>(sys_id)
     }
 }
 
