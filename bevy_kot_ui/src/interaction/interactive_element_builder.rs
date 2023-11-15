@@ -144,8 +144,8 @@ fn check_hover_invariants(builder: &InteractiveElementBuilder) -> Result<(), Int
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn toggle_widget_pack_visibility(
-    ui          : &mut UiTree,
+fn toggle_widget_pack_visibility<Ui: LunexUI>(
+    ui          : &mut UiTree<Ui>,
     on_widget   : Option<Widget>,
     widget_pack : InteractiveElementWidgetPack,
 ) -> Result<(), ()>
@@ -179,12 +179,12 @@ fn toggle_widget_pack_visibility(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn update_interactive_element_visibility<U: LunexUi>(
+fn update_interactive_element_visibility<Ui: LunexUI>(
     In((entity, mut pack)) : In<(Entity, InteractiveElementWidgetPack)>,
     pressed                : Query<&Pressed>,
     selected               : Query<(), With<Selected>>,
     hovered                : Query<(), With<Hovered>>,
-    mut uis                : Query<&mut UiTree, With<U>>,
+    mut uis                : Query<&mut UiTree<Ui>>,
 ) -> Result<(), ()>
 {
     // find the correct widget to activate

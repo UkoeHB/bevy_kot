@@ -8,14 +8,14 @@ use bevy_lunex::prelude::*;
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Components with this trait are used to tag `bevy_lunex::UiTree`s for accurate filtering in interaction pipelines.
+/// Components with this trait are used to tag `bevy_lunex::UiTree<Ui>`s for accurate filtering in interaction pipelines.
 /// - Currently only one UI per OS window may have a given tag.
-pub trait LunexUi: Component {}
+pub trait LunexUI: Component + Default {}
 
 //-------------------------------------------------------------------------------------------------------------------
 
 /// A `LunexCursor` represents an interface between a hardware cursor (represented by a `bevy_lunex::Cursor`),
-/// and elements connected to a `bevy_lunex::UiTree` in a bevy world. You can add and remove `LunexCursor` components on
+/// and elements connected to a `bevy_lunex::UiTree<Ui>` in a bevy world. You can add and remove `LunexCursor` components on
 /// an entity with `bevy_lunex::Cursor` as needed for different use-cases. If you add the `Disabled` component to
 /// a cursor entity, then none of the associated `LunexCursor`s will be used to interact with interaction sources.
 ///
@@ -38,22 +38,22 @@ pub trait LunexCursor: Component
     type HomeZoneParam: SystemParam;
 
     /// Test if a cursor intersects with an interaction barrier.
-    fn cursor_intersects_barrier(
-        cursor_world_position : Vec2,
-        cursor_lunex_position : Vec2,
-        ui                    : &UiTree,
-        widget                : &Widget,
-        widget_entity         : Entity,
-        depth_limit           : Option<f32>,
-        widget_depth          : f32,
-        barrier_param         : &SystemParamItem<Self::BarrierParam>,
+    fn cursor_intersects_barrier<Ui: LunexUI>(
+        cursor_screen_position : Vec2,
+        cursor_world_position  : Vec2,
+        ui                     : &UiTree<Ui>,
+        widget                 : &Widget,
+        widget_entity          : Entity,
+        depth_limit            : Option<f32>,
+        widget_depth           : f32,
+        barrier_param          : &SystemParamItem<Self::BarrierParam>,
     ) -> Result<Option<f32>, ()>;
 
     /// Test if a cursor intersects with an element.
-    fn cursor_intersects_element(
+    fn cursor_intersects_element<Ui: LunexUI>(
+        cursor_screen_position : Vec2,
         cursor_world_position : Vec2,
-        cursor_lunex_position : Vec2,
-        ui                    : &UiTree,
+        ui                    : &UiTree<Ui>,
         widget                : &Widget,
         widget_entity         : Entity,
         depth_limit           : Option<f32>,
@@ -62,22 +62,22 @@ pub trait LunexCursor: Component
     ) -> Result<Option<f32>, ()>;
 
     /// Test if a cursor intersects with a press home zone.
-    fn cursor_intersects_press_home_zone(
-        cursor_world_position : Vec2,
-        cursor_lunex_position : Vec2,
-        ui                    : &UiTree,
-        widget                : &Widget,
-        widget_entity         : Entity,
-        depth_limit           : Option<f32>,
-        widget_depth          : f32,
-        home_zone_param       : &SystemParamItem<Self::HomeZoneParam>,
+    fn cursor_intersects_press_home_zone<Ui: LunexUI>(
+        cursor_screen_position : Vec2,
+        cursor_world_position  : Vec2,
+        ui                     : &UiTree<Ui>,
+        widget                 : &Widget,
+        widget_entity          : Entity,
+        depth_limit            : Option<f32>,
+        widget_depth           : f32,
+        home_zone_param        : &SystemParamItem<Self::HomeZoneParam>,
     ) -> Result<Option<f32>, ()>;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// An interaction source represents a source of interactions (hovers and clicks) for `bevy_lunex::UiTrees` with a
-/// specific `LunexUi` tag.
+/// An interaction source represents a source of interactions (hovers and clicks) for `bevy_lunex::UiTree<Ui>s` with a
+/// specific `LunexUI` tag.
 ///
 /// To process interactions with a source, you must register it with `register_interaction_source`. Sources are
 /// implemented as bevy Resources, allowing you to manage the internal state of the source at runtime.

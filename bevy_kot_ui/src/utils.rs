@@ -12,9 +12,9 @@ use std::borrow::Borrow;
 
 /// Test if a cursor intersects with a widget.
 /// - Returns `Ok(Some(widget_depth))` on success (for use in `LunexCursor` methods).
-pub fn cursor_intersects_widget(
-    cursor_lunex_position : Vec2,
-    ui                    : &UiTree,
+pub fn cursor_intersects_widget<Ui: LunexUI>(
+    cursor_world_position : Vec2,
+    ui                    : &UiTree<Ui>,
     widget                : &Widget,
     depth_limit           : Option<f32>,
     widget_depth          : f32,
@@ -24,7 +24,7 @@ pub fn cursor_intersects_widget(
     if let Some(depth_limit) = depth_limit { if depth_limit > widget_depth { return Ok(None); } }
 
     // check if the cursor is within the widget area
-    match widget.contains_position(&ui, &cursor_lunex_position)
+    match widget.contains_position(&ui, &cursor_world_position)
     {
         Ok(true)  => Ok(Some(widget_depth)),
         Ok(false) => Ok(None),
@@ -37,7 +37,12 @@ pub fn cursor_intersects_widget(
 /// Make a widget that exactly overlaps its parent widget.
 /// - Panics if unable to create a widget (mostly likely because the widget name already exists in the tree with the
 ///   specified parent).
-pub fn make_overlay(ui: &mut UiTree, parent: &Widget, overlay_name: &str, visible_by_default: bool) -> Widget
+pub fn make_overlay<Ui: LunexUI>(
+    ui                 : &mut UiTree<Ui>,
+    parent             : &Widget,
+    overlay_name       : &str,
+    visible_by_default : bool
+) -> Widget
 {
     // make overlay
     let overlay = relative_widget(ui, parent.end(overlay_name), (0., 100.), (0., 100.));
@@ -53,8 +58,8 @@ pub fn make_overlay(ui: &mut UiTree, parent: &Widget, overlay_name: &str, visibl
 /// Make a widget with `RelativeLayout`.
 /// - Panics if unable to create a widget (mostly likely because the widget name already exists in the tree with the
 ///   specified parent).
-pub fn relative_widget(
-    ui      : &mut UiTree,
+pub fn relative_widget<Ui: LunexUI>(
+    ui      : &mut UiTree<Ui>,
     path    : impl Borrow<str>,
     x_range : (f32, f32),
     y_range : (f32, f32)
@@ -75,9 +80,9 @@ pub fn relative_widget(
 
 /// Toggle between two sets of widgets.
 //todo: handle multiple uis (pass in UI entity)
-pub fn toggle_ui_visibility<U: LunexUi, const ON: usize, const OFF: usize>(
-    In((_, on_widgets, off_widgets)) : In<(U, [Widget; ON], [Widget; OFF])>,
-    mut uis                          : Query<&mut UiTree, With<U>>,
+pub fn toggle_ui_visibility<Ui: LunexUI, const ON: usize, const OFF: usize>(
+    In((_, on_widgets, off_widgets)) : In<(Ui, [Widget; ON], [Widget; OFF])>,
+    mut uis                          : Query<&mut UiTree<Ui>>,
 ){
     // get target ui
     let Ok(mut ui) = uis.get_single_mut() else { tracing::error!("multiple uis detected in toggle ui vis"); return; };

@@ -97,8 +97,8 @@ fn setup(mut commands: Commands)
     commands.spawn((Cursor::new(0.0), Transform::default()));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUi>::default());
-    commands.spawn((UiTree::new("ui"), MainUi));
+    commands.insert_resource(StyleStackRes::<MainUI>::default());
+    commands.spawn(UiTree::<MainUI>::new("ui"));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ fn main()
                 }
             )
         )
-        .add_plugins(LunexUiPlugin)
+        .add_plugins(LunexUiPlugin2D::<MainUI>(std::marker::PhantomData::default()))
         .add_plugins(ReactPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
         .add_systems(PreStartup, setup)

@@ -165,8 +165,8 @@ fn setup(mut commands: Commands)
     commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUi>::default());
-    commands.spawn((UiTree::new("ui"), MainUi));
+    commands.insert_resource(StyleStackRes::<MainUI>::default());
+    commands.spawn(UiTree::<MainUI>::new("ui"));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -184,13 +184,13 @@ fn main()
             )
         )
         .add_plugins(FpsTrackerPlugin)
-        .add_plugins(LunexUiPlugin)
+        .add_plugins(LunexUiPlugin2D::<MainUI>(std::marker::PhantomData::default()))
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)
         .insert_resource(WinitSettings{
             return_from_run : false,
             focused_mode    : UpdateMode::Continuous,  //continuous so we can see FPS
-            unfocused_mode  : UpdateMode::ReactiveLowPower{ max_wait: std::time::Duration::from_secs(10) },
+            unfocused_mode  : UpdateMode::ReactiveLowPower{ wait: std::time::Duration::from_secs(10) },
         })
         .register_interaction_source(MouseLButtonMain::default())
         .add_systems(PreStartup, setup)

@@ -88,7 +88,7 @@ impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
     {
         let floor = self.sync.0;
         self.reader
-            .iter()
+            .read()
             .filter_map(
                 move |e|
                 {

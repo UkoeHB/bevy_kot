@@ -30,7 +30,7 @@ struct InteractionSourceInfoPack
 //todo: how to handle UiTrees occluding each other?
 //todo: custom system param filter to get only widgets associated with ui in focused window ?? UIInFocusedWindow<LunexUi>
 fn try_get_interaction_source_info_pack<S: InteractionSource>(
-    ui              : Query<&UiTree, With<S::LunexUi>>,  //todo: InFocusedWindow
+    ui              : Query<&UiTree<S::LunexUI>>,  //todo: InFocusedWindow
     cursor_pos      : CursorPos<S::LunexCursor>,
     source          : Res<S>,
     source_param    : StaticSystemParam<S::SourceParam>,
@@ -59,8 +59,10 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
     else { tracing::error!("multiple uis with the same tag detected in the focused window"); return None; };
 
     // get positions
-    let Some(cpos_world) = cursor_pos.get() else { tracing::error!("unable to access the cursor position"); return None; };
-    let cpos_lunex = cpos_world.as_lunex(ui.offset);
+    let Some(cpos_screen) = cursor_pos.get_screen()
+    else { tracing::error!("unable to access the cursor's screen position"); return None; };
+    let Some(cpos_world) = cursor_pos.get_world()
+    else { tracing::error!("unable to access the cursor's world position"); return None; };
 
     // find top-most barrier widget under the cursor
     let mut depth_limit: Option<f32> = None;
@@ -73,9 +75,9 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 
         // check if barrier widget intersects with the cursor
         let Ok(Some(widget_depth)) = S::LunexCursor::cursor_intersects_barrier(
+                cpos_screen,
                 cpos_world,
-                cpos_lunex,
-                ui,
+                &ui,
                 widget,
                 entity,
                 depth_limit,
@@ -93,14 +95,14 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
     for (entity, widget) in unpressed_elements.iter()
     {
         // check visibility
-        let Ok(widget_branch) = widget.fetch(ui) else { continue; };
+        let Ok(widget_branch) = widget.fetch(&ui) else { continue; };
         if !widget_branch.is_visible() { continue; }
 
         // check if element widget intersects with the cursor
         let Ok(Some(widget_depth)) = S::LunexCursor::cursor_intersects_element(
+                cpos_screen,
                 cpos_world,
-                cpos_lunex,
-                ui,
+                &ui,
                 widget,
                 entity,
                 target_limit,
@@ -118,14 +120,14 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
     for (entity, _, press_home_zone) in pressed_elements.iter()
     {
         // check visibility
-        let Ok(widget_branch) = press_home_zone.0.fetch(ui) else { continue; };
+        let Ok(widget_branch) = press_home_zone.0.fetch(&ui) else { continue; };
         if !widget_branch.is_visible() { continue; }
 
         // check if press home zone widget intersects with the cursor
         let Ok(Some(widget_depth)) = S::LunexCursor::cursor_intersects_press_home_zone(
+                cpos_screen,
                 cpos_world,
-                cpos_lunex,
-                ui,
+                &ui,
                 &press_home_zone.0,
                 entity,
                 target_limit,
@@ -152,14 +154,14 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
             let Ok((_, widget, _)) = pressed_elements.get(pressed_entity)
             else { tracing::error!("pressed entity is missing"); return None; };
 
-            let Ok(widget_branch) = widget.fetch(ui)
+            let Ok(widget_branch) = widget.fetch(&ui)
             else { tracing::error!("pressed entity's widget branch is missing"); return None; };
 
             // check if target's element is hovered
             if let Ok(Some(_)) = S::LunexCursor::cursor_intersects_element(
+                    cpos_screen,
                     cpos_world,
-                    cpos_lunex,
-                    ui,
+                    &ui,
                     widget,
                     pressed_entity,
                     None,  //no depth limit
@@ -275,7 +277,7 @@ fn handle_is_clicked_home<S: InteractionSource>(
 fn handle_is_clicked_away<S: InteractionSource>(
     In(info_pack) : In<InteractionSourceInfoPack>,
     mut commands  : Commands,
-    ui            : Query<&UiTree, With<S::LunexUi>>,  //todo: InFocusedWindow
+    ui            : Query<&UiTree<S::LunexUI>>,  //todo: InFocusedWindow
     widgets       : Query<
         (Entity, &Widget, &CallbackWith<OnClickHoldAway, bool>),
         (With<Pressed>, With<ElementInteractionTargeter<S::LunexUi, S::LunexCursor>>, With<ElementInteractionSource<S>>)

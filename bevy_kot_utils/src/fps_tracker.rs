@@ -122,7 +122,7 @@ pub fn FpsTrackerPlugin(app: &mut App)
 {
     app
         .insert_resource::<FpsTracker>(FpsTracker::new(FPS_TRACKER_NUM_RECORDS))
-        .configure_set(First, FpsTrackerSet.after(bevy::time::TimeSystem))
+        .configure_sets(First, FpsTrackerSet.after(bevy::time::TimeSystem))
         .add_systems(First, update_fps_tracker.in_set(FpsTrackerSet));
 }
 

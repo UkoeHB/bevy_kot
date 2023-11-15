@@ -28,7 +28,7 @@ pub struct UiBuilder<'w, 's, Ui: LunexUi>
     pub style_stack  : ResMut<'w, StyleStackRes<Ui>>,
     pub despawner    : Res<'w, AutoDespawner>,
 
-    ui: Query<'w, 's, &'static mut UiTree, With<Ui>>,  //todo: what about trees in different windows?
+    ui: Query<'w, 's, &'static mut UiTree<Ui>>,  //todo: what about trees in different windows?
 }
 
 impl<'w, 's, Ui: LunexUi> UiBuilder<'w, 's, Ui>
@@ -39,8 +39,8 @@ impl<'w, 's, Ui: LunexUi> UiBuilder<'w, 's, Ui>
         self.rcommands.commands()
     }
 
-    /// Get a reference to the builder's associated `UiTree`.
-    pub fn tree<'a>(&'a mut self) -> &'a mut UiTree
+    /// Get a reference to the builder's associated `UiTree<Ui>`.
+    pub fn tree<'a>(&'a mut self) -> &'a mut UiTree<Ui>
     {
         self.ui.single_mut().into_inner()
     }
