@@ -1,9 +1,9 @@
-//local shortcuts
+/*//local shortcuts
 use bevy_kot::prelude::*;
 
 //third-party shortcuts
 use bevy::prelude::*;
-use bevy::window::WindowTheme;
+use bevy::window::{PrimaryWindow, WindowTheme};
 use bevy_lunex::prelude::*;
 
 //standard shortcuts
@@ -174,7 +174,7 @@ fn build_ui(mut ui: UiBuilder<MainUi>)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup(mut commands: Commands)
+fn setup(mut commands: Commands, window: Query<Entity, (With<Window>, With<PrimaryWindow>)>)
 {
     // prepare 2D camera
     commands.spawn(
@@ -186,7 +186,10 @@ fn setup(mut commands: Commands)
 
     // prepare lunex ui tree
     commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn(UiTree::<MainUI>::new("ui"));
+    let tree = UiTree::<MainUI>::new("ui");
+
+    let window = window.single();
+    commands.entity(window).insert((tree, Transform::default(), Size::default()));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -214,3 +217,4 @@ fn main()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
+*/ fn main() {}
