@@ -12,7 +12,7 @@ use bevy_lunex::prelude::*;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-#[derive(Style)]
+#[derive(Style, Copy, Clone)]
 struct StyleA
 {
     color: Color,
@@ -21,7 +21,7 @@ struct StyleA
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-#[derive(Style)]
+#[derive(Style, Copy, Clone)]
 struct StyleB
 {
     color: Color,
@@ -50,10 +50,10 @@ fn spawn_box(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 fn section(ui: &mut UiBuilder<MainUI>, area: &Widget) -> (Widget, Widget)
 {
     let widget_a = relative_widget(ui.tree(), area.end("a"), (0., 50.), (25., 75.));
-    spawn_box(ui, &widget_a, ui.get::<StyleA>().unwrap().color);
+    spawn_box(ui, &widget_a, ui.get_style::<StyleA>().unwrap().color);
 
     let widget_b = relative_widget(ui.tree(), area.end("b"), (50., 100.), (25., 75.));
-    spawn_box(ui, &widget_b, ui.get::<StyleB>().unwrap().color);
+    spawn_box(ui, &widget_b, ui.get_style::<StyleB>().unwrap().color);
 
     (widget_a, widget_b)
 }
@@ -64,7 +64,7 @@ fn section(ui: &mut UiBuilder<MainUI>, area: &Widget) -> (Widget, Widget)
 fn build_ui(mut ui: UiBuilder<MainUI>)
 {
     // add base styles
-    ui.add((StyleA{ color: Color::WHITE }, StyleB{ color: Color::BLACK }));
+    ui.add_style((StyleA{ color: Color::WHITE }, StyleB{ color: Color::BLACK }));
 
     // build ui tree
     let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
@@ -72,12 +72,12 @@ fn build_ui(mut ui: UiBuilder<MainUI>)
         let (widget_a, widget_b) = section(ui, &root);
 
         ui.div(move |ui| {
-            ui.add(StyleA{ color: Color::BLUE });
+            ui.add_style(StyleA{ color: Color::BLUE });
             section(ui, &widget_a);
         });
         ui.div(move |ui| {
-            ui.add(StyleA{ color: Color::ORANGE });
-            ui.add(StyleB{ color: Color::GREEN });
+            ui.add_style(StyleA{ color: Color::ORANGE });
+            ui.edit_style::<StyleB>(|style| { style.color = Color::GREEN; });
             section(ui, &widget_b);
         });
     });
@@ -116,6 +116,7 @@ fn main()
             )
         )
         .add_plugins(LunexUiPlugin)
+        .add_plugins(ReactPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
         .add_systems(PreStartup, setup)
         .add_systems(Startup, build_ui)

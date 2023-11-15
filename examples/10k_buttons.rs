@@ -186,7 +186,8 @@ fn main()
         )
         .add_plugins(FPSTrackerPlugin)
         .add_plugins(LunexUiPlugin)
-        //.add_plugins(kot::UIDebugOverlayPlugin)
+        //.add_plugins(UIDebugOverlayPlugin)
+        .add_plugins(ReactPlugin)
         .insert_resource(WinitSettings{
             return_from_run : false,
             focused_mode    : UpdateMode::Continuous,  //continuous so we can see FPS

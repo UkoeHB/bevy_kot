@@ -122,6 +122,27 @@ impl StyleStack
             )
     }
 
+    /// Get a clone of a specific style.
+    ///
+    /// The returned style will be taken from the top of the style stack.
+    ///
+    /// Returns `None` if there is no style entry or if the style was hidden with [`StyleStack::hide()`].
+    pub fn get_clone<S: Style + Clone>(&self) -> Option<S>
+    {
+        self.get::<S>().map(|s| (*s).clone())
+    }
+
+    /// Edit a specific style and insert the edited version into the current style frame.
+    ///
+    /// Returns `None` if there is no style entry or if the style was hidden with [`StyleStack::hide()`].
+    pub fn edit<S: Style + Clone>(&mut self, editor: impl FnOnce(&mut S)) -> Option<Arc<S>>
+    {
+        let Some(mut style) = self.get_clone::<S>() else { return None; };
+        (editor)(&mut style);
+        self.add(style);
+        self.get::<S>()
+    }
+
     fn insert(&mut self, type_id: TypeId, style: Arc<dyn Any + Send + Sync + 'static>)
     {
         self.styles.entry(type_id).or_default().push(style);

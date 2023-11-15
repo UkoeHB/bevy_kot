@@ -17,7 +17,7 @@ use std::sync::Arc;
 /// Can be accessed via bevy `Query`s.
 ///
 /// Note that the style stack will persist its state between queries. Styles can be added to the root style stack frame
-/// in order to re-use them between UI construction systems, or you can manually add stack frames if you want bespoke
+/// in order to re-use them between UI construction systems, or you can manually add stack frames if you want custom
 /// style management.
 #[derive(SystemParam)]
 pub struct UiBuilder<'w, 's, Ui: LunexUI>
@@ -56,21 +56,27 @@ impl<'w, 's, Ui: LunexUI> UiBuilder<'w, 's, Ui>
     }
 
     /// Add a style bundle to the style stack.
-    pub fn add(&mut self, bundle: impl StyleBundle)
+    pub fn add_style(&mut self, bundle: impl StyleBundle)
     {
         self.style_stack.add(bundle);
     }
 
     /// Get a style from the style stack.
-    pub fn get<S: Style>(&self) -> Option<Arc<S>>
+    pub fn get_style<S: Style>(&self) -> Option<Arc<S>>
     {
         self.style_stack.get::<S>()
     }
 
     /// Get a clone of a style from the style stack.
-    pub fn get_clone<S: Style + Clone>(&self) -> Option<S>
+    pub fn get_style_clone<S: Style + Clone>(&self) -> Option<S>
     {
-        self.style_stack.get::<S>().map(|s| (&*s).clone())
+        self.style_stack.get_clone::<S>()
+    }
+
+    /// Edit a style on the style stack and place the updated copy in the current style frame.
+    pub fn edit_style<S: Style + Clone>(&mut self, editor: impl FnOnce(&mut S)) -> Option<Arc<S>>
+    {
+        self.style_stack.edit::<S>(editor)
     }
 }
 

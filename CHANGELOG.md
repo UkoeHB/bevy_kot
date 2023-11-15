@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0]
+
+### Added
+
+- `StyleStack::edit()` and `UiBuilder::edit_style()` can be used to edit an existing style and add the edited version to the current style frame.
+
+### Changed
+
+- `ReactCommands::on()` can now register a reactor for multiple reaction triggers.
+- `ReactCommands` despawn reactors must now be registered with `ReactCommands::on_despawn()`.
+- `UiBuilder::get()/add()` -> `UiBuilder::get_style()/add_style()`
+
+
 ## [0.6.0]
 
 ### Changed
