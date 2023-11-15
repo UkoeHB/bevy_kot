@@ -95,7 +95,7 @@ impl Default for EntityReactors
 //-------------------------------------------------------------------------------------------------------------------
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub(crate) enum ReactorType
+pub enum ReactorType
 {
     EntityInsertion(Entity, TypeId),
     EntityMutation(Entity, TypeId),
@@ -103,19 +103,19 @@ pub(crate) enum ReactorType
     ComponentInsertion(TypeId),
     ComponentMutation(TypeId),
     ComponentRemoval(TypeId),
-    Despawn(Entity),
     ResourceMutation(TypeId),
     Event(TypeId),
+    Despawn(Entity),
 }
 
-/// Token for revoking reactors (event reactors use [`EventRevokeToken`]).
+/// Token for revoking reactors.
 ///
 /// See [`ReactCommands::revoke()`].
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct RevokeToken
 {
-    pub(crate) reactor_type : ReactorType,
-    pub(crate) sys_id       : SysId,
+    pub(crate) reactors : Vec<ReactorType>,
+    pub(crate) sys_id   : SysId,
 }
 
 //-------------------------------------------------------------------------------------------------------------------

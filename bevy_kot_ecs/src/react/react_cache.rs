@@ -196,7 +196,7 @@ impl ReactCache
         self.removal_checkers.push(RemovalChecker::new::<C>());
     }
 
-    pub(crate) fn register_insertion_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> RevokeToken
+    pub(crate) fn register_insertion_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> ReactorType
     {
         self.component_reactors
             .entry(TypeId::of::<C>())
@@ -204,10 +204,10 @@ impl ReactCache
             .insertion_callbacks
             .push(sys_id);
 
-        RevokeToken{ reactor_type: ReactorType::ComponentInsertion(TypeId::of::<C>()), sys_id }
+        ReactorType::ComponentInsertion(TypeId::of::<C>())
     }
 
-    pub(crate) fn register_mutation_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> RevokeToken
+    pub(crate) fn register_mutation_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> ReactorType
     {
         self.component_reactors
             .entry(TypeId::of::<C>())
@@ -215,10 +215,10 @@ impl ReactCache
             .mutation_callbacks
             .push(sys_id);
 
-        RevokeToken{ reactor_type: ReactorType::ComponentMutation(TypeId::of::<C>()), sys_id }
+        ReactorType::ComponentMutation(TypeId::of::<C>())
     }
 
-    pub(crate) fn register_removal_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> RevokeToken
+    pub(crate) fn register_removal_reactor<C: ReactComponent>(&mut self, sys_id: SysId) -> ReactorType
     {
         self.component_reactors
             .entry(TypeId::of::<C>())
@@ -226,7 +226,27 @@ impl ReactCache
             .removal_callbacks
             .push(sys_id);
 
-        RevokeToken{ reactor_type: ReactorType::ComponentRemoval(TypeId::of::<C>()), sys_id }
+        ReactorType::ComponentRemoval(TypeId::of::<C>())
+    }
+
+    pub(crate) fn register_resource_mutation_reactor<R: ReactResource>(&mut self, sys_id: SysId) -> ReactorType
+    {
+        self.resource_reactors
+            .entry(TypeId::of::<R>())
+            .or_default()
+            .push(sys_id);
+
+        ReactorType::ResourceMutation(TypeId::of::<R>())
+    }
+
+    pub(crate) fn register_event_reactor<E: 'static>(&mut self, sys_id: SysId) -> ReactorType
+    {
+        self.event_reactors
+            .entry(TypeId::of::<E>())
+            .or_default()
+            .push(sys_id);
+
+        ReactorType::Event(TypeId::of::<E>())
     }
 
     pub(crate) fn register_despawn_reactor(&mut self, entity: Entity, callonce: CallOnce<()>) -> RevokeToken
@@ -237,27 +257,7 @@ impl ReactCache
             .or_default()
             .push((callback_id, callonce));
 
-        RevokeToken{ reactor_type: ReactorType::Despawn(entity), sys_id: SysId::new_raw::<ReactCallback<()>>(callback_id) }
-    }
-
-    pub(crate) fn register_resource_mutation_reactor<R: ReactResource>(&mut self, sys_id: SysId) -> RevokeToken
-    {
-        self.resource_reactors
-            .entry(TypeId::of::<R>())
-            .or_default()
-            .push(sys_id);
-
-        RevokeToken{ reactor_type: ReactorType::ResourceMutation(TypeId::of::<R>()), sys_id }
-    }
-
-    pub(crate) fn register_event_reactor<E: 'static>(&mut self, sys_id: SysId) -> RevokeToken
-    {
-        self.event_reactors
-            .entry(TypeId::of::<E>())
-            .or_default()
-            .push(sys_id);
-
-        RevokeToken{ reactor_type: ReactorType::Event(TypeId::of::<E>()), sys_id }
+        RevokeToken{ reactors: vec![ReactorType::Despawn(entity)], sys_id: SysId::new_raw::<ReactCallback<()>>(callback_id) }
     }
 
     /// Revoke a component insertion reactor.
@@ -284,25 +284,6 @@ impl ReactCache
         // cleanup empty hashmap entries
         if !component_reactors.is_empty() { return; }
         let _ = self.component_reactors.remove(&comp_id);
-    }
-
-    /// Revoke a despawn reactor.
-    pub(crate) fn revoke_despawn_reactor(&mut self, entity: Entity, callback_id: u64)
-    {
-        // get callbacks
-        let Some(callbacks) = self.despawn_reactors.get_mut(&entity) else { return; };
-
-        // revoke reactor
-        for (idx, (id, _)) in callbacks.iter().enumerate()
-        {
-            if *id != callback_id { continue; }
-            let _ = callbacks.remove(idx);  //todo: consider swap_remove()
-            break;
-        }
-
-        // cleanup empty hashmap entries
-        if callbacks.len() > 0 { return; }
-        let _ = self.despawn_reactors.remove(&entity);
     }
 
     /// Revoke a resource mutation reactor.
@@ -341,6 +322,25 @@ impl ReactCache
         // cleanup empty hashmap entries
         if callbacks.len() > 0 { return; }
         let _ = self.event_reactors.remove(&event_id);
+    }
+
+    /// Revoke a despawn reactor.
+    pub(crate) fn revoke_despawn_reactor(&mut self, entity: Entity, callback_id: u64)
+    {
+        // get callbacks
+        let Some(callbacks) = self.despawn_reactors.get_mut(&entity) else { return; };
+
+        // revoke reactor
+        for (idx, (id, _)) in callbacks.iter().enumerate()
+        {
+            if *id != callback_id { continue; }
+            let _ = callbacks.remove(idx);  //todo: consider swap_remove()
+            break;
+        }
+
+        // cleanup empty hashmap entries
+        if callbacks.len() > 0 { return; }
+        let _ = self.despawn_reactors.remove(&entity);
     }
 
     /// Queue reactions to a component insertion.
