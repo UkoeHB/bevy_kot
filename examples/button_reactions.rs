@@ -3,7 +3,7 @@ use bevy_kot::prelude::*;
 
 //third-party shortcuts
 use bevy::prelude::*;
-use bevy::window::WindowTheme;
+use bevy::window::{PrimaryWindow, WindowTheme};
 use bevy_lunex::prelude::*;
 
 //standard shortcuts
@@ -155,9 +155,9 @@ fn setup_count_text(ui: &mut UiBuilder<MainUI>, count: Widget)
     // text widget
     let count_text = Widget::create(
             ui.tree(),
-            count.end(""),
+            count.end("count"),
             SolidLayout::new()
-            .with_scaling(SolidScale::Fill),
+                .with_scaling(SolidScale::Fill),
         ).unwrap();
 
     let count_text_style = TextStyle {
@@ -194,7 +194,7 @@ fn setup_react_count_text(ui: &mut UiBuilder<MainUI>, react_count: Widget)
     // text widget
     let react_count_text = Widget::create(
             ui.tree(),
-            react_count.end(""),
+            react_count.end("count_text"),
             SolidLayout::new()
             .with_scaling(SolidScale::Fill),
         ).unwrap();
@@ -247,7 +247,7 @@ fn build_ui(mut ui: UiBuilder<MainUI>)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup(mut commands: Commands)
+fn setup(mut commands: Commands, window: Query<Entity, (With<Window>, With<PrimaryWindow>)>)
 {
     // prepare 2D camera
     commands.spawn(
@@ -259,7 +259,10 @@ fn setup(mut commands: Commands)
 
     // prepare lunex ui tree
     commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn(UiTree::<MainUI>::new("ui"));
+    let tree = UiTree::<MainUI>::new("ui");
+
+    let window = window.single();
+    commands.entity(window).insert((tree, Transform::default(), Size::default()));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -277,7 +280,6 @@ fn main()
             )
         )
         .add_plugins(LunexUiPlugin2D::<MainUI>(std::marker::PhantomData::default()))
-        .add_plugins(ReactPlugin)
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
