@@ -1,5 +1,4 @@
 //module tree
-mod debug_overlay;
 mod interaction;
 mod style;
 mod style_stack;
@@ -10,7 +9,6 @@ mod utils;
 pub mod builtin;
 
 //API exports
-pub use crate::debug_overlay::*;
 pub use crate::interaction::*;
 pub use crate::style::*;
 pub use crate::style_stack::*;

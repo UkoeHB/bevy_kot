@@ -75,7 +75,7 @@ fn collect_component_removals<C: ReactComponent>(
 ) -> Vec<Entity>
 {
     buffer.clear();
-    removed.iter().for_each(|entity| buffer.push(entity));
+    removed.read().for_each(|entity| buffer.push(entity));
     buffer
 }
 

@@ -44,7 +44,7 @@ pub(crate) fn cleanup_interactive_callbacks(
     mut cache1   : Option<ResMut<IdMappedSystems<(), ()>>>,
     mut cache2   : Option<ResMut<IdMappedSystems<bool, ()>>>,
 ){
-    despawns.iter().for_each(
+    despawns.read().for_each(
             |entity|
             {
                 let sys_ids = tracker.remove(entity);

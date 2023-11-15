@@ -34,9 +34,9 @@ fn initialize_slider_drag(
         (right_edge_min_rel, right_edge_max_rel)
     ))           : In<(Entity, (f32, f32))>,
     mut commands : Commands,
-    cpos_world   : CursorPos<MainMouseCursor>,
+    cursor_pos   : CursorPos<MainMouseCursor>,
     widgets      : Query<&Widget>,
-    ui           : Query<&UiTree, With<MainUI>>,  //todo: InFocusedWindow
+    ui           : Query<&UiTree<MainUI>>,  //todo: InFocusedWindow
 ){
     // slider entity
     let Some(mut entity_commands) = commands.get_entity(entity) else { return; };
@@ -51,8 +51,7 @@ fn initialize_slider_drag(
     let widget_start_displacement_2_x = layout.absolute_2.x;
 
     // cursor start position
-    let Some(cpos_world) = cpos_world.get() else { return; };
-    let cpos_lunex = cpos_world.as_lunex(ui.offset);
+    let Some(cpos_world) = cursor_pos.get_world() else { return; };
 
     // denormalize edge min/max to absolute coordinates
     let right_edge_min = right_edge_min_rel * ui.width / 100.0;
@@ -63,7 +62,7 @@ fn initialize_slider_drag(
             SliderDragState{
                     right_edge_min,
                     right_edge_max,
-                    drag_start_x   : cpos_lunex.x,
+                    drag_start_x   : cpos_world.x,
                     widget_start_x : widget_start_pos.x,
                     widget_start_displacement_1_x,
                     widget_start_displacement_2_x
@@ -76,8 +75,8 @@ fn initialize_slider_drag(
 
 fn drag_slider(
     In(entity) : In<Entity>,
-    cpos_world : CursorPos<MainMouseCursor>,
-    mut ui     : Query<&mut UiTree, With<MainUI>>,  //todo: InFocusedWindow
+    cursor_pos : CursorPos<MainMouseCursor>,
+    mut ui     : Query<&mut UiTree<MainUI>>,  //todo: InFocusedWindow
     slider     : Query<(&Widget, &SliderDragState)>,
 ){
     // slider
@@ -87,9 +86,8 @@ fn drag_slider(
     let Ok(mut ui) = ui.get_single_mut() else { return; };
 
     // get new position for widget
-    let Some(cpos_world) = cpos_world.get() else { return; };
-    let cpos_lunex = cpos_world.as_lunex(ui.offset);
-    let drag_diff = cpos_lunex.x - drag_state.drag_start_x;
+    let Some(cpos_world) = cursor_pos.get_world() else { return; };
+    let drag_diff = cpos_world.x - drag_state.drag_start_x;
     let new_widget_x = (drag_state.widget_start_x + drag_diff).max(drag_state.right_edge_min).min(drag_state.right_edge_max);
     let new_widget_x_diff = new_widget_x - drag_state.widget_start_x;
 
@@ -187,7 +185,7 @@ fn setup(mut commands: Commands)
 
     // prepare lunex ui tree
     commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn((UiTree::new("ui"), MainUI));
+    commands.spawn(UiTree::<MainUI>::new("ui"));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -204,7 +202,7 @@ fn main()
                 }
             )
         )
-        .add_plugins(LunexUiPlugin)
+        .add_plugins(LunexUiPlugin2D::<MainUI>(std::marker::PhantomData::default()))
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())

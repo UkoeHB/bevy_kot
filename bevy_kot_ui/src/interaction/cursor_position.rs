@@ -29,10 +29,19 @@ impl<'w, 's, C: LunexCursor> CursorPos<'w, 's, C>
     /// Get the cursor's world position in the focused window.
     ///
     /// Returns `None` if the cursor doesn't exist or is disabled.
-    pub fn get(&self) -> Option<Vec2>
+    pub fn get_world(&self) -> Option<Vec2>
     {
         let Ok(cursor) = self.cursor.get_single() else { return None; };
         Some(*cursor.position_world())
+    }
+
+    /// Get the cursor's screen position in the focused window.
+    ///
+    /// Returns `None` if the cursor doesn't exist or is disabled.
+    pub fn get_screen(&self) -> Option<Vec2>
+    {
+        let Ok(cursor) = self.cursor.get_single() else { return None; };
+        Some(*cursor.position_screen())
     }
 
     //todo: request position for specific window

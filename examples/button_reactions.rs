@@ -259,7 +259,7 @@ fn setup(mut commands: Commands)
 
     // prepare lunex ui tree
     commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn((UiTree::new("ui"), MainUI));
+    commands.spawn(UiTree::<MainUI>::new("ui"));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -276,7 +276,7 @@ fn main()
                 }
             )
         )
-        .add_plugins(LunexUiPlugin)
+        .add_plugins(LunexUiPlugin2D::<MainUI>(std::marker::PhantomData::default()))
         .add_plugins(ReactPlugin)
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)
