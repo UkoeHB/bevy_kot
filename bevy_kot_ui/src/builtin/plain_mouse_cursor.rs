@@ -24,49 +24,49 @@ impl<PlainCursor: PlainMouseCursor> LunexCursor for PlainCursor
     /// Test if a cursor intersects with an interaction barrier.
     /// - Widget-only intersection test.
     fn cursor_intersects_barrier<Ui: LunexUI>(
-        _cursor_screen_position : Vec2,
-        cursor_world_position   : Vec2,
-        ui                      : &UiTree<Ui>,
-        widget                  : &Widget,
-        _widget_entity          : Entity,
-        depth_limit             : Option<f32>,
-        widget_depth            : f32,
-        _barrier_param          : &SystemParamItem<Self::BarrierParam>,
+        cursor_screen_position : Vec2,
+        _cursor_world_position : Vec2,
+        ui                     : &UiTree<Ui>,
+        widget                 : &Widget,
+        _widget_entity         : Entity,
+        depth_limit            : Option<f32>,
+        widget_depth           : f32,
+        _barrier_param         : &SystemParamItem<Self::BarrierParam>,
     ) -> Result<Option<f32>, ()>
     {
-        cursor_intersects_widget(cursor_world_position, ui, widget, depth_limit, widget_depth)
+        cursor_intersects_widget(cursor_screen_position, ui, widget, depth_limit, widget_depth)
     }
 
     /// Test if a cursor intersects with an element.
     /// - Widget-only intersection test.
     fn cursor_intersects_element<Ui: LunexUI>(
-        _cursor_screen_position : Vec2,
-        cursor_world_position   : Vec2,
-        ui                      : &UiTree<Ui>,
-        widget                  : &Widget,
-        _widget_entity          : Entity,
-        depth_limit             : Option<f32>,
-        widget_depth            : f32,
-        _element_param          : &SystemParamItem<Self::ElementParam>,
+        cursor_screen_position : Vec2,
+        _cursor_world_position : Vec2,
+        ui                     : &UiTree<Ui>,
+        widget                 : &Widget,
+        _widget_entity         : Entity,
+        depth_limit            : Option<f32>,
+        widget_depth           : f32,
+        _element_param         : &SystemParamItem<Self::ElementParam>,
     ) -> Result<Option<f32>, ()>
     {
-        cursor_intersects_widget(cursor_world_position, ui, widget, depth_limit, widget_depth)
+        cursor_intersects_widget(cursor_screen_position, ui, widget, depth_limit, widget_depth)
     }
 
     /// Test if a cursor intersects with a press home zone.
     /// - Widget-only intersection test.
     fn cursor_intersects_press_home_zone<Ui: LunexUI>(
-        _cursor_screen_position : Vec2,
-        cursor_world_position   : Vec2,
-        ui                      : &UiTree<Ui>,
-        widget                  : &Widget,
-        _widget_entity          : Entity,
-        depth_limit             : Option<f32>,
-        widget_depth            : f32,
-        _home_zone_param        : &SystemParamItem<Self::HomeZoneParam>,
+        cursor_screen_position : Vec2,
+        _cursor_world_position : Vec2,
+        ui                     : &UiTree<Ui>,
+        widget                 : &Widget,
+        _widget_entity         : Entity,
+        depth_limit            : Option<f32>,
+        widget_depth           : f32,
+        _home_zone_param       : &SystemParamItem<Self::HomeZoneParam>,
     ) -> Result<Option<f32>, ()>
     {
-        cursor_intersects_widget(cursor_world_position, ui, widget, depth_limit, widget_depth)
+        cursor_intersects_widget(cursor_screen_position, ui, widget, depth_limit, widget_depth)
     }
 }
 

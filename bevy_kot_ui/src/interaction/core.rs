@@ -52,13 +52,13 @@ pub trait LunexCursor: Component
     /// Test if a cursor intersects with an element.
     fn cursor_intersects_element<Ui: LunexUI>(
         cursor_screen_position : Vec2,
-        cursor_world_position : Vec2,
-        ui                    : &UiTree<Ui>,
-        widget                : &Widget,
-        widget_entity         : Entity,
-        depth_limit           : Option<f32>,
-        widget_depth          : f32,
-        element_param         : &SystemParamItem<Self::ElementParam>,
+        cursor_world_position  : Vec2,
+        ui                     : &UiTree<Ui>,
+        widget                 : &Widget,
+        widget_entity          : Entity,
+        depth_limit            : Option<f32>,
+        widget_depth           : f32,
+        element_param          : &SystemParamItem<Self::ElementParam>,
     ) -> Result<Option<f32>, ()>;
 
     /// Test if a cursor intersects with a press home zone.
