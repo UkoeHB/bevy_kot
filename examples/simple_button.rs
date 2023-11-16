@@ -1,3 +1,4 @@
+use bevy::time::common_conditions::on_timer;
 //local shortcuts
 use bevy_kot::prelude::*;
 
@@ -101,6 +102,13 @@ fn setup(mut commands: Commands, window: Query<Entity, (With<Window>, With<Prima
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+fn print_cursor_position(cursor: Query<&Cursor>)
+{
+    let cursor = cursor.single();
+
+    error!("screen: {}, window: {}", cursor.position_screen(), cursor.position_world());
+}
+
 fn main()
 {
     App::new()
@@ -119,6 +127,7 @@ fn main()
         .register_interaction_source(MouseLButtonMain::default())
         .add_systems(PreStartup, setup)
         .add_systems(Startup, build_ui)
+        .add_systems(Update, print_cursor_position.run_if(on_timer(std::time::Duration::from_secs(1))))
         .run();
 }
 

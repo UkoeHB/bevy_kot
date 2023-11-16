@@ -13,18 +13,18 @@ use std::borrow::Borrow;
 /// Test if a cursor intersects with a widget.
 /// - Returns `Ok(Some(widget_depth))` on success (for use in `LunexCursor` methods).
 pub fn cursor_intersects_widget<Ui: LunexUI>(
-    cursor_world_position : Vec2,
-    ui                    : &UiTree<Ui>,
-    widget                : &Widget,
-    depth_limit           : Option<f32>,
-    widget_depth          : f32,
+    cursor_screen_position : Vec2,
+    ui                     : &UiTree<Ui>,
+    widget                 : &Widget,
+    depth_limit            : Option<f32>,
+    widget_depth           : f32,
 ) -> Result<Option<f32>, ()>
 {
     // check if the widget is lower than the depth limit
     if let Some(depth_limit) = depth_limit { if depth_limit > widget_depth { return Ok(None); } }
 
     // check if the cursor is within the widget area
-    match widget.contains_position(&ui, &cursor_world_position)
+    match widget.contains_position(&ui, &cursor_screen_position)
     {
         Ok(true)  => Ok(Some(widget_depth)),
         Ok(false) => Ok(None),

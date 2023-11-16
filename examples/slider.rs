@@ -51,7 +51,7 @@ fn initialize_slider_drag(
     let widget_start_displacement_2_x = layout.absolute_2.x;
 
     // cursor start position
-    let Some(cpos_world) = cursor_pos.get_world() else { return; };
+    let Some(cpos_screen) = cursor_pos.get_screen() else { return; };
 
     // denormalize edge min/max to absolute coordinates
     let right_edge_min = right_edge_min_rel * ui.width / 100.0;
@@ -62,7 +62,7 @@ fn initialize_slider_drag(
             SliderDragState{
                     right_edge_min,
                     right_edge_max,
-                    drag_start_x   : cpos_world.x,
+                    drag_start_x   : cpos_screen.x,
                     widget_start_x : widget_start_pos.x,
                     widget_start_displacement_1_x,
                     widget_start_displacement_2_x
@@ -86,8 +86,8 @@ fn drag_slider(
     let Ok(mut ui) = ui.get_single_mut() else { return; };
 
     // get new position for widget
-    let Some(cpos_world) = cursor_pos.get_world() else { return; };
-    let drag_diff = cpos_world.x - drag_state.drag_start_x;
+    let Some(cpos_screen) = cursor_pos.get_screen() else { return; };
+    let drag_diff = cpos_screen.x - drag_state.drag_start_x;
     let new_widget_x = (drag_state.widget_start_x + drag_diff).max(drag_state.right_edge_min).min(drag_state.right_edge_max);
     let new_widget_x_diff = new_widget_x - drag_state.widget_start_x;
 

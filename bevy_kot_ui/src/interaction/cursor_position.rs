@@ -26,7 +26,7 @@ impl<'w, 's, C: LunexCursor> CursorPos<'w, 's, C>
         self.cursor.is_empty()
     }
 
-    /// Get the cursor's world position in the focused window.
+    /// Get the cursor's world position in the focused window (origin is center of screen).
     ///
     /// Returns `None` if the cursor doesn't exist or is disabled.
     pub fn get_world(&self) -> Option<Vec2>
@@ -35,7 +35,7 @@ impl<'w, 's, C: LunexCursor> CursorPos<'w, 's, C>
         Some(*cursor.position_world())
     }
 
-    /// Get the cursor's screen position in the focused window.
+    /// Get the cursor's screen position in the focused window (origin is top left).
     ///
     /// Returns `None` if the cursor doesn't exist or is disabled.
     pub fn get_screen(&self) -> Option<Vec2>
