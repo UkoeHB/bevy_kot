@@ -1,4 +1,4 @@
-/*//local shortcuts
+//local shortcuts
 use bevy_kot::prelude::*;
 
 //third-party shortcuts
@@ -217,4 +217,3 @@ fn main()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-*/ fn main() {}
