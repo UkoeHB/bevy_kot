@@ -30,7 +30,7 @@ struct StyleB
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn spawn_box(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
+fn spawn_box(ui: &mut UiBuilder<MainUi>, area: &Widget, color: Color)
 {
     let image = ImageElementBundle::new(
             area,
@@ -47,7 +47,7 @@ fn spawn_box(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn section(ui: &mut UiBuilder<MainUI>, area: &Widget) -> (Widget, Widget)
+fn section(ui: &mut UiBuilder<MainUi>, area: &Widget) -> (Widget, Widget)
 {
     let (widget_a,_) = ui.div_rel(area.end("a"), (0., 50.), (25., 75.), move |ui, area| {
         spawn_box(ui, area, ui.style::<StyleA>().color);
@@ -62,7 +62,7 @@ fn section(ui: &mut UiBuilder<MainUI>, area: &Widget) -> (Widget, Widget)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn build_ui(mut ui: UiBuilder<MainUI>)
+fn build_ui(mut ui: UiBuilder<MainUi>)
 {
     // add base styles
     ui.add_style((StyleA{ color: Color::WHITE }, StyleB{ color: Color::BLACK }));
@@ -97,8 +97,8 @@ fn setup(mut commands: Commands)
     commands.spawn((Cursor::new(0.0), Transform::default()));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn((UiTree::new("ui"), MainUI));
+    commands.insert_resource(StyleStackRes::<MainUi>::default());
+    commands.spawn((UiTree::new("ui"), MainUi));
 }
 
 //-------------------------------------------------------------------------------------------------------------------

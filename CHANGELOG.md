@@ -5,6 +5,12 @@
 ### Added
 
 - `UiBuilder::div_rel()` makes it simpler to write divs for relative widgets.
+- `AutoDespawn` resource for garbage collecting entities.
+- `Sender`/`Receiver` unbounded MPMC channel and `IoSender`/`IoReceiver` unbounded MPMC channel.
+
+### Changed
+
+- Renamed the builtin `MainUI` to `MainUi`.
 
 
 ## [0.7.0]

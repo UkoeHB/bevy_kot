@@ -36,7 +36,7 @@ fn initialize_slider_drag(
     mut commands : Commands,
     cpos_world   : CursorPos<MainMouseCursor>,
     widgets      : Query<&Widget>,
-    ui           : Query<&UiTree, With<MainUI>>,  //todo: InFocusedWindow
+    ui           : Query<&UiTree, With<MainUi>>,  //todo: InFocusedWindow
 ){
     // slider entity
     let Some(mut entity_commands) = commands.get_entity(entity) else { return; };
@@ -77,7 +77,7 @@ fn initialize_slider_drag(
 fn drag_slider(
     In(entity) : In<Entity>,
     cpos_world : CursorPos<MainMouseCursor>,
-    mut ui     : Query<&mut UiTree, With<MainUI>>,  //todo: InFocusedWindow
+    mut ui     : Query<&mut UiTree, With<MainUi>>,  //todo: InFocusedWindow
     slider     : Query<(&Widget, &SliderDragState)>,
 ){
     // slider
@@ -103,7 +103,7 @@ fn drag_slider(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
+fn add_button_rect(ui: &mut UiBuilder<MainUi>, area: &Widget, color: Color)
 {
     let image = ImageElementBundle::new(
             area,
@@ -120,7 +120,7 @@ fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn build_ui(mut ui: UiBuilder<MainUI>)
+fn build_ui(mut ui: UiBuilder<MainUi>)
 {
     // root widget
     let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
@@ -169,7 +169,7 @@ fn build_ui(mut ui: UiBuilder<MainUI>)
         .on_press_home(move |world: &mut World| syscall(world, entity, drag_slider))
         .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
-    entity_commands.insert(UIInteractionBarrier::<MainUI>::default());
+    entity_commands.insert(UIInteractionBarrier::<MainUi>::default());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -186,8 +186,8 @@ fn setup(mut commands: Commands)
     commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn((UiTree::new("ui"), MainUI));
+    commands.insert_resource(StyleStackRes::<MainUi>::default());
+    commands.spawn((UiTree::new("ui"), MainUi));
 }
 
 //-------------------------------------------------------------------------------------------------------------------

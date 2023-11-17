@@ -12,7 +12,7 @@ use bevy_lunex::prelude::*;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
+fn add_button_rect(ui: &mut UiBuilder<MainUi>, area: &Widget, color: Color)
 {
     let image = ImageElementBundle::new(
             area,
@@ -29,7 +29,7 @@ fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn build_ui(mut ui: UiBuilder<MainUI>)
+fn build_ui(mut ui: UiBuilder<MainUi>)
 {
     // root widget
     let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
@@ -62,7 +62,7 @@ fn build_ui(mut ui: UiBuilder<MainUI>)
         .abort_press_if_obstructed()
         .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
-    entity_commands.insert(UIInteractionBarrier::<MainUI>::default());
+    entity_commands.insert(UIInteractionBarrier::<MainUi>::default());
 
     // button text
     entity_commands.insert(
@@ -91,8 +91,8 @@ fn setup(mut commands: Commands)
     commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn((UiTree::new("ui"), MainUI));
+    commands.insert_resource(StyleStackRes::<MainUi>::default());
+    commands.spawn((UiTree::new("ui"), MainUi));
 }
 
 //-------------------------------------------------------------------------------------------------------------------

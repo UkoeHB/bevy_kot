@@ -33,7 +33,7 @@ fn refresh_fps_indicator(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn add_fps_section(ui: &mut UiBuilder<MainUI>, area: Widget)
+fn add_fps_section(ui: &mut UiBuilder<MainUi>, area: Widget)
 {
     // fps layout helper
     let layout_helper = Widget::create(
@@ -80,7 +80,7 @@ fn add_fps_section(ui: &mut UiBuilder<MainUI>, area: Widget)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
+fn add_button_rect(ui: &mut UiBuilder<MainUi>, area: &Widget, color: Color)
 {
     let image = ImageElementBundle::new(
             area,
@@ -97,7 +97,7 @@ fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn spawn_button(ui: &mut UiBuilder<MainUI>, area: &Widget, x: f32, y: f32)
+fn spawn_button(ui: &mut UiBuilder<MainUi>, area: &Widget, x: f32, y: f32)
 {
     // button widget
     let button = relative_widget(ui.tree(), area.end(""), (x, x + 1.), (y, y + 1.));
@@ -125,7 +125,7 @@ fn spawn_button(ui: &mut UiBuilder<MainUI>, area: &Widget, x: f32, y: f32)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn build_ui(mut ui: UiBuilder<MainUI>)
+fn build_ui(mut ui: UiBuilder<MainUi>)
 {
     // root widget
     let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
@@ -166,8 +166,8 @@ fn setup(mut commands: Commands)
     commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn((UiTree::new("ui"), MainUI));
+    commands.insert_resource(StyleStackRes::<MainUi>::default());
+    commands.spawn((UiTree::new("ui"), MainUi));
 }
 
 //-------------------------------------------------------------------------------------------------------------------

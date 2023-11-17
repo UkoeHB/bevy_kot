@@ -18,10 +18,10 @@ impl PlainMouseCursor for MainMouseCursor {}
 
 /// Mouse left button interaction source.
 /// - Uses the main mouse cursor to target the main UI in a given OS window.
-pub type MouseLButtonMain = MouseLButton<MainUI, MainMouseCursor>;
+pub type MouseLButtonMain = MouseLButton<MainUi, MainMouseCursor>;
 
 /// Mouse right button interaction source.
 /// - Uses the main mouse cursor to target the main UI in a given OS window.
-pub type MouseRButtonMain = MouseRButton<MainUI, MainMouseCursor>;
+pub type MouseRButtonMain = MouseRButton<MainUi, MainMouseCursor>;
 
 //-------------------------------------------------------------------------------------------------------------------

@@ -87,7 +87,7 @@ fn update_react_counter_text(mut counter: Query<(&mut Text, &ReactCounter), Chan
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
+fn add_button_rect(ui: &mut UiBuilder<MainUi>, area: &Widget, color: Color)
 {
     let image = ImageElementBundle::new(
             area,
@@ -104,7 +104,7 @@ fn add_button_rect(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup_button(ui: &mut UiBuilder<MainUI>, button: Widget)
+fn setup_button(ui: &mut UiBuilder<MainUi>, button: Widget)
 {
     // default button image tied to button
     let default_widget = make_overlay(ui.tree(), &button, "default", true);
@@ -132,7 +132,7 @@ fn setup_button(ui: &mut UiBuilder<MainUI>, button: Widget)
         .on_unpress(increment_button_counter)
         .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
         .unwrap();
-    entity_commands.insert(UIInteractionBarrier::<MainUI>::default());
+    entity_commands.insert(UIInteractionBarrier::<MainUi>::default());
 
     // button text
     entity_commands.insert(
@@ -150,7 +150,7 @@ fn setup_button(ui: &mut UiBuilder<MainUI>, button: Widget)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup_count_text(ui: &mut UiBuilder<MainUI>, count: Widget)
+fn setup_count_text(ui: &mut UiBuilder<MainUi>, count: Widget)
 {
     // text widget
     let count_text = Widget::create(
@@ -189,7 +189,7 @@ fn setup_count_text(ui: &mut UiBuilder<MainUI>, count: Widget)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn setup_react_count_text(ui: &mut UiBuilder<MainUI>, react_count: Widget)
+fn setup_react_count_text(ui: &mut UiBuilder<MainUi>, react_count: Widget)
 {
     // text widget
     let react_count_text = Widget::create(
@@ -226,7 +226,7 @@ fn setup_react_count_text(ui: &mut UiBuilder<MainUI>, react_count: Widget)
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn build_ui(mut ui: UiBuilder<MainUI>)
+fn build_ui(mut ui: UiBuilder<MainUi>)
 {
     // root widget
     let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
@@ -258,8 +258,8 @@ fn setup(mut commands: Commands)
     commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUI>::default());
-    commands.spawn((UiTree::new("ui"), MainUI));
+    commands.insert_resource(StyleStackRes::<MainUi>::default());
+    commands.spawn((UiTree::new("ui"), MainUi));
 }
 
 //-------------------------------------------------------------------------------------------------------------------
