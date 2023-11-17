@@ -119,7 +119,7 @@ impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Extends the `World` API with reactive event methods.
+/// Extends the `App` API with reactive event methods.
 pub trait ReactEventAppExt
 {
     fn add_react_event<E: Send + Sync + 'static>(&mut self) -> &mut Self;

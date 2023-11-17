@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0]
+
+### Added
+
+- `UiBuilder::div_rel()` makes it simpler to write divs for relative widgets.
+
+
 ## [0.7.0]
 
 ### Added

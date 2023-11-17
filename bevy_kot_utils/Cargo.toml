@@ -14,3 +14,6 @@ doctest = false
 [dependencies]
 bevy             = { workspace = true }
 bevy_fn_plugin   = { workspace = true }
+
+crossbeam     = { version = "0.8" }
+async-channel = { version = "2.1" }
