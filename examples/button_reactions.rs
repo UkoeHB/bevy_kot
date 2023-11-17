@@ -262,7 +262,7 @@ fn setup(mut commands: Commands, window: Query<Entity, (With<Window>, With<Prima
     let tree = UiTree::<MainUI>::new("ui");
 
     let window = window.single();
-    commands.entity(window).insert((tree, Transform::default(), Size::default()));
+    commands.entity(window).insert(tree.bundle());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -279,7 +279,8 @@ fn main()
                 }
             )
         )
-        .add_plugins(LunexUiPlugin2D::<MainUI>(std::marker::PhantomData::default()))
+        .add_plugins(LunexUiPlugin2D::<MainUI>::new())
+        .add_plugins(LunexUiDebugPlugin2D::<MainUI>::new())
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
