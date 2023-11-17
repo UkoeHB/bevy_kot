@@ -49,11 +49,12 @@ fn spawn_box(ui: &mut UiBuilder<MainUI>, area: &Widget, color: Color)
 
 fn section(ui: &mut UiBuilder<MainUI>, area: &Widget) -> (Widget, Widget)
 {
-    let widget_a = relative_widget(ui.tree(), area.end("a"), (0., 50.), (25., 75.));
-    spawn_box(ui, &widget_a, ui.get_style::<StyleA>().unwrap().color);
-
-    let widget_b = relative_widget(ui.tree(), area.end("b"), (50., 100.), (25., 75.));
-    spawn_box(ui, &widget_b, ui.get_style::<StyleB>().unwrap().color);
+    let (widget_a,_) = ui.div_rel(area.end("a"), (0., 50.), (25., 75.), move |ui, area| {
+        spawn_box(ui, area, ui.style::<StyleA>().color);
+    });
+    let (widget_b,_) = ui.div_rel(area.end("b"), (50., 100.), (25., 75.), move |ui, area| {
+        spawn_box(ui, area, ui.style::<StyleB>().color);
+    });
 
     (widget_a, widget_b)
 }
@@ -67,9 +68,8 @@ fn build_ui(mut ui: UiBuilder<MainUI>)
     ui.add_style((StyleA{ color: Color::WHITE }, StyleB{ color: Color::BLACK }));
 
     // build ui tree
-    let root = relative_widget(ui.tree(), "root", (0., 100.), (0., 100.));
-    ui.div(move |ui| {
-        let (widget_a, widget_b) = section(ui, &root);
+    ui.div_rel("root", (0., 100.), (0., 100.), move |ui, area| {
+        let (widget_a, widget_b) = section(ui, area);
 
         ui.div(move |ui| {
             ui.add_style(StyleA{ color: Color::BLUE });
@@ -77,7 +77,7 @@ fn build_ui(mut ui: UiBuilder<MainUI>)
         });
         ui.div(move |ui| {
             ui.add_style(StyleA{ color: Color::ORANGE });
-            ui.edit_style::<StyleB>(|style| { style.color = Color::GREEN; });
+            ui.edit_style::<StyleB>(|style| { style.color = Color::GREEN; }).unwrap();
             section(ui, &widget_b);
         });
     });

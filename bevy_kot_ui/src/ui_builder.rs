@@ -8,6 +8,7 @@ use bevy::prelude::*;
 use bevy_lunex::prelude::*;
 
 //standard shortcuts
+use std::borrow::Borrow;
 use std::sync::Arc;
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -55,10 +56,35 @@ impl<'w, 's, Ui: LunexUI> UiBuilder<'w, 's, Ui>
         result
     }
 
+    /// Create a new UI tree content division from a new relative widget.
+    ///
+    /// This method adds a new style stack frame before invoking the `div` callback, then pops a frame afterward.
+    pub fn div_rel<R>(
+        &mut self, 
+        path    : impl Borrow<str>,
+        x_range : (f32, f32),
+        y_range : (f32, f32),
+        div     : impl FnOnce(&mut UiBuilder<Ui>, &Widget) -> R
+    ) -> (Widget, R)
+    {
+        let area = relative_widget(self.tree(), path, x_range, y_range);
+        let area_ref = &area;
+        let result = self.div(move |ui| (div)(ui, area_ref));
+        (area, result)
+    }
+
     /// Add a style bundle to the style stack.
     pub fn add_style(&mut self, bundle: impl StyleBundle)
     {
         self.style_stack.add(bundle);
+    }
+
+    /// Get a style from the style stack.
+    ///
+    /// Panics if the style does not exist.
+    pub fn style<S: Style>(&self) -> Arc<S>
+    {
+        self.get_style::<S>().expect("tried to access unknown style")
     }
 
     /// Get a style from the style stack.
@@ -68,13 +94,23 @@ impl<'w, 's, Ui: LunexUI> UiBuilder<'w, 's, Ui>
     }
 
     /// Get a clone of a style from the style stack.
+    ///
+    /// Panics if the style does not exist.
+    pub fn style_clone<S: Style + Clone>(&self) -> S
+    {
+        self.get_style_clone::<S>().expect("tried to clone unknown style")
+    }
+
+    /// Get a clone of a style from the style stack.
     pub fn get_style_clone<S: Style + Clone>(&self) -> Option<S>
     {
         self.style_stack.get_clone::<S>()
     }
 
     /// Edit a style on the style stack and place the updated copy in the current style frame.
-    pub fn edit_style<S: Style + Clone>(&mut self, editor: impl FnOnce(&mut S)) -> Option<Arc<S>>
+    ///
+    /// Returns `Err` if the style doesn't exist.
+    pub fn edit_style<S: Style + Clone>(&mut self, editor: impl FnOnce(&mut S)) -> Result<Arc<S>, ()>
     {
         self.style_stack.edit::<S>(editor)
     }
