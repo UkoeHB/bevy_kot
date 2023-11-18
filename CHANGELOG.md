@@ -5,9 +5,9 @@
 ### Added
 
 - `UiBuilder::div_rel()` makes it simpler to write divs for relative widgets.
-- `AutoDespawn` resource for garbage collecting entities.
+- `AutoDespawner` resource for garbage collecting entities.
 - `Sender`/`Receiver` unbounded MPMC channel and `IoSender`/`IoReceiver` unbounded MPMC channel.
-- `InteractiveElementBuilder::build()` now requires an `AutoDespawn` reference.
+- `InteractiveElementBuilder::build()` now requires an `AutoDespawner` reference.
 - `InteractiveElementBuilder::spawn_with()` takes a `UiBuilder`.
 
 ### Changed

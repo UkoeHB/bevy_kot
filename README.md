@@ -19,7 +19,7 @@ A collection of bevy tools.
 - Entity callbacks.
 - Utilities for adding/removing components from entities (requires `&mut World`).
 - Reactive framework managed by [`ReactCommands`]: [`React`] components, [`ReactRes`] resources, and reactive events (with [`ReactEvents`] system param that mimics `EventReader`).
-- [`AutoDespawn`] resource for garbage collecting entities.
+- [`AutoDespawner`] resource for garbage collecting entities.
 
 
 ### Miscellaneous
