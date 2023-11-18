@@ -22,6 +22,7 @@ struct TestReactRes(usize);
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+#[derive(Clone)]
 struct IntEvent(usize);
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -81,6 +82,21 @@ fn update_test_recorder_with_event(mut events: ReactEvents<IntEvent>, mut record
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
+fn update_test_recorder_with_event_and_recurse(
+    mut rcommands : ReactCommands,
+    mut events    : ReactEvents<IntEvent>,
+    mut recorder  : ResMut<TestReactRecorder>
+){
+    let Some(event) = events.next() else { return; };
+    recorder.0 += event.0;
+
+    // recurse
+    rcommands.send(event.clone());
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
 fn update_test_recorder_with_event_and_resource(
     mut events   : ReactEvents<IntEvent>,
     mut recorder : ResMut<TestReactRecorder>,
@@ -135,12 +151,12 @@ fn on_removal(mut rcommands: ReactCommands) -> RevokeToken
 
 fn on_despawn(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_despawn(entity, infinitize_test_recorder)
+    rcommands.on_despawn(entity, infinitize_test_recorder).unwrap()
 }
 
 fn on_despawn_div2(In(entity): In<Entity>, mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.on_despawn(entity, test_recorder_div2)
+    rcommands.on_despawn(entity, test_recorder_div2).unwrap()
 }
 
 fn on_resource_mutation(mut rcommands: ReactCommands) -> RevokeToken
@@ -151,6 +167,11 @@ fn on_resource_mutation(mut rcommands: ReactCommands) -> RevokeToken
 fn on_event(mut rcommands: ReactCommands) -> RevokeToken
 {
     rcommands.on(event::<IntEvent>(), update_test_recorder_with_event)
+}
+
+fn on_event_recursive(mut rcommands: ReactCommands) -> RevokeToken
+{
+    rcommands.on(event::<IntEvent>(), update_test_recorder_with_event_and_recurse)
 }
 
 fn on_event_or_resource(mut rcommands: ReactCommands) -> RevokeToken
@@ -596,6 +617,14 @@ fn react_resource_mutation()
 #[test]
 fn react_event()
 {
+    // prepare tracing
+    /*
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(tracing::Level::TRACE)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    */
+
     // setup
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
@@ -637,6 +666,35 @@ fn react_event_out_of_order()
     assert_eq!(world.resource::<TestReactRecorder>().0, 0);
 
     // send event (reaction)
+    syscall(&mut world, 1, send_event);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 1);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+#[test]
+fn react_recursive_events()
+{
+    // prepare tracing
+    /*
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(tracing::Level::TRACE)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    */
+
+    // setup
+    let mut app = App::new();
+    app.add_plugins(ReactPlugin)
+        .add_react_event::<IntEvent>()
+        .init_resource::<TestReactRecorder>();
+    let mut world = &mut app.world;
+
+    // add recursive reactor (no reaction)
+    syscall(&mut world, (), on_event_recursive);
+    assert_eq!(world.resource::<TestReactRecorder>().0, 0);
+
+    // send event (only one reaction)
     syscall(&mut world, 1, send_event);
     assert_eq!(world.resource::<TestReactRecorder>().0, 1);
 }

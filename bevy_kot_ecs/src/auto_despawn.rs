@@ -55,10 +55,10 @@ impl AutoDespawn
         Self{ sender, receiver }
     }
 
-    /// Get an RAII auto despawn signal for the given `entity`.
+    /// Prepare an entity to be automatically despawned.
     ///
-    /// When the last copy of the signal is dropped, the entity will be despawned in the `Last` schedule.
-    pub fn signal(&self, entity: Entity) -> AutoDespawnSignal
+    /// When the last copy of the returned signal is dropped, the entity will be despawned in the `Last` schedule.
+    pub fn prepare(&self, entity: Entity) -> AutoDespawnSignal
     {
         AutoDespawnSignal::new(entity, self.sender.clone())
     }
@@ -81,6 +81,11 @@ impl AutoDespawnSignal
     fn new(entity: Entity, sender: Sender<Entity>) -> Self
     {
         Self(Arc::new(AutoDespawnSignalInner{ entity, sender }))
+    }
+
+    pub fn entity(&self) -> Entity
+    {
+        self.0.entity
     }
 }
 

@@ -15,8 +15,8 @@ pub trait ReactionTrigger<I>
 {
     /// Register a trigger with [`ReactCommands`].
     fn register(self,
-        rcommands : &mut ReactCommands,
-        sys_id    : SysId
+        rcommands  : &mut ReactCommands,
+        sys_handle : &AutoDespawnSignal,
     ) -> ReactorType;
 }
 
@@ -24,9 +24,14 @@ impl<I, R: ReactionTrigger<I>> ReactionTriggerBundle<I> for R
 {
     fn len(&self) -> usize { 1 }
 
-    fn get_reactor_types(self, rcommands: &mut ReactCommands, sys_id: SysId, func: &mut impl FnMut(ReactorType))
+    fn get_reactor_types(
+            self,
+            rcommands  : &mut ReactCommands,
+            sys_handle : &AutoDespawnSignal,
+            func       : &mut impl FnMut(ReactorType)
+        )
     {
-        func(self.register(rcommands, sys_id));
+        func(self.register(rcommands, sys_handle));
     }
 }
 
@@ -42,15 +47,20 @@ pub trait ReactionTriggerBundle<I>
     fn len(&self) -> usize;
 
     /// Register reactors and pass the reactor types to the injected function.
-    fn get_reactor_types(self, rcommands: &mut ReactCommands, sys_id: SysId, func: &mut impl FnMut(ReactorType));
+    fn get_reactor_types(
+            self,
+            rcommands  : &mut ReactCommands,
+            sys_handle : &AutoDespawnSignal,
+            func       : &mut impl FnMut(ReactorType)
+        );
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 
 pub fn reactor_registration<I>(
-    rcommands : &mut ReactCommands,
-    sys_id    : SysId,
-    triggers  : impl ReactionTriggerBundle<I>,
+    rcommands  : &mut ReactCommands,
+    sys_handle : &AutoDespawnSignal,
+    triggers   : impl ReactionTriggerBundle<I>,
 ) -> RevokeToken
 {
     let mut reactors = Vec::with_capacity(triggers.len());
@@ -59,9 +69,9 @@ pub fn reactor_registration<I>(
         {
             reactors.push(reactor_type);
         };
-    triggers.get_reactor_types(rcommands, sys_id, &mut func);
+    triggers.get_reactor_types(rcommands, sys_handle, &mut func);
 
-    RevokeToken{ reactors, sys_id }
+    RevokeToken{ reactors, id: sys_handle.entity().to_bits() }
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -89,12 +99,16 @@ macro_rules! tuple_impl
 
             #[allow(unused_variables, unused_mut)]
             #[inline(always)]
-            fn get_reactor_types(self, rcommands: &mut ReactCommands, sys_id: SysId, func: &mut impl FnMut(ReactorType))
-            {
+            fn get_reactor_types(
+                self,
+                rcommands  : &mut ReactCommands,
+                sys_handle : &AutoDespawnSignal,
+                func       : &mut impl FnMut(ReactorType)
+            ){
                 #[allow(non_snake_case)]
                 let ($(mut $name,)*) = self;
                 $(
-                    $name.get_reactor_types(rcommands, sys_id, &mut *func);
+                    $name.get_reactor_types(rcommands, sys_handle, &mut *func);
                 )*
             }
         }
@@ -128,12 +142,16 @@ macro_rules! tuple_impl
 
             #[allow(unused_variables, unused_mut)]
             #[inline(always)]
-            fn get_reactor_types(self, rcommands: &mut ReactCommands, sys_id: SysId, func: &mut impl FnMut(ReactorType))
-            {
+            fn get_reactor_types(
+                self,
+                rcommands  : &mut ReactCommands,
+                sys_handle : &AutoDespawnSignal,
+                func       : &mut impl FnMut(ReactorType)
+            ){
                 #[allow(non_snake_case)]
                 let ($(mut $name,)*) = self;
                 $(
-                    $name.get_reactor_types(rcommands, sys_id, &mut *func);
+                    $name.get_reactor_types(rcommands, sys_handle, &mut *func);
                 )*
             }
         }

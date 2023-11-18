@@ -8,19 +8,10 @@ use bevy::prelude::*;
 //standard shortcuts
 use core::any::TypeId;
 use std::collections::HashMap;
-use std::marker::PhantomData;
-
-//-------------------------------------------------------------------------------------------------------------------
-
-/// Wrapper type for callbacks.
-///
-/// Used to domain-separate named react systems from other named_syscall regimes.
-pub(crate) struct ReactCallback<S>(PhantomData<S>);
 
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Queue a command with a call to react to all removals and despawns.
-/// - We want to apply any side effects or chained reactions before any sibling reactions/commands.
 ///
 /// Note that we assume the specified command internally handles its deferred state. We don't want to call
 /// `apply_deferred` here since the global `apply_deferred` is inefficient.
@@ -37,15 +28,16 @@ pub(crate) fn enque_command(commands: &mut Commands, cb: impl Command)
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Queue a named system with a call to react to all removals and despawns.
-/// - We want to apply any side effects or chained reactions before any sibling reactions/commands.
+/// Queue a named system then react to all removals and despawns.
+/// - Note that all side effects and chained reactions will be applied when the syscall applies its deferred commands.
+///   This means this reaction's effects will be propagated before any 'sibling' reactions/commands.
 pub(crate) fn enque_reaction<I: Send + Sync + 'static>(commands: &mut Commands, sys_id: SysId, input: I)
 {
     commands.add(
             move |world: &mut World|
             {
-                let Ok(()) = named_syscall_direct::<I, ()>(world, sys_id, input)
-                else { tracing::error!(?sys_id, "recursive reactions are not supported"); return; };
+                let Ok(()) = spawned_syscall::<I, ()>(world, sys_id, input)
+                else { tracing::warn!(?sys_id, "reaction system failed"); return; };
                 react_to_all_removals_and_despawns(world);
             }
         );
@@ -65,9 +57,9 @@ pub(crate) enum EntityReactType
 #[derive(Component)]
 pub(crate) struct EntityReactors
 {
-    pub(crate) insertion_callbacks : HashMap<TypeId, Vec<SysId>>,
-    pub(crate) mutation_callbacks  : HashMap<TypeId, Vec<SysId>>,
-    pub(crate) removal_callbacks   : HashMap<TypeId, Vec<SysId>>,
+    pub(crate) insertion_callbacks : HashMap<TypeId, Vec<AutoDespawnSignal>>,
+    pub(crate) mutation_callbacks  : HashMap<TypeId, Vec<AutoDespawnSignal>>,
+    pub(crate) removal_callbacks   : HashMap<TypeId, Vec<AutoDespawnSignal>>,
 }
 
 impl EntityReactors
@@ -115,7 +107,7 @@ pub enum ReactorType
 pub struct RevokeToken
 {
     pub(crate) reactors : Vec<ReactorType>,
-    pub(crate) sys_id   : SysId,
+    pub(crate) id       : u64,
 }
 
 //-------------------------------------------------------------------------------------------------------------------

@@ -7,6 +7,9 @@ publish = false
 [dev-dependencies]
 bevy = { workspace = true }
 
+tracing            = { version = "0.1" }
+tracing-subscriber = { version = "0.3" }
+
 bevy_kot     = { path = ".." }
 bevy_kot_ecs = { path = "../bevy_kot_ecs" }
 

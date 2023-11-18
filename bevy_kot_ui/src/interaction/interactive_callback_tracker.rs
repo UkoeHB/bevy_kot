@@ -14,17 +14,17 @@ use std::collections::HashMap;
 #[derive(Resource)]
 pub(crate) struct InteractiveCallbackTracker
 {
-    cache: HashMap<Entity, Vec<SysId>>,
+    cache: HashMap<Entity, Vec<SysName>>,
 }
 
 impl InteractiveCallbackTracker
 {
-    pub(crate) fn add(&mut self, entity: Entity, sys_id: SysId)
+    pub(crate) fn add(&mut self, entity: Entity, sys_name: SysName)
     {
-        self.cache.entry(entity).or_default().push(sys_id);
+        self.cache.entry(entity).or_default().push(sys_name);
     }
 
-    pub(crate) fn remove(&mut self, entity: Entity) -> Vec<SysId>
+    pub(crate) fn remove(&mut self, entity: Entity) -> Vec<SysName>
     {
         self.cache.remove(&entity).unwrap_or_else(|| Vec::default())
     }
@@ -47,11 +47,11 @@ pub(crate) fn cleanup_interactive_callbacks(
     despawns.iter().for_each(
             |entity|
             {
-                let sys_ids = tracker.remove(entity);
-                for sys_id in sys_ids
+                let sys_names = tracker.remove(entity);
+                for sys_name in sys_names
                 {
-                    if let Some(cache1) = &mut cache1 { cache1.revoke_sysid(sys_id); }
-                    if let Some(cache2) = &mut cache2 { cache2.revoke_sysid(sys_id); }
+                    if let Some(cache1) = &mut cache1 { cache1.revoke_sysname(sys_name); }
+                    if let Some(cache2) = &mut cache2 { cache2.revoke_sysname(sys_name); }
                 }
             }
         );

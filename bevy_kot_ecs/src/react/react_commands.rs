@@ -11,32 +11,13 @@ use core::any::TypeId;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn prepare_reactor<I, O, S, Marker>(commands: &mut Commands, callback_id: u64, reactor: S) -> SysId
+fn prepare_reactor<I, S, Marker>(commands: &mut Commands, auto_despawn: &AutoDespawn, reactor: S) -> AutoDespawnSignal
 where
     I: Send + Sync + 'static,
-    O: Send + Sync + 'static,
-    S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
+    S: IntoSystem<I, (), Marker> + Send + Sync + 'static,
 {
-    let sys_id = SysId::new_raw::<ReactCallback<S>>(callback_id);
-    commands.add(
-            move |world: &mut World|
-            {
-                register_named_system(world, sys_id, reactor);
-            }
-        );
-    sys_id
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-fn revoke_named_system<I: Send + Sync + 'static>(sys_id: SysId) -> impl FnOnce(&mut World) + Send + Sync + 'static
-{
-    move |world: &mut World|
-    {
-        let Some(mut cache) = world.get_resource_mut::<IdMappedSystems<I, ()>>() else { return; };
-        cache.revoke_sysid(sys_id);
-    }
+    let sys_id = commands.spawn_system(reactor);
+    auto_despawn.prepare(sys_id.entity())
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -48,8 +29,8 @@ fn revoke_entity_reactor(
         entity,
         rtype,
         comp_id,
-        sys_id
-    ))                  : In<(Entity, EntityReactType, TypeId, SysId)>,
+        reactor_id
+    ))                  : In<(Entity, EntityReactType, TypeId, u64)>,
     mut commands        : Commands,
     mut entity_reactors : Query<&mut EntityReactors>,
 ){
@@ -66,10 +47,10 @@ fn revoke_entity_reactor(
     let Some(callbacks) = callbacks_map.get_mut(&comp_id) else { return; };
 
     // revoke reactor
-    for (idx, id) in callbacks.iter().enumerate()
+    for (idx, signal) in callbacks.iter().enumerate()
     {
-        if *id != sys_id { continue; }
-        let _ = callbacks.remove(idx);  //todo: consider swap_remove()
+        if signal.entity().to_bits() != reactor_id { continue; }
+        let _ = callbacks.remove(idx);
         break;
     }
 
@@ -88,7 +69,7 @@ fn revoke_entity_reactor(
 ///
 /// Requires [`ReactPlugin`].
 ///
-/// Note that each time you register a reactor, it is assigned a unique system state (unique `Local`s). To avoid
+/// Note that each time you register a reactor, it is assigned a unique system state (including unique `Local`s). To avoid
 /// leaking memory, be sure to revoke reactors when you are done with them. Despawn reactors are automatically cleaned up.
 ///
 /// ## Ordering and determinism
@@ -131,8 +112,9 @@ fn revoke_entity_reactor(
 #[derive(SystemParam)]
 pub struct ReactCommands<'w, 's>
 {
-    pub(crate) commands : Commands<'w, 's>,
-    pub(crate) cache    : ResMut<'w, ReactCache>,
+    pub(crate) commands     : Commands<'w, 's>,
+    pub(crate) cache        : ResMut<'w, ReactCache>,
+    pub(crate) auto_despawn : Res<'w, AutoDespawn>,
 }
 
 impl<'w, 's> ReactCommands<'w, 's>
@@ -183,8 +165,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// - Component, despawn, resource, event reactors: revoked immediately.
     pub fn revoke(&mut self, token: RevokeToken)
     {
-        let sys_id = token.sys_id;
-        self.commands.add(revoke_named_system::<Entity>(sys_id));
+        let id = token.id;
 
         for reactor_type in token.reactors
         {
@@ -194,46 +175,46 @@ impl<'w, 's> ReactCommands<'w, 's>
                 {
                     self.commands.add(
                             move |world: &mut World|
-                            syscall(world, (entity, EntityReactType::Insertion, comp_id, sys_id), revoke_entity_reactor)
+                            syscall(world, (entity, EntityReactType::Insertion, comp_id, id), revoke_entity_reactor)
                         );
                 }
                 ReactorType::EntityMutation(entity, comp_id) =>
                 {
                     self.commands.add(
                             move |world: &mut World|
-                            syscall(world, (entity, EntityReactType::Mutation, comp_id, sys_id), revoke_entity_reactor)
+                            syscall(world, (entity, EntityReactType::Mutation, comp_id, id), revoke_entity_reactor)
                         );
                 }
                 ReactorType::EntityRemoval(entity, comp_id) =>
                 {
                     self.commands.add(
                             move |world: &mut World|
-                            syscall(world, (entity, EntityReactType::Removal, comp_id, sys_id), revoke_entity_reactor)
+                            syscall(world, (entity, EntityReactType::Removal, comp_id, id), revoke_entity_reactor)
                         );
                 }
                 ReactorType::ComponentInsertion(comp_id) =>
                 {
-                    self.cache.revoke_component_reactor(EntityReactType::Insertion, comp_id, sys_id);
+                    self.cache.revoke_component_reactor(EntityReactType::Insertion, comp_id, id);
                 }
                 ReactorType::ComponentMutation(comp_id) =>
                 {
-                    self.cache.revoke_component_reactor(EntityReactType::Mutation, comp_id, sys_id);
+                    self.cache.revoke_component_reactor(EntityReactType::Mutation, comp_id, id);
                 }
                 ReactorType::ComponentRemoval(comp_id) =>
                 {
-                    self.cache.revoke_component_reactor(EntityReactType::Removal, comp_id, sys_id);
+                    self.cache.revoke_component_reactor(EntityReactType::Removal, comp_id, id);
                 }
                 ReactorType::ResourceMutation(res_id) =>
                 {
-                    self.cache.revoke_resource_mutation_reactor(res_id, sys_id);
+                    self.cache.revoke_resource_mutation_reactor(res_id, id);
                 }
                 ReactorType::Event(event_id) =>
                 {
-                    self.cache.revoke_event_reactor(event_id, sys_id);
+                    self.cache.revoke_event_reactor(event_id, id);
                 }
                 ReactorType::Despawn(entity) =>
                 {
-                    self.cache.revoke_despawn_reactor(entity, sys_id.id());
+                    self.cache.revoke_despawn_reactor(entity, id);
                 }
             }
         }
@@ -244,6 +225,8 @@ impl<'w, 's> ReactCommands<'w, 's>
     /// You can tie a reactor to multiple reaction triggers. Note that the
     /// entity-agnostic component triggers can only be bundled with each other: `insertion()`, `mutation()`,
     /// `removal()`.
+    ///
+    /// Duplicate triggers will be ignored.
     ///
     /// Reactions are not merged together. If you register a reactor for triggers
     /// `(resource_mutation::<A>(), resource_mutation::<B>())`, then mutate `A` and `B` in succession, the reactor will
@@ -261,25 +244,27 @@ impl<'w, 's> ReactCommands<'w, 's>
     where
         I: Send + Sync + 'static
     {
-        let sys_id = prepare_reactor(&mut self.commands, self.cache.next_callback_id(), reactor);
-        reactor_registration(self, sys_id, triggers)
+        let sys_handle = prepare_reactor(&mut self.commands, &self.auto_despawn, reactor);
+        reactor_registration(self, &sys_handle, triggers)
     }
 
     /// Register a reactor to an entity despawn.
     ///
     /// Despawn reactors are one-shot systems and will automatically clean themselves up when the entity despawns.
     ///
+    /// Returns `Err` if the entity does not exist.
+    ///
     /// Example:
     /// ```no_run
-    /// rcommands.on_despawn(entity, my_reactor_system);
+    /// rcommands.on_despawn(entity, my_reactor_system).expect("entity is missing");
     /// ```
     pub fn on_despawn<Marker>(
         &mut self,
         entity  : Entity,
         reactor : impl IntoSystem<(), (), Marker> + Send + Sync + 'static
-    ) -> RevokeToken
+    ) -> Result<RevokeToken, ()>
     {
-        register_despawn_reactor(entity, self, reactor)
+        register_despawn_reactor(self, entity, reactor)
     }
 }
 

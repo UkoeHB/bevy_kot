@@ -123,13 +123,11 @@ impl<C: ReactComponent> Deref for React<C>
 //-------------------------------------------------------------------------------------------------------------------
 
 /// React to component removals.
-/// - Returns number of callbacks queued.
-/// - If an entity has been despawned since the last time this was called, then any removals that occured in the meantime
-///   will NOT be reacted to.
+/// - Returns the number of callbacks queued.
 pub fn react_to_removals(world: &mut World) -> usize
 {
     // remove cached
-    let Some(mut react_cache) = world.remove_resource::<ReactCache>() else { return 0; };
+    let mut react_cache = world.remove_resource::<ReactCache>().expect("ReactCache is missing for removal reactions");
     let mut command_queue = pop_react_command_queue(world);
 
     // process removals
@@ -138,7 +136,7 @@ pub fn react_to_removals(world: &mut World) -> usize
     // return react cache
     world.insert_resource(react_cache);
 
-    // apply commands
+    // apply queued reactions
     command_queue.apply(world);
 
     // return command queue
@@ -150,12 +148,9 @@ pub fn react_to_removals(world: &mut World) -> usize
 //-------------------------------------------------------------------------------------------------------------------
 
 /// React to tracked despawns.
-/// - Returns number of callbacks queued.
+/// - Returns the number of callbacks queued.
 pub fn react_to_despawns(world: &mut World) -> usize
 {
-    // check if we have a reactor
-    if !world.contains_resource::<ReactCache>() { return 0; }
-
     // handle despawns
     syscall(world, (), react_to_despawns_impl)
 }
@@ -165,9 +160,6 @@ pub fn react_to_despawns(world: &mut World) -> usize
 /// Iteratively react to component removals and entity despawns until all reaction chains have ended.
 pub fn react_to_all_removals_and_despawns(world: &mut World)
 {
-    // check if we have a reactor
-    if !world.contains_resource::<ReactCache>() { return; }
-
     // loop until no more removals/despawns
     while syscall(world, (), react_to_removals) > 0 || syscall(world, (), react_to_despawns_impl) > 0 {}
 }

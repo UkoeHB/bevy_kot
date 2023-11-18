@@ -12,6 +12,7 @@ use std::any::TypeId;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
+
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -21,6 +22,47 @@ use std::marker::PhantomData;
 struct StateInstances<T: SystemParam + 'static>
 {
     instances: HashMap<CallId, SystemState<T>>,
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+#[derive(Resource)]
+struct InitializedSystem<I, O, S>
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+    S: Send + Sync + 'static
+{
+    sys      : BoxedSystem<I, O>,
+    _phantom : PhantomData<S>
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Stores a callable system.
+///
+/// We store the system in an option in order to avoid archetype moves when taking/reinserting the system in order to
+/// call it.
+#[derive(Component)]
+struct SpawnedSystem<I, O>
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+{
+    system: Option<CallbackSystem<I, O>>,
+}
+
+impl<I, O> SpawnedSystem<I, O>
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+{
+    fn new(system: CallbackSystem<I,O>) -> Self
+    {
+        Self{ system: Some(system) }
+    }
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -266,8 +308,8 @@ pub fn call_basic<S: BasicCallableSystem + 'static>(world: &mut World, id: CallI
 ///
 pub fn syscall<I, O, S, Marker>(world: &mut World, input: I, system: S) -> O
 where
-    I: Send + 'static,
-    O: Send + 'static,
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
     S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
     // get the initialized system
@@ -295,15 +337,236 @@ where
     return result;
 }
 
-#[derive(Resource)]
-struct InitializedSystem<I, O, S>
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Wrap a `Fn` system in a system that consumes the system input.
+///
+/// This is intended to wrap `Fn` systems. Do not use it if you have a `FnOnce` callback, for example when
+/// adding a one-off callback via `Command::add()`, because the input value and system will be unnecessarily cloned.
+pub fn prep_fncall<I, O, Marker>(
+    input  : I,
+    system : impl IntoSystem<I, O, Marker> + Send + Sync + 'static + Clone
+) -> impl Fn(&mut World) -> O + Send + Sync + 'static
 where
-    I: Send + 'static,
-    O: Send + 'static,
-    S: Send + Sync + 'static
+    I: Send + Sync + 'static + Clone,
+    O: Send + Sync + 'static,
 {
-    sys      : BoxedSystem<I, O>,
-    _phantom : PhantomData<S>
+    move |world: &mut World| syscall(world, input.clone(), system.clone())
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// System identifier for referencing spawned systems.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SysId(Entity);
+
+impl SysId
+{
+    pub fn new(entity: Entity) -> Self { Self(entity) }
+
+    pub fn entity(&self) -> Entity
+    {
+        self.0
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Spawn a system as an entity.
+///
+/// Systems are not initialized until they are first run.
+///
+/// The system can be invoked by calling [`spawned_syscall()`].
+pub fn spawn_system<I, O, S, Marker>(world: &mut World, system: S) -> SysId
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+    S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
+{
+    spawn_system_from(world, CallbackSystem::new(system))
+}
+
+/// Spawn a system as an entity.
+///
+/// The system can be invoked by calling [`spawned_syscall()`].
+pub fn spawn_system_from<I, O>(world: &mut World, system: CallbackSystem<I, O>) -> SysId
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+{
+    SysId::new(world.spawn(SpawnedSystem::new(system)).id())
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Spawn a ref-counted system.
+///
+/// Systems are not initialized until they are first run.
+///
+/// Returns a cleanup handle. The system will be dropped when the last copy of the handle is dropped.
+///
+/// Panics if [`setup_auto_despawn()`] was not added to your app.
+pub fn spawn_rc_system<I, O, S, Marker>(world: &mut World, system: S) -> AutoDespawnSignal
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+    S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
+{
+    spawn_rc_system_from(world, CallbackSystem::new(system))
+}
+
+/// Spawn a ref-counted system.
+///
+/// Returns a cleanup handle. The system will be dropped when the last copy of the handle is dropped.
+///
+/// Panics if [`setup_auto_despawn()`] was not added to your app.
+pub fn spawn_rc_system_from<I, O>(world: &mut World, system: CallbackSystem<I, O>) -> AutoDespawnSignal
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+{
+    let sys_id = spawn_system_from(world, system);
+    world.resource::<AutoDespawn>().prepare(sys_id.0)
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Execute a pre-spawned system on some data then apply the system's deferred commands.
+///
+/// Returns `Err` if the system does not exist or if the system was called recursively.
+///
+/// # Example
+///
+/// ```
+/// use bevy_kot_ecs::*;
+/// use bevy::prelude::*;
+/// 
+/// fn test_system(In(input): In<u16>, mut local: Local<u16>) -> u16
+/// {
+///     *local += input;
+///     *local
+/// }
+/// 
+/// let mut world = World::new();
+/// let sys_id1 = spawn_system(test_system);
+/// let sys_id2 = spawn_system(test_system);
+/// 
+/// assert_eq!(spawned_syscall(&mut world, sys_id1, 1u16), 1);
+/// assert_eq!(spawned_syscall(&mut world, sys_id1, 1u16), 2);    //Local is preserved
+/// assert_eq!(spawned_syscall(&mut world, sys_id2, 10u16), 10);  //new Local
+/// assert_eq!(spawned_syscall(&mut world, sys_id2, 10u16), 20);
+/// ```
+///
+pub fn spawned_syscall<I, O>(world: &mut World, sys_id: SysId, input: I) -> Result<O, ()>
+where
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
+{
+    // extract the callback
+    let Some(mut entity_mut) = world.get_entity_mut(sys_id.0) else { return Err(()); };
+    let Some(mut spawned_system) = entity_mut.get_mut::<SpawnedSystem<I, O>>()
+    else { tracing::error!(?sys_id, "spawned system component is missing"); return Err(()); };
+    let Some(mut callback) = spawned_system.system.take()
+    else { tracing::warn!(?sys_id, "recursive spawned system call detected"); return Err(()); };
+
+    // invoke the callback
+    let result = callback.run(world, input).ok_or(())?;
+
+    // reinsert the callback if its target hasn't been despawned
+    let Some(mut entity_mut) = world.get_entity_mut(sys_id.0) else { return Ok(result); };
+    let Some(mut spawned_system) = entity_mut.get_mut::<SpawnedSystem<I, O>>()
+    else { tracing::error!(?sys_id, "spawned system component is missing"); return Ok(result); };
+    spawned_system.system = Some(callback);
+
+    Ok(result)
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+pub trait SystemCallerCommandsExt
+{
+    /// Schedule a system to be spawned.
+    ///
+    /// Systems are not initialized until they are first run.
+    ///
+    /// Returns the system id that will eventually reference the spawned system. It can be used to invoke the system with
+    /// [`spawned_syscall()`] or [`SystemCallerCommandsExt::spawned_syscall()`].
+    fn spawn_system<I, O, S, Marker>(&mut self, system: S) -> SysId
+    where
+        I: Send + Sync + 'static,
+        O: Send + Sync + 'static,
+        S: IntoSystem<I, O, Marker> + Send + Sync + 'static;
+
+    /// Schedule a system to be spawned.
+    ///
+    /// Returns the system id that will eventually reference the spawned system. It can be used to invoke the system with
+    /// [`spawned_syscall()`] or [`SystemCallerCommandsExt::spawned_syscall()`].
+    fn spawn_system_from<I, O>(&mut self, system: CallbackSystem<I, O>) -> SysId
+    where
+        I: Send + Sync + 'static,
+        O: Send + Sync + 'static;
+
+    /// Schedule a system call.
+    ///
+    /// Syntax sugar for [`syscall()`].
+    fn syscall<I, S, Marker>(&mut self, input: I, system: S)
+    where
+        I: Send + Sync + 'static,
+        S: IntoSystem<I, (), Marker> + Send + Sync + 'static;
+
+    /// Schedule a spawned system call.
+    ///
+    /// It is the responsibility of the caller to correctly match the system entity with the target system signature.
+    ///
+    /// Logs a warning if the system entity doesn't exist.
+    ///
+    /// Syntax sugar for [`spawned_syscall()`].
+    fn spawned_syscall<I>(&mut self, sys_id: SysId, input: I)
+    where
+        I: Send + Sync + 'static;
+}
+
+impl<'w, 's> SystemCallerCommandsExt for Commands<'w, 's>
+{
+    fn spawn_system<I, O, S, Marker>(&mut self, system: S) -> SysId
+    where
+        I: Send + Sync + 'static,
+        O: Send + Sync + 'static,
+        S: IntoSystem<I, O, Marker> + Send + Sync + 'static
+    {
+        self.spawn_system_from(CallbackSystem::new(system))
+    }
+
+    fn spawn_system_from<I, O>(&mut self, system: CallbackSystem<I, O>) -> SysId
+    where
+        I: Send + Sync + 'static,
+        O: Send + Sync + 'static
+    {
+        SysId::new(self.spawn(SpawnedSystem::new(system)).id())
+    }
+
+    fn syscall<I, S, Marker>(&mut self, input: I, system: S)
+    where
+        I: Send + Sync + 'static,
+        S: IntoSystem<I, (), Marker> + Send + Sync + 'static,
+    {
+        self.add(move |world: &mut World| syscall(world, input, system));
+    }
+
+    fn spawned_syscall<I>(&mut self, sys_id: SysId, input: I)
+    where
+        I: Send + Sync + 'static,
+    {
+        self.add(
+                move |world: &mut World|
+                {
+                    if let Err(_) = spawned_syscall::<I, ()>(world, sys_id, input)
+                    {
+                        tracing::warn!(?sys_id, "spawned syscall failed");
+                    }
+                }
+            );
+    }
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -344,12 +607,12 @@ pub fn named_syscall<H, I, O, S, Marker>(
 ) -> O
 where
     H: Hash,
-    I: Send + 'static,
-    O: Send + 'static,
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
     S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
     // the system id
-    let sys_id = SysId::new::<S>(id);
+    let sys_name = SysName::new::<S>(id);
 
     // get resource storing the id-mapped systems
     let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O>>(
@@ -358,7 +621,7 @@ where
 
     // take the initialized system
     let mut system =
-        match id_mapped_systems.systems.get_mut(&sys_id).map_or(None, |node| node.take())
+        match id_mapped_systems.systems.get_mut(&sys_name).map_or(None, |node| node.take())
         {
             Some(system) => system,
             None =>
@@ -382,10 +645,10 @@ where
 
     // put the system back
     // - we ignore overwrites
-    match id_mapped_systems.systems.get_mut(&sys_id)
+    match id_mapped_systems.systems.get_mut(&sys_name)
     {
         Some(node) => { let _ = node.replace(system); },
-        None       => { let _ = id_mapped_systems.systems.insert(sys_id, Some(system)); },
+        None       => { let _ = id_mapped_systems.systems.insert(sys_name, Some(system)); },
     }
 
     result
@@ -394,10 +657,10 @@ where
 /// Directly invoke a named system.
 ///
 /// Returns `Err` if the system cannot be found.
-pub fn named_syscall_direct<I, O>(world: &mut World, sys_id: SysId, input: I) -> Result<O, ()>
+pub fn named_syscall_direct<I, O>(world: &mut World, sys_name: SysName, input: I) -> Result<O, ()>
 where
-    I: Send + 'static,
-    O: Send + 'static,
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
 {
     // get resource storing the id-mapped systems
     let mut id_mapped_systems = world.get_resource_or_insert_with::<IdMappedSystems<I, O>>(
@@ -406,7 +669,7 @@ where
 
     // take the initialized system
     let mut system =
-        match id_mapped_systems.systems.get_mut(&sys_id).map_or(None, |node| node.take())
+        match id_mapped_systems.systems.get_mut(&sys_name).map_or(None, |node| node.take())
         {
             Some(system) => system,
             None => return Err(()),
@@ -425,10 +688,10 @@ where
 
     // put the system back
     // - we ignore overwrites
-    match id_mapped_systems.systems.get_mut(&sys_id)
+    match id_mapped_systems.systems.get_mut(&sys_name)
     {
         Some(node) => { let _ = node.replace(system); },
-        None       => { let _ = id_mapped_systems.systems.insert(sys_id, Some(system)); },
+        None       => { let _ = id_mapped_systems.systems.insert(sys_name, Some(system)); },
     }
 
     Ok(result)
@@ -441,20 +704,20 @@ where
 /// Useful for inserting a closure-type system that captures non-Copy data when you need to invoke the system
 /// multiple times.
 ///
-/// We pass in `sys_id` directly to enable direct control over defining the id. Manually defining the id may
+/// We pass in `sys_name` directly to enable direct control over defining the id. Manually defining the id may
 /// be appropriate if you are potentially generating large numbers of named systems and want to ensure there
 /// are no collisions. It may also be appropriate if you have multiple naming regimes and want to domain-separate
-/// the system ids (e.g. via type wrappers: `SysId::new_raw::<Wrapper<S>>(counter)`)
-pub fn register_named_system<I, O, S, Marker>(world: &mut World, sys_id: SysId, system: S)
+/// the system ids (e.g. via type wrappers: `SysName::new_raw::<Wrapper<S>>(counter)`)
+pub fn register_named_system<I, O, S, Marker>(world: &mut World, sys_name: SysName, system: S)
 where
     I: Send + Sync + 'static,
     O: Send + Sync + 'static,
     S: IntoSystem<I, O, Marker> + Send + Sync + 'static,
 {
-    register_named_system_from(world, sys_id, CallbackSystem::new(system));
+    register_named_system_from(world, sys_name, CallbackSystem::new(system));
 }
 
-pub fn register_named_system_from<I, O>(world: &mut World, sys_id: SysId, callback: CallbackSystem<I, O>)
+pub fn register_named_system_from<I, O>(world: &mut World, sys_name: SysName, callback: CallbackSystem<I, O>)
 where
     I: Send + Sync + 'static,
     O: Send + Sync + 'static,
@@ -468,29 +731,29 @@ where
     );
 
     // insert the system
-    match id_mapped_systems.systems.get_mut(&sys_id)
+    match id_mapped_systems.systems.get_mut(&sys_name)
     {
         Some(node) => { let _ = node.replace(boxed_system); },
-        None       => { let _ = id_mapped_systems.systems.insert(sys_id, Some(boxed_system)); },
+        None       => { let _ = id_mapped_systems.systems.insert(sys_name, Some(boxed_system)); },
     }
 }
 
 /// System identifier for use in named systems.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SysId(u64, TypeId);
+pub struct SysName(u64, TypeId);
 
-impl SysId
+impl SysName
 {
     pub fn new<S: 'static>(id: impl Hash) -> Self
     {
         let mut hasher = AHasher::default();
         id.hash(&mut hasher);
-        SysId(hasher.finish(), TypeId::of::<S>())
+        SysName(hasher.finish(), TypeId::of::<S>())
     }
 
     pub fn new_raw<S: 'static>(id: u64) -> Self
     {
-        SysId(id, TypeId::of::<S>())
+        SysName(id, TypeId::of::<S>())
     }
 
     pub fn id(&self) -> u64
@@ -508,24 +771,24 @@ impl SysId
 #[derive(Resource)]
 pub struct IdMappedSystems<I, O>
 where
-    I: Send + 'static,
-    O: Send + 'static,
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
 {
-    systems: HashMap<SysId, Option<BoxedSystem<I, O>>>,
+    systems: HashMap<SysName, Option<BoxedSystem<I, O>>>,
 }
 
 impl<I, O> IdMappedSystems<I, O>
 where
-    I: Send + 'static,
-    O: Send + 'static,
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
 {
-    pub fn _revoke<S: 'static>(&mut self, id: impl Hash)
+    pub fn revoke<S: 'static>(&mut self, id: impl Hash)
     {
-        let id = SysId::new::<S>(id);
+        let id = SysName::new::<S>(id);
         let _ = self.systems.remove(&id);
     }
 
-    pub fn revoke_sysid(&mut self, id: SysId)
+    pub fn revoke_sysname(&mut self, id: SysName)
     {
         let _ = self.systems.remove(&id);
     }
@@ -533,8 +796,8 @@ where
 
 impl<I, O> Default for IdMappedSystems<I, O>
 where
-    I: Send + 'static,
-    O: Send + 'static,
+    I: Send + Sync + 'static,
+    O: Send + Sync + 'static,
 {
     fn default() -> Self { Self{ systems: HashMap::default() } }
 }

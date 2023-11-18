@@ -51,15 +51,19 @@ pub(crate) struct ReactEventInner<E: Send + Sync + 'static>
 
 /// Provides access to react events of type `E`.
 ///
-/// Will **not** return react events sent before the system that contains the `ReactEvents` param was intialized in
-/// the world.
+/// The first react event returned by `next()` will be the last event sent before the system was initialized in the world.
+/// For event reactors, this will be the first event that triggered a reaction. Our implementation assumes:
+/// - Reactors are not initialized until they first execute.
+/// - Reactors cannot run recursively, so there is no way for this sequence: event type A fires, reaction 1 reacts, event
+///   type A fires again, reaction 2 reacts (it was queued to react to the first event of type A). If that sequence is
+///   possible then reaction 2 will only see the second event of type A.
 ///
 /// It is only recommended to use this inside systems registered as event reactors with [`ReactCommands`]. The behavior
 /// is likely to be unexpected if used anywhere else.
 #[derive(SystemParam)]
 pub struct ReactEvents<'w, 's, E: Send + Sync + 'static>
 {
-    /// Event counter recording the id of the last react event sent before the system with this param was registered.
+    /// Event counter recording the id of the first react event sent after the system with this param was registered.
     sync: Local<'s, ReactEventSync>,
     /// Reads events.
     reader: EventReader<'w, 's, ReactEventInner<E>>,
@@ -88,7 +92,7 @@ impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
             .filter_map(
                 move |e|
                 {
-                    if e.event_id <= floor { return None; }
+                    if e.event_id < floor { return None; }
                     Some(&e.event)
                 }
             )

@@ -21,7 +21,7 @@ struct InteractionCallback<T>(PhantomData<T>);
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn try_register_named_system<T, I>(entity_commands: &mut EntityCommands, cb: CallbackSystem<I, ()>) -> Option<SysId>
+fn try_register_named_system<T, I>(entity_commands: &mut EntityCommands, cb: CallbackSystem<I, ()>) -> Option<SysName>
 where
     T: 'static,
     I: Send + Sync + 'static
@@ -31,27 +31,27 @@ where
 
     // prep the system id
     let entity = entity_commands.id();
-    let sys_id = SysId::new_raw::<InteractionCallback<T>>(entity.to_bits());
+    let sys_name = SysName::new_raw::<InteractionCallback<T>>(entity.to_bits());
 
     // register the callback
     entity_commands.commands().add(
             move |world: &mut World|
             {
                 if world.get_entity(entity).is_none() { return; }
-                register_named_system_from(world, sys_id, cb);
-                world.resource_mut::<InteractiveCallbackTracker>().add(entity, sys_id);
+                register_named_system_from(world, sys_name, cb);
+                world.resource_mut::<InteractiveCallbackTracker>().add(entity, sys_name);
             }
         );
 
-    Some(sys_id)
+    Some(sys_name)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn named_syscall_direct_basic(world: &mut World, sys_id: SysId)
+fn named_syscall_direct_basic(world: &mut World, sys_name: SysName)
 {
-    let _ = named_syscall_direct::<(), ()>(world, sys_id, ());
+    let _ = named_syscall_direct::<(), ()>(world, sys_name, ());
 }
 
 //-------------------------------------------------------------------------------------------------------------------

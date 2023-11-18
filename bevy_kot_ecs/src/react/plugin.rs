@@ -17,7 +17,8 @@ use bevy_fn_plugin::*;
 pub fn ReactPlugin(app: &mut App)
 {
     app.init_resource::<ReactCache>()
-        .init_resource::<ReactEventCounter>();
+        .init_resource::<ReactEventCounter>()
+        .setup_auto_despawn();
 }
 
 //-------------------------------------------------------------------------------------------------------------------

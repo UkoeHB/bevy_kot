@@ -200,7 +200,7 @@ impl<T: Send + Sync + 'static, I, O> SysCall<T, I, O>
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Represents a system callback.
-#[derive(Default)]
+#[derive(Default, Component)]
 pub enum CallbackSystem<I, O>
 {
     #[default]

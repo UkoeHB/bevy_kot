@@ -19,7 +19,7 @@ struct TestComponent;
 fn spawn_test_entity(mut commands: Commands, auto_despawn: Res<AutoDespawn>) -> AutoDespawnSignal
 {
     let entity = commands.spawn(TestComponent);
-    auto_despawn.signal(entity.id())
+    auto_despawn.prepare(entity.id())
 }
 
 //-------------------------------------------------------------------------------------------------------------------

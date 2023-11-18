@@ -69,4 +69,5 @@ bevy_kot_utils  = { path = "./bevy_kot_utils", version = "0.7.0", default-featur
 bevy               = { version = "0.11", default-features = true, features = [ "dynamic_linking" ] }
 bevy_lunex         = { version = "0.0.6" }
 bevy_lunex_core    = { version = "0.0.6" }
+tracing            = { version = "0.1" }
 tracing-subscriber = { version = "0.3" }
