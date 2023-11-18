@@ -1,5 +1,12 @@
 # Changelog
 
+## WIP
+
+### Changed
+
+- Rename: `IoReceiver::try_next()` -> `IoReceiver::try_recv()`.
+
+
 ## [0.8.0]
 
 ### Added

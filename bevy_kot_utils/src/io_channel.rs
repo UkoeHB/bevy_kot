@@ -58,7 +58,7 @@ impl<T> IoReceiver<T>
     /// Get the next available message.
     ///
     /// Returns `None` if there are no available messages or the channel is closed.
-    pub fn try_next(&mut self) -> Option<T>
+    pub fn try_recv(&mut self) -> Option<T>
     {
         let Ok(msg) = self.receiver.try_recv() else { return None; };
         Some(msg)
