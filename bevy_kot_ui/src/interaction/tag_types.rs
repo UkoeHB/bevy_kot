@@ -18,7 +18,7 @@ use std::marker::PhantomData;
 pub struct InteractiveElement<S: InteractionSource>
 {
     _s : ElementInteractionSource<S>,
-    _t : ElementInteractionTargeter<S::LunexUI, S::LunexCursor>,
+    _t : ElementInteractionTargeter<S::LunexUi, S::LunexCursor>,
 }
 
 impl<S: InteractionSource> Default for InteractiveElement<S>
@@ -28,13 +28,13 @@ impl<S: InteractionSource> Default for InteractiveElement<S>
 
 /// Interaction barrier that applies to any cursor interacting with a Lunex UI tree.
 #[derive(Component, Default, Copy, Clone, Eq, PartialEq, Debug)]
-pub struct UIInteractionBarrier<U: LunexUI> { _p: PhantomData<U> }
+pub struct UIInteractionBarrier<U: LunexUi> { _p: PhantomData<U> }
 
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Interaction barrier that applies to a specific cursor interacting with a Lunex UI tree.
 #[derive(Component, Default, Copy, Clone, Eq, PartialEq, Debug)]
-pub struct InteractionBarrier<U: LunexUI, C: LunexCursor> { _p: PhantomData<(U, C)> }
+pub struct InteractionBarrier<U: LunexUi, C: LunexCursor> { _p: PhantomData<(U, C)> }
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -166,9 +166,9 @@ impl<S: InteractionSource> Default for ElementInteractionSource<S>
 ///   interactions for any sources with the same UI/cursor pairing.
 /// - Note that elements may be targeted by multiple UI/cursor pairs.
 #[derive(Component, Copy, Clone, Eq, PartialEq, Debug)]
-pub(crate) struct ElementInteractionTargeter<U: LunexUI, C: LunexCursor> { _p: PhantomData<(U, C)> }
+pub(crate) struct ElementInteractionTargeter<U: LunexUi, C: LunexCursor> { _p: PhantomData<(U, C)> }
 
-impl<U: LunexUI, C: LunexCursor> Default for ElementInteractionTargeter<U, C>
+impl<U: LunexUi, C: LunexCursor> Default for ElementInteractionTargeter<U, C>
 { fn default() -> Self { Self{ _p: PhantomData::default() } } }
 
 //-------------------------------------------------------------------------------------------------------------------

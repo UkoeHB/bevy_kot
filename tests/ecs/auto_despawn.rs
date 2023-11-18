@@ -16,10 +16,10 @@ struct TestComponent;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn spawn_test_entity(mut commands: Commands, auto_despawn: Res<AutoDespawn>) -> AutoDespawnSignal
+fn spawn_test_entity(mut commands: Commands, despawner: Res<AutoDespawner>) -> AutoDespawnSignal
 {
     let entity = commands.spawn(TestComponent);
-    auto_despawn.prepare(entity.id())
+    despawner.prepare(entity.id())
 }
 
 //-------------------------------------------------------------------------------------------------------------------

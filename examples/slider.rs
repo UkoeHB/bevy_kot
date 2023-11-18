@@ -154,6 +154,7 @@ fn build_ui(mut ui: UiBuilder<MainUi>)
     slider_button_home_zone.fetch_mut(ui.tree()).unwrap().set_depth(zone_depth);
 
     // button entity
+    let despawner = ui.despawner.clone();
     let mut entity_commands = ui.commands().spawn_empty();
     let entity = entity_commands.id();
 
@@ -167,7 +168,7 @@ fn build_ui(mut ui: UiBuilder<MainUi>)
         .abort_press_if_obstructed()
         .on_startpress(move |world: &mut World| syscall(world, (entity, button_x_range_rel), initialize_slider_drag))
         .on_press_home(move |world: &mut World| syscall(world, entity, drag_slider))
-        .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
+        .build::<MouseLButtonMain>(&despawner, &mut entity_commands, button.clone())
         .unwrap();
     entity_commands.insert(UIInteractionBarrier::<MainUi>::default());
 }

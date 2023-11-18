@@ -75,7 +75,7 @@ pub fn relative_widget(
 
 /// Toggle between two sets of widgets.
 //todo: handle multiple uis (pass in UI entity)
-pub fn toggle_ui_visibility<U: LunexUI, const ON: usize, const OFF: usize>(
+pub fn toggle_ui_visibility<U: LunexUi, const ON: usize, const OFF: usize>(
     In((_, on_widgets, off_widgets)) : In<(U, [Widget; ON], [Widget; OFF])>,
     mut uis                          : Query<&mut UiTree, With<U>>,
 ){

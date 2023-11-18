@@ -23,10 +23,10 @@ struct DummyStyle;
 
 /// A style stack resource parameterized by the associated UI tree's type.
 #[derive(Resource, Default)]
-pub struct StyleStackRes<Ui: LunexUI>(StyleStack, PhantomData<Ui>);
+pub struct StyleStackRes<Ui: LunexUi>(StyleStack, PhantomData<Ui>);
 
-impl<Ui: LunexUI> Deref for StyleStackRes<Ui> { type Target = StyleStack; fn deref(&self) -> &Self::Target { &self.0 }}
-impl<Ui: LunexUI> DerefMut for StyleStackRes<Ui> { fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }}
+impl<Ui: LunexUi> Deref for StyleStackRes<Ui> { type Target = StyleStack; fn deref(&self) -> &Self::Target { &self.0 }}
+impl<Ui: LunexUi> DerefMut for StyleStackRes<Ui> { fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }}
 
 //-------------------------------------------------------------------------------------------------------------------
 

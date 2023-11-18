@@ -11,13 +11,13 @@ use core::any::TypeId;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn prepare_reactor<I, S, Marker>(commands: &mut Commands, auto_despawn: &AutoDespawn, reactor: S) -> AutoDespawnSignal
+fn prepare_reactor<I, S, Marker>(commands: &mut Commands, despawner: &AutoDespawner, reactor: S) -> AutoDespawnSignal
 where
     I: Send + Sync + 'static,
     S: IntoSystem<I, (), Marker> + Send + Sync + 'static,
 {
     let sys_id = commands.spawn_system(reactor);
-    auto_despawn.prepare(sys_id.entity())
+    despawner.prepare(sys_id.entity())
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -112,9 +112,9 @@ fn revoke_entity_reactor(
 #[derive(SystemParam)]
 pub struct ReactCommands<'w, 's>
 {
-    pub(crate) commands     : Commands<'w, 's>,
-    pub(crate) cache        : ResMut<'w, ReactCache>,
-    pub(crate) auto_despawn : Res<'w, AutoDespawn>,
+    pub(crate) commands  : Commands<'w, 's>,
+    pub(crate) cache     : ResMut<'w, ReactCache>,
+    pub(crate) despawner : Res<'w, AutoDespawner>,
 }
 
 impl<'w, 's> ReactCommands<'w, 's>
@@ -244,7 +244,7 @@ impl<'w, 's> ReactCommands<'w, 's>
     where
         I: Send + Sync + 'static
     {
-        let sys_handle = prepare_reactor(&mut self.commands, &self.auto_despawn, reactor);
+        let sys_handle = prepare_reactor(&mut self.commands, &self.despawner, reactor);
         reactor_registration(self, &sys_handle, triggers)
     }
 

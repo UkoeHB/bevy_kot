@@ -12,15 +12,15 @@ use std::marker::PhantomData;
 //-------------------------------------------------------------------------------------------------------------------
 
 #[derive(Resource, Debug, Default)]
-pub struct MouseLButton<U: LunexUI, C: LunexCursor>
+pub struct MouseLButton<U: LunexUi, C: LunexCursor>
 {
     _phantom: PhantomData<(U, C)>,
 }
 
-impl<U: LunexUI, C: LunexCursor> InteractionSource for MouseLButton<U, C>
+impl<U: LunexUi, C: LunexCursor> InteractionSource for MouseLButton<U, C>
 {
     type SourceParam = SRes<Input<MouseButton>>;
-    type LunexUI     = U;
+    type LunexUi     = U;
     type LunexCursor = C;
 
     fn just_clicked(&self, source: &SystemParamItem<SRes<Input<MouseButton>>>) -> bool
@@ -40,15 +40,15 @@ impl<U: LunexUI, C: LunexCursor> InteractionSource for MouseLButton<U, C>
 //-------------------------------------------------------------------------------------------------------------------
 
 #[derive(Resource, Debug, Default)]
-pub struct MouseRButton<U: LunexUI, C: LunexCursor>
+pub struct MouseRButton<U: LunexUi, C: LunexCursor>
 {
     _phantom: PhantomData<(U, C)>,
 }
 
-impl<U: LunexUI, C: LunexCursor> InteractionSource for MouseRButton<U, C>
+impl<U: LunexUi, C: LunexCursor> InteractionSource for MouseRButton<U, C>
 {
     type SourceParam = SRes<Input<MouseButton>>;
-    type LunexUI     = U;
+    type LunexUi     = U;
     type LunexCursor = C;
 
     fn just_clicked(&self, source: &SystemParamItem<SRes<Input<MouseButton>>>) -> bool

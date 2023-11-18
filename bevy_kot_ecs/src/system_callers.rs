@@ -426,7 +426,7 @@ where
     O: Send + Sync + 'static,
 {
     let sys_id = spawn_system_from(world, system);
-    world.resource::<AutoDespawn>().prepare(sys_id.0)
+    world.resource::<AutoDespawner>().prepare(sys_id.0)
 }
 
 //-------------------------------------------------------------------------------------------------------------------

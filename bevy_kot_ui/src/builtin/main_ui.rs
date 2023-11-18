@@ -12,6 +12,6 @@ use bevy::prelude::*;
 /// Used to tag the main UI for a given OS window.
 #[derive(Component, Default, Copy, Clone, Debug)]
 pub struct MainUi;
-impl LunexUI for MainUi {}
+impl LunexUi for MainUi {}
 
 //-------------------------------------------------------------------------------------------------------------------

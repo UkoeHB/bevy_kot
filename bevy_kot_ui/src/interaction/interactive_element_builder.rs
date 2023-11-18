@@ -8,50 +8,33 @@ use bevy::prelude::*;
 use bevy_lunex::prelude::*;
 
 //standard shortcuts
-use std::marker::PhantomData;
+
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-/// Wrapper type for callbacks.
-///
-/// Used to domain-separate named interaction callbacks from other named_syscall regimes.
-struct InteractionCallback<T>(PhantomData<T>);
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-fn try_register_named_system<T, I>(entity_commands: &mut EntityCommands, cb: CallbackSystem<I, ()>) -> Option<SysName>
-where
-    T: 'static,
-    I: Send + Sync + 'static
+fn sysid(handle: &AutoDespawnSignal) -> SysId
 {
-    // do nothing if there is no callback
-    if cb.is_empty() { return None; }
-
-    // prep the system id
-    let entity = entity_commands.id();
-    let sys_name = SysName::new_raw::<InteractionCallback<T>>(entity.to_bits());
-
-    // register the callback
-    entity_commands.commands().add(
-            move |world: &mut World|
-            {
-                if world.get_entity(entity).is_none() { return; }
-                register_named_system_from(world, sys_name, cb);
-                world.resource_mut::<InteractiveCallbackTracker>().add(entity, sys_name);
-            }
-        );
-
-    Some(sys_name)
+    SysId::new(handle.entity())
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn named_syscall_direct_basic(world: &mut World, sys_name: SysName)
+fn try_spawn_system<I: Send + Sync + 'static>(
+    despawner       : &AutoDespawner,
+    entity_commands : &mut EntityCommands,
+    cb              : CallbackSystem<I, ()>
+) -> Option<AutoDespawnSignal>
 {
-    let _ = named_syscall_direct::<(), ()>(world, sys_name, ());
+    // do nothing if there is no callback
+    if cb.is_empty() { return None; }
+
+    // register the callback
+    let sys_id = entity_commands.commands().spawn_system_from(cb);
+    let signal = despawner.prepare(sys_id.entity());
+
+    Some(signal)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -196,7 +179,7 @@ fn toggle_widget_pack_visibility(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn update_interactive_element_visibility<U: LunexUI>(
+fn update_interactive_element_visibility<U: LunexUi>(
     In((entity, mut pack)) : In<(Entity, InteractiveElementWidgetPack)>,
     pressed                : Query<&Pressed>,
     selected               : Query<(), With<Selected>>,
@@ -347,6 +330,7 @@ fn prepare_hover_fixer(
 
 fn maybe_build_action_start_press<H, V>(
     need_press                   : bool,
+    despawner                    : &AutoDespawner,
     entity_commands              : &mut EntityCommands,
     element_entity               : Entity,
     select_on_press_start        : bool,
@@ -367,7 +351,7 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let startpress_callback_id = try_register_named_system::<StartPress, ()>(entity_commands, startpress_callback);
+    let startpress_callback_handle = try_spawn_system(despawner, entity_commands, startpress_callback);
 
     // callback
     let press_start_callback = Callback::<StartPress>::new(
@@ -383,7 +367,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = startpress_callback_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &startpress_callback_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // update visibility
                 vis_updater(world);
@@ -399,6 +383,7 @@ where
 
 fn maybe_build_action_unpress<H, V>(
     need_press                   : bool,
+    despawner                    : &AutoDespawner,
     entity_commands              : &mut EntityCommands,
     element_entity               : Entity,
     select_on_unpress            : bool,
@@ -419,7 +404,7 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let unpress_callback_id = try_register_named_system::<UnPress, ()>(entity_commands, unpress_callback);
+    let unpress_callback_handle = try_spawn_system(despawner, entity_commands, unpress_callback);
 
     // callback
     let unpress_callback = Callback::<UnPress>::new(
@@ -435,7 +420,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = unpress_callback_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &unpress_callback_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // update visibility
                 vis_updater(world);
@@ -451,6 +436,7 @@ where
 
 fn maybe_build_action_abort_press<H, V>(
     need_press                   : bool,
+    despawner                    : &AutoDespawner,
     entity_commands              : &mut EntityCommands,
     element_entity               : Entity,
     no_hover_on_pressed          : bool,
@@ -471,7 +457,7 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let abortpress_callback_id = try_register_named_system::<AbortPress, ()>(entity_commands, abortpress_callback);
+    let abortpress_callback_handle = try_spawn_system(despawner, entity_commands, abortpress_callback);
 
     // callback
     let abort_press_callback = Callback::<AbortPress>::new(
@@ -484,7 +470,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = abortpress_callback_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &abortpress_callback_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // update visibility
                 vis_updater(world);
@@ -500,6 +486,7 @@ where
 
 fn maybe_build_action_select<H, V>(
     need_select                  : bool,
+    despawner                    : &AutoDespawner,
     entity_commands              : &mut EntityCommands,
     element_entity               : Entity,
     with_select_toggling         : bool,
@@ -520,7 +507,7 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let select_callback_id = try_register_named_system::<Select, ()>(entity_commands, select_callback);
+    let select_callback_handle = try_spawn_system(despawner, entity_commands, select_callback);
 
     // callback
     let press_start_callback = Callback::<Select>::new(
@@ -538,7 +525,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = select_callback_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &select_callback_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // update visibility
                 vis_updater(world);
@@ -554,6 +541,7 @@ where
 
 fn maybe_build_action_deselect<H, V>(
     need_select                  : bool,
+    despawner                    : &AutoDespawner,
     entity_commands              : &mut EntityCommands,
     element_entity               : Entity,
     no_hover_on_selected         : bool,
@@ -573,7 +561,7 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let deselect_callback_id = try_register_named_system::<Deselect, ()>(entity_commands, deselect_callback);
+    let deselect_callback_handle = try_spawn_system(despawner, entity_commands, deselect_callback);
 
     // callback
     let press_start_callback = Callback::<Deselect>::new(
@@ -586,7 +574,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback
-                if let Some(id) = deselect_callback_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &deselect_callback_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // update visibility
                 vis_updater(world);
@@ -601,6 +589,7 @@ where
 //-------------------------------------------------------------------------------------------------------------------
 
 fn maybe_build_responder_on_click(
+    despawner         : &AutoDespawner,
     entity_commands   : &mut EntityCommands,
     element_entity    : Entity,
     press_on_click    : bool,
@@ -611,7 +600,7 @@ fn maybe_build_responder_on_click(
     if !(press_on_click || select_on_click || on_click_callback.has_system()) { return; }
 
     // register the callback
-    let on_click_callback_id = try_register_named_system::<Deselect, ()>(entity_commands, on_click_callback);
+    let on_click_callback_handle = try_spawn_system(despawner, entity_commands, on_click_callback);
 
     // callback
     let on_click_callback = Callback::<OnClick>::new(
@@ -624,7 +613,7 @@ fn maybe_build_responder_on_click(
                 if select_on_click { let _ = try_callback::<Select>(world, element_entity); }
 
                 // invoke user-defined callback
-                if let Some(id) = on_click_callback_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &on_click_callback_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
             }
         );
 
@@ -636,6 +625,7 @@ fn maybe_build_responder_on_click(
 //-------------------------------------------------------------------------------------------------------------------
 
 fn maybe_build_responder_on_click_hold(
+    despawner             : &AutoDespawner,
     entity_commands       : &mut EntityCommands,
     element_entity        : Entity,
     press_on_clickhold    : bool,
@@ -645,7 +635,7 @@ fn maybe_build_responder_on_click_hold(
     if !(press_on_clickhold || on_clickhold_callback.has_system()) { return; }
 
     // register the callback
-    let on_clickhold_callback_id = try_register_named_system::<Deselect, ()>(entity_commands, on_clickhold_callback);
+    let on_clickhold_callback_handle = try_spawn_system(despawner, entity_commands, on_clickhold_callback);
 
     // callback
     let on_click_hold_callback = Callback::<OnClickHold>::new(
@@ -655,7 +645,7 @@ fn maybe_build_responder_on_click_hold(
                 if press_on_clickhold { let _ = try_callback::<StartPress>(world, element_entity); }
 
                 // invoke user-defined callback
-                if let Some(id) = on_clickhold_callback_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &on_clickhold_callback_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
             }
         );
 
@@ -666,11 +656,9 @@ fn maybe_build_responder_on_click_hold(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-struct PressHomeStart;
-struct PressHomeAlways;
-
 fn maybe_build_responder_on_click_hold_home<H, V>(
     need_press                   : bool,
+    despawner                    : &AutoDespawner,
     entity_commands              : &mut EntityCommands,
     element_entity               : Entity,
     no_hover_on_pressed          : bool,
@@ -691,15 +679,15 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callbacks
-    let press_home_start_id = try_register_named_system::<PressHomeStart, ()>(entity_commands, press_home_start_callback);
-    let press_home_id = try_register_named_system::<PressHomeAlways, ()>(entity_commands, press_home_callback);
+    let press_home_start_handle = try_spawn_system(despawner, entity_commands, press_home_start_callback);
+    let press_home_handle = try_spawn_system(despawner, entity_commands, press_home_callback);
 
     // callback
     let on_click_hold_home_callback = Callback::<OnClickHoldHome>::new(
             move |world: &mut World|
             {
                 // invoke user-defined callback: press home (always)
-                if let Some(id) = press_home_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &press_home_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // try to update `Pressed` component to `Pressed::Home`
                 // - we leave if already in `Pressed::Home` because the remaining work is only needed when transitioning
@@ -710,7 +698,7 @@ where
                 if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                 // invoke user-defined callback: press home (start)
-                if let Some(id) = press_home_start_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &press_home_start_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // update visibility
                 vis_updater(world);
@@ -724,13 +712,9 @@ where
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-struct PressAwayStart;
-struct PressAwayAlways;
-struct PressAwayPresent;
-struct PressAwayObstructed;
-
 fn maybe_build_responder_on_click_hold_away<H, V>(
     need_press                     : bool,
+    despawner                      : &AutoDespawner,
     entity_commands                : &mut EntityCommands,
     element_entity                 : Entity,
     abort_press_on_press_away      : bool,
@@ -756,22 +740,10 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callbacks
-    let press_away_start_id = try_register_named_system::<PressAwayStart, ()>(
-            entity_commands,
-            press_away_start_callback
-        );
-    let press_away_always_id = try_register_named_system::<PressAwayAlways, ()>(
-            entity_commands,
-            press_away_always_callback
-        );
-    let press_away_present_id = try_register_named_system::<PressAwayPresent, ()>(
-            entity_commands,
-            press_away_present_callback
-        );
-    let press_away_obstructed_id = try_register_named_system::<PressAwayObstructed, ()>(
-            entity_commands,
-            press_away_obstructed_callback
-        );
+    let press_away_start_handle = try_spawn_system(despawner, entity_commands, press_away_start_callback);
+    let press_away_always_handle = try_spawn_system(despawner, entity_commands, press_away_always_callback);
+    let press_away_present_handle = try_spawn_system(despawner, entity_commands, press_away_present_callback);
+    let press_away_obstructed_handle = try_spawn_system(despawner, entity_commands, press_away_obstructed_callback);
 
     // callback
     let on_click_hold_away_callback = CallbackWith::<OnClickHoldAway, bool>::new(
@@ -796,21 +768,21 @@ where
                     if let Some(hover_fixer) = &hover_fixer { hover_fixer(world); }
 
                     // invoke user-defined callback: press away start
-                    if let Some(id) = press_away_start_id { named_syscall_direct_basic(world, id); }
+                    if let Some(h) = &press_away_start_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
                 }
 
                 // invoke user-defined callback: press away (always)
-                if let Some(id) = press_away_always_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &press_away_always_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // invoke user-defined callback: press away (if present)
                 if is_present
                 {
-                    if let Some(id) = press_away_present_id { named_syscall_direct_basic(world, id); }
+                    if let Some(h) = &press_away_present_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
                 }
                 // invoke user-defined callback: press away (if obstructed)
                 else
                 {
-                    if let Some(id) = press_away_obstructed_id { named_syscall_direct_basic(world, id); }
+                    if let Some(h) = &press_away_obstructed_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
                 }
 
                 // update visibility
@@ -827,6 +799,7 @@ where
 
 fn maybe_build_responder_on_unclick(
     need_press                  : bool,
+    despawner                   : &AutoDespawner,
     entity_commands             : &mut EntityCommands,
     element_entity              : Entity,
     unpress_on_unclick_home     : bool,
@@ -838,14 +811,14 @@ fn maybe_build_responder_on_unclick(
     if !need_press { return; }
 
     // register the callback
-    let on_unclick_id = try_register_named_system::<OnUnClick, bool>(entity_commands, on_unclick_callback);
+    let on_unclick_handle = try_spawn_system(despawner, entity_commands, on_unclick_callback);
 
     // callback
     let on_unclick_callback = CallbackWith::<OnUnClick, bool>::new(
             move | world: &mut World, unclick_on_home: bool|
             {
                 // invoke user-defined callback
-                if let Some(id) = on_unclick_id { let _ = named_syscall_direct::<bool, ()>(world, id, unclick_on_home); }
+                if let Some(h) = &on_unclick_handle { let _ = spawned_syscall::<bool, ()>(world, sysid(h), unclick_on_home); }
 
                 if unclick_on_home
                 {
@@ -870,10 +843,9 @@ fn maybe_build_responder_on_unclick(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-struct OnHoverStart;
-
 fn maybe_build_responder_on_hover<V>(
     need_hover                   : bool,
+    despawner                    : &AutoDespawner,
     entity_commands              : &mut EntityCommands,
     element_entity               : Entity,
     no_hover_on_selected         : bool,
@@ -893,8 +865,8 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callbacks
-    let on_hover_start_id = try_register_named_system::<OnHoverStart, ()>(entity_commands, on_hover_start_callback);
-    let on_hover_id = try_register_named_system::<OnHover, ()>(entity_commands, on_hover_callback);
+    let on_hover_start_handle = try_spawn_system(despawner, entity_commands, on_hover_start_callback);
+    let on_hover_handle = try_spawn_system(despawner, entity_commands, on_hover_callback);
 
     // callback
     let on_hover_callback = Callback::<OnHover>::new(
@@ -918,11 +890,11 @@ where
                     if select_on_hover_start { let _ = try_callback::<Select>(world, element_entity); }
 
                     // invoke user-defined callback: hover start
-                    if let Some(id) = on_hover_start_id { named_syscall_direct_basic(world, id); }
+                    if let Some(h) = &on_hover_start_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
                 }
 
                 // invoke user-defined callback: hover
-                if let Some(id) = on_hover_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &on_hover_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // update visibility
                 if started_hovering { vis_updater(world); }
@@ -938,6 +910,7 @@ where
 
 fn maybe_build_responder_on_unhover<V>(
     need_hover               : bool,
+    despawner                : &AutoDespawner,
     entity_commands          : &mut EntityCommands,
     element_entity           : Entity,
     on_unhover_callback      : CallbackSystem<(), ()>,
@@ -952,7 +925,7 @@ where
     let vis_updater = update_widget_visibility.clone();
 
     // register the callback
-    let on_unhover_id = try_register_named_system::<OnUnHover, ()>(entity_commands, on_unhover_callback);
+    let on_unhover_handle = try_spawn_system(despawner, entity_commands, on_unhover_callback);
 
     // callback
     let on_unhover_callback = Callback::<OnUnHover>::new(
@@ -962,7 +935,7 @@ where
                 let Some(_) = try_remove_component_from_entity::<Hovered>(world, element_entity) else { return; };
 
                 // invoke user-defined callback
-                if let Some(id) = on_unhover_id { named_syscall_direct_basic(world, id); }
+                if let Some(h) = &on_unhover_handle { let _ = spawned_syscall::<(), ()>(world, sysid(h), ()); }
 
                 // update visibility
                 vis_updater(world);
@@ -974,14 +947,6 @@ where
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
-/// Tag type for interactive elements.
-///
-/// Used to capture element despawns for cleanup.
-#[derive(Component, Copy, Clone, Debug)]
-pub(crate) struct InteractiveElementTag;
-
 //-------------------------------------------------------------------------------------------------------------------
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -1056,10 +1021,10 @@ impl InteractiveElementWidgetPack
 /// with any elements associated with that source. If you don't want the built-in pipeline, then you can implement your
 /// own using the element's callbacks. If you want multiple interaction sources to control the same element, then you
 /// can add an `InteractiveElement<[source]>` component to the element entity for each additional source. Note that
-/// an interaction source will only work for an element if the element's parent UI tree has the source's `LunexUI` tag.
+/// an interaction source will only work for an element if the element's parent UI tree has the source's `LunexUi` tag.
 ///
 /// When it comes to deciding which element in a stack of overlapping elements should respond to an interaction source
-/// event, we use 'interactive element targeting' based on a {`LunexUI`, `LunexCursor`} pair. Only the highest element
+/// event, we use 'interactive element targeting' based on a {`LunexUi`, `LunexCursor`} pair. Only the highest element
 /// with a specific targeting will be interacted with by sources that use that targeting. You can add targeting to any
 /// entity with `EnableInteractiveElementTargeting`, and if that entity has a Lunex widget then it will contribute to
 /// targeting selection. If you want overlapping elements to interact with the same source, you can make two sources that
@@ -1552,9 +1517,10 @@ impl InteractiveElementBuilder
     /// - If you want multiple interaction sources, add `InteractiveElement<[source]>::default()` bundles to the element
     ///   for each additional source. Use the `DisableElementInteractionSource` and `DisableInteractiveElementTargeting`
     ///   commands to disable a source or targeting on an element. Note that if an element's parent UI does not have a
-    ///   copy of a source's `LunexUI` tag, then the source is unlikely to work as intended.
+    ///   copy of a source's `LunexUi` tag, then the source is unlikely to work as intended.
     pub fn build<S: InteractionSource>(
         self,
+        despawner       : &AutoDespawner,
         entity_commands : &mut EntityCommands,
         element_widget  : Widget,
     ) -> Result<(), InteractiveElementBuilderError>
@@ -1577,7 +1543,6 @@ impl InteractiveElementBuilder
                 (
                     element_widget.clone(),
                     InteractiveElement::<S>::default(),
-                    InteractiveElementTag,
                 )
             );
         if need_press { entity_commands.insert(PressHomeZone(press_home_zone)); }
@@ -1596,7 +1561,7 @@ impl InteractiveElementBuilder
                 if let Err(_) = syscall(
                         world,
                         (element_entity, widget_pack.clone()),
-                        update_interactive_element_visibility::<S::LunexUI>,
+                        update_interactive_element_visibility::<S::LunexUi>,
                     )
                 { tracing::warn!(?element_entity, ?element_widget, "failed updating element visibility"); }
             };
@@ -1621,6 +1586,7 @@ impl InteractiveElementBuilder
         //update visibility
         maybe_build_action_start_press(
                 need_press,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.select_on_press_start,
@@ -1640,6 +1606,7 @@ impl InteractiveElementBuilder
         //update visibility
         maybe_build_action_unpress(
                 need_press,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.select_on_unpress,
@@ -1658,6 +1625,7 @@ impl InteractiveElementBuilder
         //update visibility
         maybe_build_action_abort_press(
                 need_press,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.no_hover_on_pressed,
@@ -1676,6 +1644,7 @@ impl InteractiveElementBuilder
         //update visibility
         maybe_build_action_select(
                 need_select,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.with_select_toggling,
@@ -1694,6 +1663,7 @@ impl InteractiveElementBuilder
         //update visibility
         maybe_build_action_deselect(
                 need_select,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.no_hover_on_selected,
@@ -1709,6 +1679,7 @@ impl InteractiveElementBuilder
         //[option] action: select
         //callback: on click
         maybe_build_responder_on_click(
+                despawner,
                 entity_commands,
                 element_entity,
                 self.press_on_click,
@@ -1720,6 +1691,7 @@ impl InteractiveElementBuilder
         //[option] action: start press
         //callback: on click hold
         maybe_build_responder_on_click_hold(
+                despawner,
                 entity_commands,
                 element_entity,
                 self.press_on_clickhold,
@@ -1735,6 +1707,7 @@ impl InteractiveElementBuilder
         //update visibility
         maybe_build_responder_on_click_hold_home(
                 need_press,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.no_hover_on_pressed,
@@ -1764,6 +1737,7 @@ impl InteractiveElementBuilder
         // update visibility
         maybe_build_responder_on_click_hold_away(
                 need_press,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.abort_press_on_press_away,
@@ -1789,6 +1763,7 @@ impl InteractiveElementBuilder
         // [option] action: unpress
         maybe_build_responder_on_unclick(
                 need_press,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.unpress_on_unclick_home,
@@ -1808,6 +1783,7 @@ impl InteractiveElementBuilder
         // update visibility
         maybe_build_responder_on_hover(
                 need_hover,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.no_hover_on_selected,
@@ -1826,6 +1802,7 @@ impl InteractiveElementBuilder
         //update visibility
         maybe_build_responder_on_unhover(
                 need_hover,
+                despawner,
                 entity_commands,
                 element_entity,
                 self.on_unhover_callback,
@@ -1833,6 +1810,20 @@ impl InteractiveElementBuilder
             );
 
         Ok(())
+    }
+
+    /// Consume the builder to build interactivity into the element.
+    /// - See [`InteractiveElementBuilder::build()`] for more details.
+    pub fn spawn_with<S: InteractionSource>(
+        self,
+        ui             : &mut UiBuilder<S::LunexUi>,
+        element_widget : Widget,
+    ) -> Result<Entity, InteractiveElementBuilderError>
+    {
+        let despawner = ui.despawner.clone();
+        let mut entity_commands = ui.commands().spawn_empty();
+        self.build::<S>(&despawner, &mut entity_commands, element_widget)?;
+        Ok(entity_commands.id())
     }
 
     fn element_is_pressable(&self) -> bool

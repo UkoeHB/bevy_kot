@@ -111,14 +111,13 @@ fn spawn_button(ui: &mut UiBuilder<MainUi>, area: &Widget, x: f32, y: f32)
     add_button_rect(ui, &pressed_widget, Color::DARK_GRAY);
 
     // button interactivity
-    let mut entity_commands = ui.commands().spawn_empty();
     InteractiveElementBuilder::new()
         .with_default_widget(default_widget)
         .with_pressed_widget(pressed_widget)
         .press_on_click_or_hold()
         .unpress_on_press_away_or_unclick_any()
         .abort_press_if_obstructed()
-        .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
+        .spawn_with::<MouseLButtonMain>(ui, button.clone())
         .unwrap();
 }
 

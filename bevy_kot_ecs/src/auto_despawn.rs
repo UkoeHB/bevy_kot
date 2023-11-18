@@ -27,9 +27,9 @@ impl Drop for AutoDespawnSignalInner
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn auto_despawn(mut commands: Commands, despawns: Res<AutoDespawn>)
+fn auto_despawn(mut commands: Commands, despawner: Res<AutoDespawner>)
 {
-    while let Some(entity) = despawns.try_recv()
+    while let Some(entity) = despawner.try_recv()
     {
         let Some(mut entity_commands) = commands.get_entity(entity) else { continue; };
         entity_commands.despawn();
@@ -41,13 +41,13 @@ fn auto_despawn(mut commands: Commands, despawns: Res<AutoDespawn>)
 
 /// Creates [`AutoDespawnSignal`]s.
 #[derive(Resource, Clone)]
-pub struct AutoDespawn
+pub struct AutoDespawner
 {
     sender: Sender<Entity>,
     receiver: Receiver<Entity>,
 }
 
-impl AutoDespawn
+impl AutoDespawner
 {
     fn new() -> Self
     {
@@ -107,8 +107,8 @@ impl AutoDespawnAppExt for App
 {
     fn setup_auto_despawn(&mut self) -> &mut Self
     {
-        if self.world.contains_resource::<AutoDespawn>() { return self; }
-        self.insert_resource(AutoDespawn::new())
+        if self.world.contains_resource::<AutoDespawner>() { return self; }
+        self.insert_resource(AutoDespawner::new())
             .add_systems(Last, auto_despawn)
     }
 }

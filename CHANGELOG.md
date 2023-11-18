@@ -7,10 +7,14 @@
 - `UiBuilder::div_rel()` makes it simpler to write divs for relative widgets.
 - `AutoDespawn` resource for garbage collecting entities.
 - `Sender`/`Receiver` unbounded MPMC channel and `IoSender`/`IoReceiver` unbounded MPMC channel.
+- `InteractiveElementBuilder::build()` now requires an `AutoDespawn` reference.
+- `InteractiveElementBuilder::spawn_with()` takes a `UiBuilder`.
 
 ### Changed
 
-- Renamed the builtin `MainUI` to `MainUi`.
+- Rename: `MainUI` -> `MainUi`.
+- Rename: `LunexUI` -> `LunexUi`.
+- Improved callback cleanup handling in react framework and interactive element builder.
 
 
 ## [0.7.0]

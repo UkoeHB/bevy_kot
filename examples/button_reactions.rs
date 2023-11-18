@@ -122,16 +122,16 @@ fn setup_button(ui: &mut UiBuilder<MainUi>, button: Widget)
     };
 
     // button interactivity
-    let mut entity_commands = ui.commands().spawn_empty();
-    InteractiveElementBuilder::new()
+    let entity = InteractiveElementBuilder::new()
         .with_default_widget(default_widget)
         .with_pressed_widget(pressed_widget)
         .press_on_click()
         .unpress_on_unclick_home_and_abort_on_unclick_away()
         .abort_press_if_obstructed()
         .on_unpress(increment_button_counter)
-        .build::<MouseLButtonMain>(&mut entity_commands, button.clone())
+        .spawn_with::<MouseLButtonMain>(ui,  button.clone())
         .unwrap();
+    let mut entity_commands = ui.commands().entity(entity);
     entity_commands.insert(UIInteractionBarrier::<MainUi>::default());
 
     // button text

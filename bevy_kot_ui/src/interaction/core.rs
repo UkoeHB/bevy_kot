@@ -10,7 +10,7 @@ use bevy_lunex::prelude::*;
 
 /// Components with this trait are used to tag `bevy_lunex::UiTree`s for accurate filtering in interaction pipelines.
 /// - Currently only one UI per OS window may have a given tag.
-pub trait LunexUI: Component {}
+pub trait LunexUi: Component {}
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -77,7 +77,7 @@ pub trait LunexCursor: Component
 //-------------------------------------------------------------------------------------------------------------------
 
 /// An interaction source represents a source of interactions (hovers and clicks) for `bevy_lunex::UiTrees` with a
-/// specific `LunexUI` tag.
+/// specific `LunexUi` tag.
 ///
 /// To process interactions with a source, you must register it with `register_interaction_source`. Sources are
 /// implemented as bevy Resources, allowing you to manage the internal state of the source at runtime.
@@ -87,7 +87,7 @@ pub trait LunexCursor: Component
 pub trait InteractionSource: Resource
 {
     type SourceParam: SystemParam;
-    type LunexUI: LunexUI;
+    type LunexUi: LunexUi;
     type LunexCursor: LunexCursor;
 
     fn just_clicked(&self, source: &SystemParamItem<Self::SourceParam>) -> bool;

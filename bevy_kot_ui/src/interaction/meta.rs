@@ -1,5 +1,6 @@
 //local shortcuts
 use crate::*;
+use bevy_kot_ecs::*;
 
 //third-party shortcuts
 use bevy::ecs::system::Command;
@@ -71,18 +72,18 @@ impl<S: InteractionSource> Command for DisableElementInteractionSource<S>
 
 /// Enable interaction targeting on an entity.
 /// - To disable, use the `DisableInteractiveElementTargeting` command.
-pub struct EnableInteractiveElementTargeting<U: LunexUI, C: LunexCursor>
+pub struct EnableInteractiveElementTargeting<U: LunexUi, C: LunexCursor>
 {
     entity : Entity,
     _p     : PhantomData<(U, C)>,
 }
 
-impl<U: LunexUI, C: LunexCursor> EnableInteractiveElementTargeting<U, C>
+impl<U: LunexUi, C: LunexCursor> EnableInteractiveElementTargeting<U, C>
 {
     pub fn new(entity: Entity) -> Self { Self{ entity, _p: PhantomData::default() } }
 } 
 
-impl<U: LunexUI, C: LunexCursor> Command for EnableInteractiveElementTargeting<U, C>
+impl<U: LunexUi, C: LunexCursor> Command for EnableInteractiveElementTargeting<U, C>
 {
     fn apply(self, world: &mut World)
     {
@@ -100,18 +101,18 @@ impl<U: LunexUI, C: LunexCursor> Command for EnableInteractiveElementTargeting<U
 
 /// Disable interaction targeting on an entity.
 /// - To re-enable, use the `EnableInteractiveElementTargeting` command.
-pub struct DisableInteractiveElementTargeting<U: LunexUI, C: LunexCursor>
+pub struct DisableInteractiveElementTargeting<U: LunexUi, C: LunexCursor>
 {
     entity : Entity,
     _p     : PhantomData<(U, C)>
 }
 
-impl<U: LunexUI, C: LunexCursor> DisableInteractiveElementTargeting<U, C>
+impl<U: LunexUi, C: LunexCursor> DisableInteractiveElementTargeting<U, C>
 {
     pub fn new(entity: Entity) -> Self { Self{ entity, _p: PhantomData::default() } }
 } 
 
-impl<U: LunexUI, C: LunexCursor> Command for DisableInteractiveElementTargeting<U, C>
+impl<U: LunexUi, C: LunexCursor> Command for DisableInteractiveElementTargeting<U, C>
 {
     fn apply(self, world: &mut World)
     {
@@ -147,7 +148,7 @@ impl RegisterInteractionSourceExt for App
     ///   `interaction_pipeline<[source]>` systems in schedule `First`.
     fn register_interaction_source<S: InteractionSource>(&mut self, interaction_source: S) -> &mut Self
     {
-        self.init_resource::<InteractiveCallbackTracker>()  //todo: redundant with multiple sources
+        self.setup_auto_despawn()
             .init_resource::<InteractionSourceRunner<S>>()
             .insert_resource(interaction_source)
             .add_systems(First,
@@ -156,7 +157,6 @@ impl RegisterInteractionSourceExt for App
                     .run_if(resource_exists::<S>())
                     .in_set(InteractionSourceSet)
             )
-            .add_systems(Last, cleanup_interactive_callbacks)  //todo: redundant with multiple sources
     }
 }
 

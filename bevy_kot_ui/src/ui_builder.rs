@@ -21,16 +21,17 @@ use std::sync::Arc;
 /// in order to re-use them between UI construction systems, or you can manually add stack frames if you want custom
 /// style management.
 #[derive(SystemParam)]
-pub struct UiBuilder<'w, 's, Ui: LunexUI>
+pub struct UiBuilder<'w, 's, Ui: LunexUi>
 {
     pub rcommands    : ReactCommands<'w, 's>,
     pub asset_server : ResMut<'w, AssetServer>,
     pub style_stack  : ResMut<'w, StyleStackRes<Ui>>,
+    pub despawner    : Res<'w, AutoDespawner>,
 
     ui: Query<'w, 's, &'static mut UiTree, With<Ui>>,  //todo: what about trees in different windows?
 }
 
-impl<'w, 's, Ui: LunexUI> UiBuilder<'w, 's, Ui>
+impl<'w, 's, Ui: LunexUi> UiBuilder<'w, 's, Ui>
 {
     /// Get `Commands`.
     pub fn commands<'a>(&'a mut self) -> &'a mut Commands<'w, 's>
