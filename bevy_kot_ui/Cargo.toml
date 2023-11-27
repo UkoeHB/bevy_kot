@@ -26,3 +26,4 @@ tracing          = { workspace = true }
 
 bevy_kot_derive = { workspace = true }
 bevy_kot_ecs    = { workspace = true }
+bevy_kot_utils  = { workspace = true }
