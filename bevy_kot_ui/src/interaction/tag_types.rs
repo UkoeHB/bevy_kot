@@ -28,7 +28,7 @@ impl<S: InteractionSource> Default for InteractiveElement<S>
 
 /// Interaction barrier that applies to any cursor interacting with a Lunex UI tree.
 #[derive(Component, Default, Copy, Clone, Eq, PartialEq, Debug)]
-pub struct UIInteractionBarrier<U: LunexUi> { _p: PhantomData<U> }
+pub struct UiInteractionBarrier<U: LunexUi> { _p: PhantomData<U> }
 
 //-------------------------------------------------------------------------------------------------------------------
 

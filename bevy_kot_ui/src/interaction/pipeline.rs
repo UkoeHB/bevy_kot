@@ -39,7 +39,7 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
     home_zone_param : StaticSystemParam<<<S as InteractionSource>::LunexCursor as LunexCursor>::HomeZoneParam>,
     barrier_widgets : Query<
         (Entity, &Widget),
-        Or<(With<UIInteractionBarrier<S::LunexUi>>, With<InteractionBarrier<S::LunexUi, S::LunexCursor>>)>
+        Or<(With<UiInteractionBarrier<S::LunexUi>>, With<InteractionBarrier<S::LunexUi, S::LunexCursor>>)>
     >,
     unpressed_elements: Query<
         (Entity, &Widget),

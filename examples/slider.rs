@@ -170,7 +170,7 @@ fn build_ui(mut ui: UiBuilder<MainUi>)
         .on_press_home(move |world: &mut World| syscall(world, entity, drag_slider))
         .build::<MouseLButtonMain>(&despawner, &mut entity_commands, button.clone())
         .unwrap();
-    entity_commands.insert(UIInteractionBarrier::<MainUi>::default());
+    entity_commands.insert(UiInteractionBarrier::<MainUi>::default());
 }
 
 //-------------------------------------------------------------------------------------------------------------------

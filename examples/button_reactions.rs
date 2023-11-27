@@ -132,7 +132,7 @@ fn setup_button(ui: &mut UiBuilder<MainUi>, button: Widget)
         .spawn_with::<MouseLButtonMain>(ui,  button.clone())
         .unwrap();
     let mut entity_commands = ui.commands().entity(entity);
-    entity_commands.insert(UIInteractionBarrier::<MainUi>::default());
+    entity_commands.insert(UiInteractionBarrier::<MainUi>::default());
 
     // button text
     entity_commands.insert(

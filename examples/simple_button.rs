@@ -62,7 +62,7 @@ fn build_ui(mut ui: UiBuilder<MainUi>)
         .spawn_with::<MouseLButtonMain>(&mut ui, button.clone())
         .unwrap();
     let mut entity_commands = ui.commands().entity(entity);
-    entity_commands.insert(UIInteractionBarrier::<MainUi>::default());
+    entity_commands.insert(UiInteractionBarrier::<MainUi>::default());
 
     // button text
     entity_commands.insert(

@@ -5,6 +5,7 @@
 ### Changed
 
 - Rename: `IoReceiver::try_next()` -> `IoReceiver::try_recv()`.
+- Rename: `UIInteractionBarrier` -> `UiInteractionBarrier`.
 
 
 ## [0.8.0]
