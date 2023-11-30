@@ -94,11 +94,11 @@ fn setup(mut commands: Commands, window: Query<Entity, (With<Window>, With<Prima
         );
 
     // make lunex cursor
-    commands.spawn((Cursor::new(0.0), Transform::default()));
+    commands.spawn((Cursor::new(), Transform::default()));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUI>::default());
-    let tree = UiTree::<MainUI>::new("ui");
+    commands.insert_resource(StyleStackRes::<MainUi>::default());
+    let tree = UiTree::<MainUi>::new("ui");
 
     let window = window.single();
     commands.entity(window).insert(tree.bundle());
@@ -118,7 +118,7 @@ fn main()
                 }
             )
         )
-        .add_plugins(LunexUiPlugin2D::<MainUI>::new())
+        .add_plugins(LunexUiPlugin2D::<MainUi>::new())
         .add_plugins(ReactPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
         .add_systems(PreStartup, setup)

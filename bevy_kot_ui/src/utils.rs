@@ -12,7 +12,7 @@ use std::borrow::Borrow;
 
 /// Test if a cursor intersects with a widget.
 /// - Returns `Ok(Some(widget_depth))` on success (for use in `LunexCursor` methods).
-pub fn cursor_intersects_widget<Ui: LunexUI>(
+pub fn cursor_intersects_widget<Ui: LunexUi>(
     cursor_screen_position : Vec2,
     ui                     : &UiTree<Ui>,
     widget                 : &Widget,
@@ -37,7 +37,7 @@ pub fn cursor_intersects_widget<Ui: LunexUI>(
 /// Make a widget that exactly overlaps its parent widget.
 /// - Panics if unable to create a widget (mostly likely because the widget name already exists in the tree with the
 ///   specified parent).
-pub fn make_overlay<Ui: LunexUI>(
+pub fn make_overlay<Ui: LunexUi>(
     ui                 : &mut UiTree<Ui>,
     parent             : &Widget,
     overlay_name       : &str,
@@ -58,7 +58,7 @@ pub fn make_overlay<Ui: LunexUI>(
 /// Make a widget with `RelativeLayout`.
 /// - Panics if unable to create a widget (mostly likely because the widget name already exists in the tree with the
 ///   specified parent).
-pub fn relative_widget<Ui: LunexUI>(
+pub fn relative_widget<Ui: LunexUi>(
     ui      : &mut UiTree<Ui>,
     path    : impl Borrow<str>,
     x_range : (f32, f32),
@@ -80,7 +80,7 @@ pub fn relative_widget<Ui: LunexUI>(
 
 /// Toggle between two sets of widgets.
 //todo: handle multiple uis (pass in UI entity)
-pub fn toggle_ui_visibility<Ui: LunexUI, const ON: usize, const OFF: usize>(
+pub fn toggle_ui_visibility<Ui: LunexUi, const ON: usize, const OFF: usize>(
     In((_, on_widgets, off_widgets)) : In<(Ui, [Widget; ON], [Widget; OFF])>,
     mut uis                          : Query<&mut UiTree<Ui>>,
 ){

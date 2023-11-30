@@ -30,7 +30,7 @@ struct InteractionSourceInfoPack
 //todo: how to handle UiTrees occluding each other?
 //todo: custom system param filter to get only widgets associated with ui in focused window ?? UIInFocusedWindow<LunexUi>
 fn try_get_interaction_source_info_pack<S: InteractionSource>(
-    ui              : Query<&UiTree<S::LunexUI>>,  //todo: InFocusedWindow
+    ui              : Query<&UiTree<S::LunexUi>>,  //todo: InFocusedWindow
     cursor_pos      : CursorPos<S::LunexCursor>,
     source          : Res<S>,
     source_param    : StaticSystemParam<S::SourceParam>,
@@ -277,7 +277,7 @@ fn handle_is_clicked_home<S: InteractionSource>(
 fn handle_is_clicked_away<S: InteractionSource>(
     In(info_pack) : In<InteractionSourceInfoPack>,
     mut commands  : Commands,
-    ui            : Query<&UiTree<S::LunexUI>>,  //todo: InFocusedWindow
+    ui            : Query<&UiTree<S::LunexUi>>,  //todo: InFocusedWindow
     widgets       : Query<
         (Entity, &Widget, &CallbackWith<OnClickHoldAway, bool>),
         (With<Pressed>, With<ElementInteractionTargeter<S::LunexUi, S::LunexCursor>>, With<ElementInteractionSource<S>>)

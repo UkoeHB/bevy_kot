@@ -10,7 +10,7 @@ use bevy_lunex::prelude::*;
 
 /// Components with this trait are used to tag `bevy_lunex::UiTree<Ui>`s for accurate filtering in interaction pipelines.
 /// - Currently only one UI per OS window may have a given tag.
-pub trait LunexUI: Component + Default {}
+pub trait LunexUi: Component + Default {}
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -38,7 +38,7 @@ pub trait LunexCursor: Component
     type HomeZoneParam: SystemParam;
 
     /// Test if a cursor intersects with an interaction barrier.
-    fn cursor_intersects_barrier<Ui: LunexUI>(
+    fn cursor_intersects_barrier<Ui: LunexUi>(
         cursor_screen_position : Vec2,
         cursor_world_position  : Vec2,
         ui                     : &UiTree<Ui>,
@@ -50,7 +50,7 @@ pub trait LunexCursor: Component
     ) -> Result<Option<f32>, ()>;
 
     /// Test if a cursor intersects with an element.
-    fn cursor_intersects_element<Ui: LunexUI>(
+    fn cursor_intersects_element<Ui: LunexUi>(
         cursor_screen_position : Vec2,
         cursor_world_position  : Vec2,
         ui                     : &UiTree<Ui>,
@@ -62,7 +62,7 @@ pub trait LunexCursor: Component
     ) -> Result<Option<f32>, ()>;
 
     /// Test if a cursor intersects with a press home zone.
-    fn cursor_intersects_press_home_zone<Ui: LunexUI>(
+    fn cursor_intersects_press_home_zone<Ui: LunexUi>(
         cursor_screen_position : Vec2,
         cursor_world_position  : Vec2,
         ui                     : &UiTree<Ui>,
@@ -77,7 +77,7 @@ pub trait LunexCursor: Component
 //-------------------------------------------------------------------------------------------------------------------
 
 /// An interaction source represents a source of interactions (hovers and clicks) for `bevy_lunex::UiTree<Ui>s` with a
-/// specific `LunexUI` tag.
+/// specific `LunexUi` tag.
 ///
 /// To process interactions with a source, you must register it with `register_interaction_source`. Sources are
 /// implemented as bevy Resources, allowing you to manage the internal state of the source at runtime.

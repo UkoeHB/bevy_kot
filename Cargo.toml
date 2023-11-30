@@ -48,8 +48,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 [workspace.dependencies]
 bevy             = { version = "0.12", default-features = false }
 bevy_fn_plugin   = { version = "0.1" }
-bevy_lunex       = { version = "0.0.8" }
-bevy_lunex_core  = { version = "0.0.8" }
+bevy_lunex       = { version = "0.0.9" }
+bevy_lunex_core  = { version = "0.0.9" }
 crossbeam        = { version = "0.8"}
 fxhash           = { version = "0.2" }
 tracing          = { version = "0.1" }
@@ -67,6 +67,6 @@ bevy_kot_utils  = { path = "./bevy_kot_utils", version = "0.8.0", default-featur
 
 [dev-dependencies]
 bevy               = { version = "0.12", default-features = true, features = [ "dynamic_linking" ] }
-bevy_lunex         = { version = "0.0.8" }
-bevy_lunex_core    = { version = "0.0.8" }
+bevy_lunex         = { version = "0.0.9" }
+bevy_lunex_core    = { version = "0.0.9" }
 tracing-subscriber = { version = "0.3" }

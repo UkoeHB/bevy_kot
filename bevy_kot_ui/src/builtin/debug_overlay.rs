@@ -15,7 +15,7 @@ use bevy_lunex::prelude::*;
 #[bevy_plugin]
 pub fn UIDebugOverlayPlugin(app: &mut App)
 {
-    app.add_plugins(LunexUiDebugPlugin2D::<MainUI>(std::marker::PhantomData::default()));
+    app.add_plugins(LunexUiDebugPlugin2D::<MainUi>(std::marker::PhantomData::default()));
 }
 
 //-------------------------------------------------------------------------------------------------------------------

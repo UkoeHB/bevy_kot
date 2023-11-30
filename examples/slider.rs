@@ -76,7 +76,7 @@ fn initialize_slider_drag(
 fn drag_slider(
     In(entity) : In<Entity>,
     cursor_pos : CursorPos<MainMouseCursor>,
-    mut ui     : Query<&mut UiTree<MainUI>>,  //todo: InFocusedWindow
+    mut ui     : Query<&mut UiTree<MainUi>>,  //todo: InFocusedWindow
     slider     : Query<(&Widget, &SliderDragState)>,
 ){
     // slider
@@ -182,14 +182,14 @@ fn setup(mut commands: Commands, window: Query<Entity, (With<Window>, With<Prima
         );
 
     // make lunex cursor
-    commands.spawn((Cursor::new(0.0), Transform::default(), MainMouseCursor));
+    commands.spawn((Cursor::new(), Transform::default(), MainMouseCursor));
 
     // prepare lunex ui tree
-    commands.insert_resource(StyleStackRes::<MainUI>::default());
-    let tree = UiTree::<MainUI>::new("ui");
+    commands.insert_resource(StyleStackRes::<MainUi>::default());
+    let tree = UiTree::<MainUi>::new("ui");
 
     let window = window.single();
-    commands.entity(window).insert((tree, Transform::default(), Size::default()));
+    commands.entity(window).insert(tree.bundle());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -206,7 +206,7 @@ fn main()
                 }
             )
         )
-        .add_plugins(LunexUiPlugin2D::<MainUI>(std::marker::PhantomData::default()))
+        .add_plugins(LunexUiPlugin2D::<MainUi>(std::marker::PhantomData::default()))
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
