@@ -5,6 +5,7 @@ use bevy_kot::prelude::*;
 use bevy::prelude::*;
 use bevy::window::{PrimaryWindow, WindowTheme};
 use bevy_lunex::prelude::*;
+use bevy_lunex_core::Size;
 
 //standard shortcuts
 
@@ -36,17 +37,17 @@ fn initialize_slider_drag(
     mut commands : Commands,
     cursor_pos   : CursorPos<MainMouseCursor>,
     widgets      : Query<&Widget>,
-    ui           : Query<&UiTree<MainUi>>,  //todo: InFocusedWindow
+    ui           : Query<(&UiTree<MainUi>, &Size)>,  //todo: InFocusedWindow
 ){
     // slider entity
     let Some(mut entity_commands) = commands.get_entity(entity) else { return; };
     let Ok(slider_widget) = widgets.get(entity) else { return; };
 
     // widget start position
-    let Ok(ui) = ui.get_single() else { return; };
+    let Ok((ui, dims)) = ui.get_single() else { return; };
     let Ok(widget_branch) = slider_widget.fetch(&ui) else { return; };
-    let widget_start_pos = widget_branch.container_get().position_get().get_pos(Vec2::default());
-    let LayoutPackage::Relative(ref layout) = widget_branch.container_get().layout_get() else { return; };
+    let widget_start_pos = widget_branch.get_container().get_position().get_pos(Vec2::default());
+    let LayoutPackage::Relative(ref layout) = widget_branch.get_container().get_layout() else { return; };
     let widget_start_displacement_1_x = layout.absolute_1.x;
     let widget_start_displacement_2_x = layout.absolute_2.x;
 
@@ -54,8 +55,8 @@ fn initialize_slider_drag(
     let Some(cpos_screen) = cursor_pos.get_screen() else { return; };
 
     // denormalize edge min/max to absolute coordinates
-    let right_edge_min = right_edge_min_rel * ui.width / 100.0;
-    let right_edge_max = right_edge_max_rel * ui.width / 100.0;
+    let right_edge_min = right_edge_min_rel * dims.width / 100.0;
+    let right_edge_max = right_edge_max_rel * dims.width / 100.0;
 
     // overwrite any existing drag state
     entity_commands.insert(
@@ -93,7 +94,7 @@ fn drag_slider(
 
     // update widget position
     let Ok(widget_branch) = slider_widget.fetch_mut(&mut ui) else { return; };
-    let LayoutPackage::Relative(ref mut layout) = widget_branch.container_get_mut().layout_get_mut() else { return; };
+    let LayoutPackage::Relative(ref mut layout) = widget_branch.get_container_mut().get_layout_mut() else { return; };
     layout.absolute_1.x = drag_state.widget_start_displacement_1_x + new_widget_x_diff;
     layout.absolute_2.x = drag_state.widget_start_displacement_2_x + new_widget_x_diff;
 }
@@ -149,7 +150,7 @@ fn build_ui(mut ui: UiBuilder<MainUi>)
     // slider button home zone covers screen and is positioned slightly above slider button
     let slider_button_home_zone = make_overlay(ui.tree(), &root, "", true);
     let zone_depth = button.fetch(ui.tree()).unwrap().get_depth() + 0.01;
-    slider_button_home_zone.fetch_mut(ui.tree()).unwrap().set_depth(zone_depth);
+    slider_button_home_zone.fetch_mut(ui.tree()).unwrap().get_container_mut().set_render_depth(Modifier::Set(zone_depth));
 
     // button entity
     let despawner = ui.despawner.clone();

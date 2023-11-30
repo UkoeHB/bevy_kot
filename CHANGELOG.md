@@ -21,8 +21,8 @@
 
 ### Changed
 
-- Rename: `MainUi` -> `MainUi`.
-- Rename: `LunexUi` -> `LunexUi`.
+- Rename: `MainUI` -> `MainUi`.
+- Rename: `LunexUI` -> `LunexUi`.
 - Improved callback cleanup handling in react framework and interactive element builder.
 
 
