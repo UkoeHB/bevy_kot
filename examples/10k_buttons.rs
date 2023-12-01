@@ -19,7 +19,7 @@ struct FPSIndicator;
 /// Realtime systems
 fn refresh_fps_indicator(
     mut indicator_query : Query<&mut Text, With<FPSIndicator>>,
-    fps_tracker         : Res<FPSTracker>
+    fps_tracker         : Res<FpsTracker>
 ){
     // 1. only refresh once per second
     if fps_tracker.current_time().as_secs() <= fps_tracker.previous_time().as_secs() { return }
@@ -183,7 +183,7 @@ fn main()
                 }
             )
         )
-        .add_plugins(FPSTrackerPlugin)
+        .add_plugins(FpsTrackerPlugin)
         .add_plugins(LunexUiPlugin)
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)

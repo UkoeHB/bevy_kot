@@ -24,7 +24,7 @@ const FPS_TRACKER_NUM_RECORDS : u8  = 30;
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Update FPS tracker with new time.
-fn update_fps_tracker(mut tracker: ResMut<FPSTracker>, time: Res<Time>)
+fn update_fps_tracker(mut tracker: ResMut<FpsTracker>, time: Res<Time>)
 {
     tracker.update(time.delta_seconds(), time.elapsed());
 }
@@ -34,7 +34,7 @@ fn update_fps_tracker(mut tracker: ResMut<FPSTracker>, time: Res<Time>)
 
 /// FPS tracker resource.
 #[derive(Resource)]
-pub struct FPSTracker
+pub struct FpsTracker
 {
     max_records     : u8,
     delta_record_ns : VecDeque<u64>,
@@ -43,13 +43,13 @@ pub struct FPSTracker
     current_time    : Duration
 }
 
-impl FPSTracker
+impl FpsTracker
 {
     /// Make new tracker.
-    pub fn new(max: u8) -> FPSTracker
+    pub fn new(max: u8) -> FpsTracker
     {
         let mut new_tracker = 
-            FPSTracker{
+            FpsTracker{
                     max_records     : max,
                     delta_record_ns : VecDeque::new(),
                     total_delta_ns  : 0u64,
@@ -90,7 +90,7 @@ impl FPSTracker
     pub fn current_time(&self)  -> Duration { self.current_time  }
 
     /// Update the tracker with a new time.
-    pub fn update(self: &mut FPSTracker, delta: f32, current_time: Duration)
+    pub fn update(self: &mut FpsTracker, delta: f32, current_time: Duration)
     {
         // 1. add new record
         let delta_ns = (delta * 1_000_000_000.0) as u64;
@@ -112,18 +112,18 @@ impl FPSTracker
 
 //-------------------------------------------------------------------------------------------------------------------
 
-/// System set where the [`FPSTracker`] resource is updated.
+/// System set where the [`FpsTracker`] resource is updated.
 #[derive(SystemSet, PartialEq, Eq, Debug, Hash, Clone)]
-pub struct FPSTrackerSet;
+pub struct FpsTrackerSet;
 
-/// Tracks FPS. Use the [`FPSTracker`] resource to access the fps with [`FPSTracker::fps()`].
+/// Tracks FPS. Use the [`FpsTracker`] resource to access the fps with [`FpsTracker::fps()`].
 #[bevy_plugin]
-pub fn FPSTrackerPlugin(app: &mut App)
+pub fn FpsTrackerPlugin(app: &mut App)
 {
     app
-        .insert_resource::<FPSTracker>(FPSTracker::new(FPS_TRACKER_NUM_RECORDS))
-        .configure_set(First, FPSTrackerSet.after(bevy::time::TimeSystem))
-        .add_systems(First, update_fps_tracker.in_set(FPSTrackerSet));
+        .insert_resource::<FpsTracker>(FpsTracker::new(FPS_TRACKER_NUM_RECORDS))
+        .configure_set(First, FpsTrackerSet.after(bevy::time::TimeSystem))
+        .add_systems(First, update_fps_tracker.in_set(FpsTrackerSet));
 }
 
 //-------------------------------------------------------------------------------------------------------------------

@@ -24,7 +24,7 @@ A collection of bevy tools.
 
 ### Miscellaneous
 
-- [`FPSTracker`] resource with plugin [`FPSTrackerPlugin`].
+- [`FpsTracker`] resource with plugin [`FpsTrackerPlugin`].
 - [`Sender`]/[`Receiver`] unbounded MPMC channel and [`IoSender`]/[`IoReceiver`] unbounded MPMC channel.
 
 

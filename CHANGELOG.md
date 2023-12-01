@@ -6,6 +6,7 @@
 
 - Rename: `IoReceiver::try_next()` -> `IoReceiver::try_recv()`.
 - Rename: `UIInteractionBarrier` -> `UiInteractionBarrier`.
+- Rename: `FPSTracker` -> `FpsTracker`.
 
 
 ## [0.8.0]
