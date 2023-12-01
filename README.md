@@ -6,13 +6,6 @@ A collection of bevy tools.
 
 ## Contents
 
-### UI
-
-- Interactive element builder for [`bevy_lunex`], with a robust backend for handling arbitrary interaction sources.
-- `StyleStack` utility to enable style cascading/overriding when building a UI tree.
-- `UiBuilder` utility for building UI trees. It automatically manages `StyleStack` frames.
-
-
 ### ECS
 
 - System callers for invoking systems as if they were functions (requires `&mut World`).
@@ -22,11 +15,17 @@ A collection of bevy tools.
 - [`AutoDespawner`] resource for garbage collecting entities.
 
 
-### Miscellaneous
+### UI
+
+- Interactive element builder for [`bevy_lunex`], with a robust backend for handling arbitrary interaction sources.
+- `StyleStack` utility to enable style cascading/overriding when building a UI tree.
+- `UiBuilder` utility for building UI trees. It automatically manages `StyleStack` frames.
+
+
+### Utils
 
 - [`FpsTracker`] resource with plugin [`FpsTrackerPlugin`].
 - [`Sender`]/[`Receiver`] unbounded MPMC channel and [`IoSender`]/[`IoReceiver`] unbounded MPMC channel.
-
 
 
 
