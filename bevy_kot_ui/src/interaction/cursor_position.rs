@@ -23,7 +23,7 @@ impl<'w, 's, C: LunexCursor> CursorPos<'w, 's, C>
     /// Check if a cursor is available in the focused window.
     pub fn available(&self) -> bool
     {
-        self.cursor.is_empty()
+        !self.cursor.is_empty()
     }
 
     /// Get the cursor's world position in the focused window (origin is center of screen).

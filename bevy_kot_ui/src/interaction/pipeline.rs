@@ -53,7 +53,7 @@ fn try_get_interaction_source_info_pack<S: InteractionSource>(
 {
     // check that ui and cursor are available
     // - note that the cursor is more likely to be unavailable than the ui tree
-    if cursor_pos.available() || ui.is_empty() { return None; };
+    if !cursor_pos.available() || ui.is_empty() { return None; };
 
     let Ok(ui) = ui.get_single()
     else { tracing::error!("multiple uis with the same tag detected in the focused window"); return None; };
