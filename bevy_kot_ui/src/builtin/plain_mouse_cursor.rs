@@ -25,7 +25,7 @@ impl<PlainCursor: PlainMouseCursor> LunexCursor for PlainCursor
     /// - Widget-only intersection test.
     fn cursor_intersects_barrier<Ui: LunexUi>(
         _cursor_screen_position : Vec2,
-        cursor_world_position : Vec2,
+        cursor_world_position  : Vec2,
         ui                     : &UiTree<Ui>,
         widget                 : &Widget,
         _widget_entity         : Entity,
@@ -41,7 +41,7 @@ impl<PlainCursor: PlainMouseCursor> LunexCursor for PlainCursor
     /// - Widget-only intersection test.
     fn cursor_intersects_element<Ui: LunexUi>(
         _cursor_screen_position : Vec2,
-        cursor_world_position : Vec2,
+        cursor_world_position  : Vec2,
         ui                     : &UiTree<Ui>,
         widget                 : &Widget,
         _widget_entity         : Entity,
@@ -57,7 +57,7 @@ impl<PlainCursor: PlainMouseCursor> LunexCursor for PlainCursor
     /// - Widget-only intersection test.
     fn cursor_intersects_press_home_zone<Ui: LunexUi>(
         _cursor_screen_position : Vec2,
-        cursor_world_position : Vec2,
+        cursor_world_position  : Vec2,
         ui                     : &UiTree<Ui>,
         widget                 : &Widget,
         _widget_entity         : Entity,

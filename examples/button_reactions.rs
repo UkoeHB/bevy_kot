@@ -255,7 +255,7 @@ fn setup(mut commands: Commands, window: Query<Entity, (With<Window>, With<Prima
         );
 
     // make lunex cursor
-    commands.spawn((Cursor::new(), Transform::default(), MainMouseCursor));
+    commands.spawn((Cursor::new(), Transform::default(), Visibility::default(), MainMouseCursor));
 
     // prepare lunex ui tree
     commands.insert_resource(StyleStackRes::<MainUi>::default());
