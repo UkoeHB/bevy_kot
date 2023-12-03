@@ -64,7 +64,7 @@ fn initialize_slider_drag(
                     right_edge_min,
                     right_edge_max,
                     drag_start_x   : cpos_screen.x,
-                    widget_start_x : widget_start_pos.x,
+                    widget_start_x : -widget_start_pos.x,
                     widget_start_displacement_1_x,
                     widget_start_displacement_2_x
                 }
