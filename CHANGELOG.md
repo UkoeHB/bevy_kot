@@ -1,9 +1,10 @@
 # Changelog
 
-## WIP
+## [0.9.0]
 
 ### Changed
 
+- Update to Bevy v0.12, `bevy_lunex` v0.0.9.
 - Rename: `IoReceiver::try_next()` -> `IoReceiver::try_recv()`.
 - Rename: `UIInteractionBarrier` -> `UiInteractionBarrier`.
 - Rename: `FPSTracker` -> `FpsTracker`.

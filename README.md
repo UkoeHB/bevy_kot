@@ -33,7 +33,8 @@ A collection of bevy tools.
 
 | bevy | `bevy_kot`     |
 |------|----------------|
-| 0.11 | 0.0.1 - master |
+| 0.12 | 0.9.0 - master |
+| 0.11 | 0.0.1 - 0.8.0  |
 
 
 
@@ -42,5 +43,6 @@ A collection of bevy tools.
 
 | lunex | `bevy_kot`     |
 |-------|----------------|
-| 0.0.6 | 0.0.2 - master |
+| 0.0.9 | 0.9.0 - master |
+| 0.0.6 | 0.0.2 - 0.8.0  |
 | 0.0.5 | 0.0.1          |
