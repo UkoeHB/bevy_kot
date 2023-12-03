@@ -207,7 +207,7 @@ fn main()
                 }
             )
         )
-        .add_plugins(LunexUiPlugin2D::<MainUi>(std::marker::PhantomData::default()))
+        .add_plugins(LunexUiPlugin2D::<MainUi>::new())
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)
         .insert_resource(bevy::winit::WinitSettings::desktop_app())
