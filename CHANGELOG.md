@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1]
+
+### Changed
+
+- Removed unused dependency.
+
+
 ## [0.9.0]
 
 ### Changed

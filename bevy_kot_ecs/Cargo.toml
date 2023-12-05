@@ -18,5 +18,3 @@ fxhash         = { workspace = true }
 tracing        = { workspace = true }
 
 bevy_kot_utils = { workspace = true }
-
-bevy_eventlistener_core = { version = "0.5" }
