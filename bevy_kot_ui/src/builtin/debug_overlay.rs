@@ -13,7 +13,7 @@ use bevy_lunex::prelude::*;
 /// Add outlines to all lunex widgets. (todo: only works if there is one UI tree)
 /// - To use this you must copy the ui_debug_* assets from this repository into your project's `assets` directory.
 #[bevy_plugin]
-pub fn UIDebugOverlayPlugin(app: &mut App)
+pub fn UiDebugOverlayPlugin(app: &mut App)
 {
     app.add_plugins(LunexUiDebugPlugin2D::<MainUi>(std::marker::PhantomData::default()));
 }
