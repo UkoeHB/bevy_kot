@@ -13,26 +13,6 @@ use std::fmt::Write;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-#[derive(Component)]
-struct FPSIndicator;
-
-/// Realtime systems
-fn refresh_fps_indicator(
-    mut indicator_query : Query<&mut Text, With<FPSIndicator>>,
-    fps_tracker         : Res<FpsTracker>
-){
-    // 1. only refresh once per second
-    if fps_tracker.current_time().as_secs() <= fps_tracker.previous_time().as_secs() { return }
-
-    // 2. refresh
-    let indicator_value = &mut indicator_query.single_mut().sections[0].value;
-    indicator_value.clear();
-    let _ = write!(indicator_value, "FPS: {}", fps_tracker.fps());
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------------
-
 fn add_fps_section(ui: &mut UiBuilder<MainUi>, area: Widget)
 {
     // fps layout helper
@@ -63,17 +43,27 @@ fn add_fps_section(ui: &mut UiBuilder<MainUi>, area: Widget)
             color     : Color::WHITE,
         };
 
-    ui.commands().spawn(
-            (
-                TextElementBundle::new(
-                    fps_text,
-                    TextParams::topleft()
-                        .with_style(&fps_text_style)
-                        .with_depth(100.0),  //add depth so fps text is higher than buttons
-                    "FPS: 999"  //use initial value to get correct initial text boundary
-                ),
-                FPSIndicator
+    let text_entity = ui.commands().spawn(
+            TextElementBundle::new(
+                fps_text,
+                TextParams::topleft()
+                    .with_style(&fps_text_style)
+                    .with_depth(100.0),  //add depth so fps text is higher than buttons
+                "FPS: 999"  //use initial value to get correct initial text boundary
             )
+        ).id();
+
+    ui.rcommands.on(resource_mutation::<FpsTracker>(),
+            move |mut text: Query<&mut Text>, fps_tracker: ReactRes<FpsTracker>|
+            {
+                // only refresh once per second
+                if fps_tracker.current_time().as_secs() <= fps_tracker.previous_time().as_secs() { return; }
+
+                // refresh
+                let indicator_value = &mut text.get_mut(text_entity).unwrap().sections[0].value;
+                indicator_value.clear();
+                let _ = write!(indicator_value, "FPS: {}", fps_tracker.fps());
+            }
         );
 }
 
@@ -198,7 +188,6 @@ fn main()
         .register_interaction_source(MouseLButtonMain::default())
         .add_systems(PreStartup, setup)
         .add_systems(Startup, build_ui)
-        .add_systems(Last, refresh_fps_indicator)
         .run();
 }
 

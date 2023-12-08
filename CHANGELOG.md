@@ -9,6 +9,7 @@
 ### Changed
 
 - Moved `FpsTracker` to `bevy_kot_misc`.
+- Changed `FpsTracker` to a reactive resource.
 
 
 ## [0.9.2]

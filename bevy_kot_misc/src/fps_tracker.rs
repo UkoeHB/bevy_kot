@@ -2,9 +2,12 @@
 //!
 //! Plugin dependencies
 //! - bevy::time::TimePlugin
+//! - bevy_kot_ecs::react::ReactPlugin
 //!
 
 //local shortcuts
+use bevy_kot_derive::*;
+use bevy_kot_ecs::*;
 
 //third-party shortcuts
 use bevy::prelude::*;
@@ -24,16 +27,16 @@ const FPS_TRACKER_NUM_RECORDS : u8  = 30;
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Update FPS tracker with new time.
-fn update_fps_tracker(mut tracker: ResMut<FpsTracker>, time: Res<Time>)
+fn update_fps_tracker(mut rcommands: ReactCommands, mut tracker: ReactResMut<FpsTracker>, time: Res<Time>)
 {
-    tracker.update(time.delta_seconds(), time.elapsed());
+    tracker.get_mut(&mut rcommands).update(time.delta_seconds(), time.elapsed());
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
 /// FPS tracker resource.
-#[derive(Resource)]
+#[derive(ReactResource)]
 pub struct FpsTracker
 {
     max_records     : u8,
@@ -121,7 +124,7 @@ pub struct FpsTrackerSet;
 pub fn FpsTrackerPlugin(app: &mut App)
 {
     app
-        .insert_resource::<FpsTracker>(FpsTracker::new(FPS_TRACKER_NUM_RECORDS))
+        .insert_react_resource::<FpsTracker>(FpsTracker::new(FPS_TRACKER_NUM_RECORDS))
         .configure_sets(First, FpsTrackerSet.after(bevy::time::TimeSystem))
         .add_systems(First, update_fps_tracker.in_set(FpsTrackerSet));
 }

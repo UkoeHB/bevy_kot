@@ -15,4 +15,5 @@ doctest = false
 bevy             = { workspace = true }
 bevy_fn_plugin   = { workspace = true }
 
-bevy_kot_ecs = { workspace = true }
+bevy_kot_derive = { workspace = true }
+bevy_kot_ecs    = { workspace = true }
