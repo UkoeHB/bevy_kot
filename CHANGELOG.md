@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.0]
+
+### Added
+
+- Added `bevy_kot_misc` crate.
+
+### Changed
+
+- Moved `FpsTracker` to `bevy_kot_misc`.
+
+
 ## [0.9.2]
 
 ### Changed

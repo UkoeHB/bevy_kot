@@ -5,6 +5,7 @@
 pub mod prelude
 {
     pub use bevy_kot_ecs::*;
+    pub use bevy_kot_misc::*;
     pub use bevy_kot_ui::*;
     pub use bevy_kot_utils::*;
 

@@ -1,6 +1,6 @@
 //! FPS tracker utility
 //!
-//! PRECONDITION: plugin dependencies
+//! Plugin dependencies
 //! - bevy::time::TimePlugin
 //!
 
