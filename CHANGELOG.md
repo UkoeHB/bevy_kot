@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1]
+
+### Changed
+
+- Improved `StyleStack` panic messages.
+
+
 ## [0.10.0]
 
 ### Added

@@ -85,7 +85,9 @@ impl<'w, 's, Ui: LunexUi> UiBuilder<'w, 's, Ui>
     /// Panics if the style does not exist.
     pub fn style<S: Style>(&self) -> Arc<S>
     {
-        self.get_style::<S>().expect("tried to access unknown style")
+        let Some(style) = self.get_style::<S>()
+        else { panic!("tried to access unknown style {}", std::any::type_name::<S>()); };
+        style
     }
 
     /// Get a style from the style stack.
@@ -99,7 +101,9 @@ impl<'w, 's, Ui: LunexUi> UiBuilder<'w, 's, Ui>
     /// Panics if the style does not exist.
     pub fn style_clone<S: Style + Clone>(&self) -> S
     {
-        self.get_style_clone::<S>().expect("tried to clone unknown style")
+        let Some(style) = self.get_style_clone::<S>()
+        else { panic!("tried to clone unknown style {}", std::any::type_name::<S>()); };
+        style
     }
 
     /// Get a clone of a style from the style stack.
