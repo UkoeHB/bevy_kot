@@ -2,9 +2,10 @@
 
 ## [0.10.1]
 
-### Changed
+### Fixed
 
 - Improved `StyleStack` panic messages.
+- Interaction pipelines now force-update the lunex cursor position before running.
 
 
 ## [0.10.0]

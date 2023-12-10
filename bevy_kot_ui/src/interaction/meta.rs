@@ -5,6 +5,7 @@ use bevy_kot_ecs::*;
 //third-party shortcuts
 use bevy::ecs::system::Command;
 use bevy::prelude::*;
+use bevy_lunex::cursor_update;
 
 //standard shortcuts
 use std::fmt::Debug;
@@ -152,7 +153,11 @@ impl RegisterInteractionSourceExt for App
             .init_resource::<InteractionSourceRunner<S>>()
             .insert_resource(interaction_source)
             .add_systems(First,
-                interaction_pipeline::<S>
+                (
+                    cursor_update,  //todo: this is duplicate work, but we need fresh cursor state
+                    interaction_pipeline::<S>,
+                )
+                    .chain()
                     .run_if(resource_exists::<InteractionSourceRunner<S>>())
                     .run_if(resource_exists::<S>())
                     .in_set(InteractionSourceSet)
