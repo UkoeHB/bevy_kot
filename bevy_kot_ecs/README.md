@@ -1,6 +1,6 @@
 # ECS
 
-[`ReactCommands`] makes it easy to register and unregister ECS hooks. It includes: resource mutation, component insertion/mutation/removal (to any entity or to a specific entity), entity despawns, events.
+[`ReactCommands`] makes it easy to register and unregister ECS hooks.
 
 ### Resource Mutation
 
@@ -54,7 +54,7 @@ rcommands.on(event::<u32>(),
 );
 ```
 
-### Reaction Triggers
+### All Reaction Triggers
 
 The available reaction triggers are:
 - [`resource_mutation<R: ReactResource>()`]
@@ -76,8 +76,24 @@ rcommands.on((resource_mutation::<A>(), event::<u32>()),
 );
 ```
 
-Note that `entity_*` triggers can only be grouped with each other.
+Note that entity-agnostic triggers can only be grouped with each other, since they require an `In<Entity>` system parameter:
+```rust
+#[derive(ReactComponent)]
+struct A;
+#[derive(ReactComponent)]
+struct B;
+
+rcommands.on((insertion::<A>(), removal::<B>()),
+    |In(entity): In<Entity>, a: Query<&React<A>>, b: Query<Removed<React<B>>|
+    {
+        //...
+    }
+);
+```
 
 ### Despawns
 
-Despawns can be reacted to with the [`ReactCommands::on_despawn()`] method, which takes a `FnOnce` closure instead of `FnMut`.
+Despawns can be reacted to with the [`ReactCommands::on_despawn()`] method, which takes a `FnOnce` closure instead of `FnMut`:
+```rust
+rcommands.on_despawn(entity, move || println!("entity despawned: {}", entity));
+```
