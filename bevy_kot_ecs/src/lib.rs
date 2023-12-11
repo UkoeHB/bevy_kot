@@ -1,3 +1,6 @@
+//documentation
+#![doc = include_str!("../README.md")]
+
 //module tree
 mod auto_despawn;
 mod callbacks;

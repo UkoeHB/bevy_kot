@@ -139,6 +139,7 @@ pub fn mutation<C: ReactComponent>() -> Mutation<C> { Mutation::default() }
 
 /// Reaction trigger for [`ReactComponent`] removals from any entity.
 /// - For reactors that take the entity the component was removed from.
+/// - Reactions are not triggered if the entity was despawned.
 pub struct Removal<C: ReactComponent>(PhantomData<C>);
 impl<C: ReactComponent> Default for Removal<C> { fn default() -> Self { Self(PhantomData::default()) } }
 
