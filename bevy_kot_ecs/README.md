@@ -2,6 +2,8 @@
 
 [`ReactCommands`] makes it easy to register and unregister ECS hooks. Reactors are most useful when you need to pass information (e.g. entity IDs) into a reaction system.
 
+A reactor will run in the first `apply_deferred` after its reaction trigger is detected. If a reactor triggers other reactors, they will run immediately after the initial reactor (until the entire tree of reactions terminates). Recursive reactions are currently not supported.
+
 ### Reaction Triggers
 
 Reactors are registered using 'reaction triggers':
