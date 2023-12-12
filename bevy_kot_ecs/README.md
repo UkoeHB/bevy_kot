@@ -1,6 +1,6 @@
 # ECS
 
-[`ReactCommands`] makes it easy to register and unregister ECS hooks.
+[`ReactCommands`] makes it easy to register and unregister ECS hooks. Reactors are most useful when you need to pass information (e.g. entity IDs) into a reaction system.
 
 ### Reaction Triggers
 
@@ -9,7 +9,7 @@ Reactors are registered using 'reaction triggers':
 fn setup(mut rcommands: ReactCommands)
 {
     rcommands.on(resource_mutation::<A>(),
-        |counter: ReactRes<A>|
+        |a: ReactRes<A>|
         {
             //...
         }
