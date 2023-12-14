@@ -54,7 +54,7 @@ app.add_plugins(ReactPlugin)
     .add_react_resource(Counter);
 ```
 
-Mutate the counter:
+Mutate the resource:
 ```rust
 fn increment(mut rcommands: ReactCommands, mut counter: ReactResMut<Counter>)
 {
@@ -62,7 +62,7 @@ fn increment(mut rcommands: ReactCommands, mut counter: ReactResMut<Counter>)
 }
 ```
 
-React to the counter:
+React to the resource:
 ```rust
 fn setup(mut rcommands: ReactCommands)
 {
@@ -121,12 +121,17 @@ rcommands.on((insertion::<A>(), removal::<B>()),
 
 ### Events
 
-React events can be sent like this:
+Register a react event:
+```rust
+app.add_react_event::<u32>();
+```
+
+Send an event:
 ```rust
 rcommands.send(0u32);
 ```
 
-And then reacted to with the [`ReactEvents`] reader:
+React to the event, using the [`ReactEvents`] reader to access event data:
 ```rust
 rcommands.on(event::<u32>(),
     |mut events: ReactEvents<u32>|
