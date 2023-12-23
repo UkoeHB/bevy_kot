@@ -260,7 +260,7 @@ impl ReactCache
             .or_default()
             .push((despawn_id, callonce));
 
-        RevokeToken{ reactors: vec![ReactorType::Despawn(entity)], id: despawn_id }
+        RevokeToken{ reactors: vec![ReactorType::Despawn(entity)].into(), id: despawn_id }
     }
 
     /// Revoke a component insertion reactor.

@@ -8,6 +8,7 @@ use bevy::prelude::*;
 //standard shortcuts
 use core::any::TypeId;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -106,7 +107,7 @@ pub enum ReactorType
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct RevokeToken
 {
-    pub(crate) reactors : Vec<ReactorType>,
+    pub(crate) reactors : Arc<[ReactorType]>,
     pub(crate) id       : u64,
 }
 

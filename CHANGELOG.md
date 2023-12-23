@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2]
+
+### Added
+
+- Added `ReactCommands::once()` for reactors that should only run once.
+
+
 ## [0.10.1]
 
 ### Fixed

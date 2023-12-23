@@ -506,6 +506,18 @@ pub trait SystemCallerCommandsExt
         I: Send + Sync + 'static,
         O: Send + Sync + 'static;
 
+    /// Schedule a system to be inserted into the specified entity.
+    ///
+    /// This is useful for constructing self-referential systems, e.g. for systems that only run once then clean themselves
+    /// up.
+    ///
+    /// Returns an error if the entity does not exist.
+    fn insert_system<I, O, S, Marker>(&mut self, entity: Entity, system: S) -> Result<(), ()>
+    where
+        I: Send + Sync + 'static,
+        O: Send + Sync + 'static,
+        S: IntoSystem<I, O, Marker> + Send + Sync + 'static;
+
     /// Schedule a system call.
     ///
     /// Syntax sugar for [`syscall()`].
@@ -543,6 +555,18 @@ impl<'w, 's> SystemCallerCommandsExt for Commands<'w, 's>
         O: Send + Sync + 'static
     {
         SysId::new(self.spawn(SpawnedSystem::new(system)).id())
+    }
+
+    fn insert_system<I, O, S, Marker>(&mut self, entity: Entity, system: S) -> Result<(), ()>
+    where
+        I: Send + Sync + 'static,
+        O: Send + Sync + 'static,
+        S: IntoSystem<I, O, Marker> + Send + Sync + 'static
+    {
+        let Some(mut entity) = self.get_entity(entity) else { return Err(()); };
+        entity.insert(SpawnedSystem::new(CallbackSystem::new(system)));
+
+        Ok(())
     }
 
     fn syscall<I, S, Marker>(&mut self, input: I, system: S)

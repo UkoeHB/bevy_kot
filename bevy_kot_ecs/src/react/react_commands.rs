@@ -11,13 +11,9 @@ use core::any::TypeId;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn prepare_reactor<I, S, Marker>(commands: &mut Commands, despawner: &AutoDespawner, reactor: S) -> AutoDespawnSignal
-where
-    I: Send + Sync + 'static,
-    S: IntoSystem<I, (), Marker> + Send + Sync + 'static,
+fn revoke_reactor_triggers(In(revoke_token): In<RevokeToken>, mut rcommands: ReactCommands)
 {
-    let sys_id = commands.spawn_system(reactor);
-    despawner.prepare(sys_id.entity())
+    rcommands.revoke(revoke_token);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -167,9 +163,9 @@ impl<'w, 's> ReactCommands<'w, 's>
     {
         let id = token.id;
 
-        for reactor_type in token.reactors
+        for reactor_type in token.reactors.iter()
         {
-            match reactor_type
+            match *reactor_type
             {
                 ReactorType::EntityInsertion(entity, comp_id) =>
                 {
@@ -244,7 +240,9 @@ impl<'w, 's> ReactCommands<'w, 's>
     where
         I: Send + Sync + 'static
     {
-        let sys_handle = prepare_reactor(&mut self.commands, &self.despawner, reactor);
+        let sys_id = self.commands.spawn_system(reactor);
+        let sys_handle = self.despawner.prepare(sys_id.entity());
+
         reactor_registration(self, &sys_handle, triggers)
     }
 
@@ -265,6 +263,50 @@ impl<'w, 's> ReactCommands<'w, 's>
     ) -> Result<RevokeToken, ()>
     {
         register_despawn_reactor(self, entity, reactor)
+    }
+
+    /// Register a one-off reactor triggered by ECS changes.
+    ///
+    /// Similar to [`Self::on`] except the reaction will run exactly once then get cleaned up.
+    ///
+    /// Returns `Err` if the entity does not exist.
+    ///
+    /// Example:
+    /// ```no_run
+    /// // The reactor will run on the first mutation of either MyRes or MyComponent.
+    /// rcommands.once((resource_mutation::<MyRes>(), component_mutation::<MyComponent>()), my_reactor_system);
+    /// ```
+    pub fn once<I, Marker>(
+        &mut self,
+        triggers : impl ReactionTriggerBundle<I>,
+        reactor  : impl IntoSystem<I, (), Marker> + Send + Sync + 'static
+    ) -> Result<RevokeToken, ()>
+    where
+        I: Send + Sync + 'static
+    {
+        // register reactors
+        let entity = self.commands.spawn_empty().id();
+        let sys_handle = self.despawner.prepare(entity);
+        let revoke_token = reactor_registration(self, &sys_handle, triggers);
+
+        // wrap reactor in a system that will be called once, then clean itself up
+        let revoke_token_clone = revoke_token.clone();
+        let mut once_reactor = Some(move |world: &mut World, input: I|
+        {
+            let mut system = IntoSystem::into_system(reactor);
+            system.initialize(world);
+            system.run(input, world);
+            system.apply_deferred(world);
+            world.despawn(entity);
+            syscall(world, revoke_token_clone, revoke_reactor_triggers);
+        });
+        let once_system = move |In(input): In<I>, world: &mut World|
+        {
+            if let Some(reactor) = once_reactor.take() { (reactor)(world, input); };
+        };
+        self.commands.insert_system(entity, once_system)?;
+
+        Ok(revoke_token)
     }
 }
 

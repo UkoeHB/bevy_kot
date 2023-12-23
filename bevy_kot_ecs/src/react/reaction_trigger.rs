@@ -71,7 +71,7 @@ pub fn reactor_registration<I>(
         };
     triggers.get_reactor_types(rcommands, sys_handle, &mut func);
 
-    RevokeToken{ reactors, id: sys_handle.entity().to_bits() }
+    RevokeToken{ reactors: reactors.into(), id: sys_handle.entity().to_bits() }
 }
 
 //-------------------------------------------------------------------------------------------------------------------

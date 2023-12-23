@@ -150,3 +150,16 @@ React to despawns with the [`ReactCommands::on_despawn()`] method:
 ```rust
 rcommands.on_despawn(entity, move || println!("entity despawned: {}", entity));
 ```
+
+### React Once
+
+If you only want a reactor to run once, use [`ReactCommands::once()`]:
+```rust
+let entity = rcommands.commands().spawn(Player);
+rcommands.once(event::<ResetEverything>(),
+    move |world: &mut World|
+    {
+        world.despawn(entity);
+    }
+);
+```
