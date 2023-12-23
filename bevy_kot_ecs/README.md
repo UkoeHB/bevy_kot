@@ -131,10 +131,10 @@ Send an event:
 rcommands.send(0u32);
 ```
 
-React to the event, using the [`ReactEvents`] reader to access event data:
+React to the event, using the [`ReactEventReader`] to access event data:
 ```rust
 rcommands.on(event::<u32>(),
-    |mut events: ReactEvents<u32>|
+    |mut events: ReactEventReader<u32>|
     {
         for event in events.iter()
         {

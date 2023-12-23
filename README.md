@@ -11,7 +11,7 @@ A collection of bevy tools.
 - System callers for invoking systems as if they were functions (requires `&mut World`).
 - Entity callbacks.
 - Utilities for adding/removing components from entities (requires `&mut World`).
-- Reactive framework managed by [`ReactCommands`]: [`React`] components, [`ReactRes`] resources, and reactive events (with [`ReactEvents`] system param that mimics `EventReader`). See [the documentation](/bevy_kot_ecs/README.md) for more information.
+- Reactive framework managed by [`ReactCommands`]: [`React`] components, [`ReactRes`] resources, and reactive events (with [`ReactEventReader`]). See [the documentation](/bevy_kot_ecs/README.md) for more information.
 - [`AutoDespawner`] resource for garbage collecting entities.
 
 

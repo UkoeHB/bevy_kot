@@ -73,7 +73,7 @@ fn update_test_recorder_with_resource(
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-fn update_test_recorder_with_event(mut events: ReactEvents<IntEvent>, mut recorder: ResMut<TestReactRecorder>)
+fn update_test_recorder_with_event(mut events: ReactEventReader<IntEvent>, mut recorder: ResMut<TestReactRecorder>)
 {
     let Some(event) = events.next() else { return; };
     recorder.0 = event.0;
@@ -84,7 +84,7 @@ fn update_test_recorder_with_event(mut events: ReactEvents<IntEvent>, mut record
 
 fn update_test_recorder_with_event_and_recurse(
     mut rcommands : ReactCommands,
-    mut events    : ReactEvents<IntEvent>,
+    mut events    : ReactEventReader<IntEvent>,
     mut recorder  : ResMut<TestReactRecorder>
 ){
     let Some(event) = events.next() else { return; };
@@ -98,7 +98,7 @@ fn update_test_recorder_with_event_and_recurse(
 //-------------------------------------------------------------------------------------------------------------------
 
 fn update_test_recorder_with_event_and_resource(
-    mut events   : ReactEvents<IntEvent>,
+    mut events   : ReactEventReader<IntEvent>,
     mut recorder : ResMut<TestReactRecorder>,
     resource     : ReactRes<TestReactRes>,
 ){

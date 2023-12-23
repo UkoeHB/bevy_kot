@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0]
+
+### Changed
+
+- Rename: `ReactEvents` -> `ReactEventReader`.
+
+
 ## [0.10.3]
 
 ### Fixed

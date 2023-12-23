@@ -11,9 +11,9 @@ use bevy::prelude::*;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
-struct ReactEventSync(u64);
+struct ReactEventReaderync(u64);
 
-impl FromWorld for ReactEventSync
+impl FromWorld for ReactEventReaderync
 {
     fn from_world(world: &mut World) -> Self
     {
@@ -61,15 +61,15 @@ pub(crate) struct ReactEventInner<E: Send + Sync + 'static>
 /// It is only recommended to use this inside systems registered as event reactors with [`ReactCommands`]. The behavior
 /// is likely to be unexpected if used anywhere else.
 #[derive(SystemParam)]
-pub struct ReactEvents<'w, 's, E: Send + Sync + 'static>
+pub struct ReactEventReader<'w, 's, E: Send + Sync + 'static>
 {
     /// Event counter recording the id of the first react event sent after the system with this param was registered.
-    sync: Local<'s, ReactEventSync>,
+    sync: Local<'s, ReactEventReaderync>,
     /// Reads events.
     reader: EventReader<'w, 's, ReactEventInner<E>>,
 }
 
-impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
+impl<'w, 's, E: Send + Sync + 'static> ReactEventReader<'w, 's, E>
 {
     /// Get the next available event.
     ///
@@ -81,7 +81,7 @@ impl<'w, 's, E: Send + Sync + 'static> ReactEvents<'w, 's, E>
 
     /// Iterate over all currently-pending react events.
     ///
-    /// It is recommended to use [`ReactEvents::next()`] instead. Event reactors are invoked once per react event, so
+    /// It is recommended to use [`ReactEventReader::next()`] instead. Event reactors are invoked once per react event, so
     /// `.next()` will always give the event that triggered your system (assuming you only call `.next()` once per
     /// invocation).
     pub fn iter(&mut self) -> impl Iterator<Item = &E> + '_
