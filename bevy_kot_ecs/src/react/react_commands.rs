@@ -269,8 +269,6 @@ impl<'w, 's> ReactCommands<'w, 's>
     ///
     /// Similar to [`Self::on`] except the reaction will run exactly once then get cleaned up.
     ///
-    /// Returns `Err` if the entity does not exist.
-    ///
     /// Example:
     /// ```no_run
     /// // The reactor will run on the first mutation of either MyRes or MyComponent.
@@ -280,7 +278,7 @@ impl<'w, 's> ReactCommands<'w, 's>
         &mut self,
         triggers : impl ReactionTriggerBundle<I>,
         reactor  : impl IntoSystem<I, (), Marker> + Send + Sync + 'static
-    ) -> Result<RevokeToken, ()>
+    ) -> RevokeToken
     where
         I: Send + Sync + 'static
     {
@@ -304,9 +302,9 @@ impl<'w, 's> ReactCommands<'w, 's>
         {
             if let Some(reactor) = once_reactor.take() { (reactor)(world, input); };
         };
-        self.commands.insert_system(entity, once_system)?;
+        self.commands.insert_system(entity, once_system).unwrap();
 
-        Ok(revoke_token)
+        revoke_token
     }
 }
 

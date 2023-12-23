@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.3]
+
+### Fixed
+
+- `ReactCommands::once()` no longer returns `Result`.
+
+
 ## [0.10.2]
 
 ### Added

@@ -166,7 +166,7 @@ fn on_resource_mutation(mut rcommands: ReactCommands) -> RevokeToken
 
 fn on_resource_mutation_once(mut rcommands: ReactCommands) -> RevokeToken
 {
-    rcommands.once(resource_mutation::<TestReactRes>(), update_test_recorder_with_resource).unwrap()
+    rcommands.once(resource_mutation::<TestReactRes>(), update_test_recorder_with_resource)
 }
 
 fn on_event(mut rcommands: ReactCommands) -> RevokeToken
