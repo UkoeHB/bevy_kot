@@ -29,7 +29,7 @@ A collection of bevy tools.
 
 ### Utils
 
-- [`Sender`]/[`Receiver`] unbounded MPMC channel and [`IoSender`]/[`IoReceiver`] unbounded MPMC channel.
+- [`Sender`]/[`Receiver`] and [`IoSender`]/[`IoReceiver`] unbounded MPMC channels.
 
 
 

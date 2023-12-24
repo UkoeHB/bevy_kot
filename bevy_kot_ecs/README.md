@@ -4,9 +4,9 @@
 
 A reactor will run in the first `apply_deferred` after its reaction trigger is detected. If a reactor triggers other reactors, they will run immediately after the initial reactor (until the entire tree of reactions terminates). Recursive reactions are currently not supported.
 
-### Reaction Triggers
+### Registering Reactors
 
-Reactors are registered using 'reaction triggers':
+Reactors are registered with `ReactCommands`. You must specify a 'reaction trigger':
 ```rust
 fn setup(mut rcommands: ReactCommands)
 {
@@ -43,9 +43,9 @@ fn setup(mut rcommands: ReactCommands)
 }
 ```
 
-### Resource Mutation
+### Trigger Type: Resource Mutation
 
-Add a reactive resource:
+Add a reactive resource to your app:
 ```rust
 #[derive(ReactResource)]
 struct Counter(u32);
@@ -62,7 +62,7 @@ fn increment(mut rcommands: ReactCommands, mut counter: ReactResMut<Counter>)
 }
 ```
 
-React to the resource:
+React to the resource mutation:
 ```rust
 fn setup(mut rcommands: ReactCommands)
 {
@@ -75,7 +75,7 @@ fn setup(mut rcommands: ReactCommands)
 }
 ```
 
-### Components
+### Trigger Type: Component Insertion/Mutation/Removal
 
 ```rust
 #[derive(ReactComponent)]
@@ -87,7 +87,7 @@ fn setup(mut rcommands: ReactCommands)
     rcommands.insert(entity, Health(0u16));
 
     rcommands.on(entity_mutation::<Health>(entity)
-        |q: Query<&React<Health>>|
+        move |q: Query<&React<Health>>|
         {
             let health = q.get(entity).unwrap();
             println!("health: {}", health.0);
@@ -104,7 +104,7 @@ fn add_health(mut rcommands: ReactCommands, mut q: Query<&mut React<Health>>)
 }
 ```
 
-Note that entity-agnostic triggers can only be grouped with each other, since they require an `In<Entity>` system parameter:
+Entity-agnostic triggers (`insertion<C>()`, `mutation<C>()`, `removal<C>()`) can only be grouped with each other, since their reactor requires an `In<Entity>` system parameter:
 ```rust
 #[derive(ReactComponent)]
 struct A;
@@ -119,7 +119,7 @@ rcommands.on((insertion::<A>(), removal::<B>()),
 );
 ```
 
-### Events
+### Trigger Type: Events
 
 Register a react event:
 ```rust
@@ -144,14 +144,14 @@ rcommands.on(event::<u32>(),
 );
 ```
 
-### Despawns
+### Trigger Type: Despawns
 
 React to despawns with the [`ReactCommands::on_despawn()`] method:
 ```rust
 rcommands.on_despawn(entity, move || println!("entity despawned: {}", entity));
 ```
 
-### React Once
+### One-off Reactors
 
 If you only want a reactor to run once, use [`ReactCommands::once()`]:
 ```rust
