@@ -104,16 +104,16 @@ pub struct CallId(pub u64);
 
 impl CallId
 {
-    /// make a new caller id
+    /// Makes a new caller id.
     pub fn new(name: &str) -> Self
     {
-        let bytes      = name.as_bytes();
+        let bytes = name.as_bytes();
         let mut hasher = FxHasher32::default();
         hasher.write(bytes);
         CallId(hasher.finish())
     }
 
-    /// make a caller id by extending an existing caller id
+    /// Makes a caller id by extending an existing caller id.
     pub fn with(&self, name: &str) -> CallId
     {
         Self::new(&format!("{}{name}", self.0))
@@ -123,7 +123,7 @@ impl CallId
 //-------------------------------------------------------------------------------------------------------------------
 
 /// Implemented types can be called like normal functions.
-/// - accepts one function argument
+/// - Accepts one function argument.
 pub trait CallableSystem: SystemParam
 {
     /// Parameter type that allows custom data to be passed from caller to the callable system.

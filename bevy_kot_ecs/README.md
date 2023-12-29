@@ -6,7 +6,7 @@ A reactor will run in the first `apply_deferred` after its reaction trigger is d
 
 ### Registering Reactors
 
-Reactors are registered with `ReactCommands`. You must specify a 'reaction trigger':
+Reactors are registered with [`ReactCommands`]. You must specify a 'reaction trigger':
 ```rust
 fn setup(mut rcommands: ReactCommands)
 {
@@ -41,6 +41,15 @@ fn setup(mut rcommands: ReactCommands)
         }
     );
 }
+```
+
+### Revoking Reactors
+
+Reactors can be revoked with [`RevokeToken`]s obtained on registration.
+
+```rust
+let token = rcommands.on(resource_mutation::<A>(), || { todo!(); });
+rcommands.revoke(token);
 ```
 
 ### Trigger Type: Resource Mutation
