@@ -14,3 +14,5 @@ pub use crate::callbacks::*;
 pub use crate::component_utils::*;
 pub use crate::react::*;
 pub use crate::system_callers::*;
+
+pub use bevy_kot_derive::*;
