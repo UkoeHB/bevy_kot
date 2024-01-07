@@ -12,5 +12,5 @@ pub mod prelude
     pub use bevy_kot_utils::*;
 
     #[cfg(feature = "builtin_ui")]
-    pub use bevy_kot_ui::builtin::*;  //todo: default feature?
+    pub use bevy_kot_ui::builtin::*;
 }
