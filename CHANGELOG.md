@@ -5,6 +5,7 @@
 ### Changed
 
 - Rename: `ReactEvents` -> `ReactEventReader`.
+- Rename: `ReactEventReader::iter()` -> `ReactEventReader::read()`.
 
 
 ## [0.10.3]

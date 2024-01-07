@@ -76,15 +76,15 @@ impl<'w, 's, E: Send + Sync + 'static> ReactEventReader<'w, 's, E>
     /// It is recommended to call this exactly once per event reactor invocation.
     pub fn next(&mut self) -> Option<&E>
     {
-        self.iter().next()
+        self.read().next()
     }
 
-    /// Iterate over all currently-pending react events.
+    /// Reads all currently-pending react events.
     ///
     /// It is recommended to use [`ReactEventReader::next()`] instead. Event reactors are invoked once per react event, so
     /// `.next()` will always give the event that triggered your system (assuming you only call `.next()` once per
     /// invocation).
-    pub fn iter(&mut self) -> impl Iterator<Item = &E> + '_
+    pub fn read(&mut self) -> impl Iterator<Item = &E> + '_
     {
         let floor = self.sync.0;
         self.reader
