@@ -62,7 +62,6 @@ bevy_kot_ui     = { path = "./bevy_kot_ui", version = "0.10.3", default-features
 bevy_kot_utils  = { path = "./bevy_kot_utils", version = "0.10.3", default-features = false }
 
 [dependencies]
-bevy_kot_derive = { path = "./bevy_kot_derive", version = "0.10.3", default-features = false }
 bevy_kot_ecs    = { path = "./bevy_kot_ecs", version = "0.10.3", default-features = false }
 bevy_kot_misc   = { path = "./bevy_kot_misc", version = "0.10.3", default-features = false }
 bevy_kot_ui     = { path = "./bevy_kot_ui", version = "0.10.3", default-features = false }
