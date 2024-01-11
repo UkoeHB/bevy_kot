@@ -6,6 +6,7 @@
 
 - Rename: `ReactEvents` -> `ReactEventReader`.
 - Rename: `ReactEventReader::iter()` -> `ReactEventReader::read()`.
+- Adjusted derive crate use so it doesn't need to be explicitly imported.
 
 
 ## [0.10.3]
