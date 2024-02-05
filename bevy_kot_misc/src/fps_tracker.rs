@@ -54,12 +54,11 @@ impl FpsTracker
         let mut new_tracker = 
             FpsTracker{
                     max_records     : max,
-                    delta_record_ns : VecDeque::new(),
+                    delta_record_ns : VecDeque::with_capacity((max + 1) as usize),
                     total_delta_ns  : 0u64,
                     previous_time   : Duration::from_secs(0),
                     current_time    : Duration::from_secs(0)
                 };
-        new_tracker.delta_record_ns.reserve((max + 1) as usize);
         return new_tracker
     }
 
