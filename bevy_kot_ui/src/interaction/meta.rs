@@ -158,8 +158,8 @@ impl RegisterInteractionSourceExt for App
                     interaction_pipeline::<S>,
                 )
                     .chain()
-                    .run_if(resource_exists::<InteractionSourceRunner<S>>())
-                    .run_if(resource_exists::<S>())
+                    .run_if(resource_exists::<InteractionSourceRunner<S>>)
+                    .run_if(resource_exists::<S>)
                     .in_set(InteractionSourceSet)
             )
     }

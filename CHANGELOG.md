@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0]
+
+### Changed
+
+- Update to Bevy v0.13. This crate is being deprecated, so the update is just enough to get it working.
+
+
 ## [0.11.0]
 
 ### Changed

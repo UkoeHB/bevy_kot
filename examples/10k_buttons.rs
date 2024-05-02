@@ -181,7 +181,6 @@ fn main()
         //.add_plugins(UIDebugOverlayPlugin)
         .add_plugins(ReactPlugin)
         .insert_resource(WinitSettings{
-            return_from_run : false,
             focused_mode    : UpdateMode::Continuous,  //continuous so we can see FPS
             unfocused_mode  : UpdateMode::ReactiveLowPower{ wait: std::time::Duration::from_secs(10) },
         })

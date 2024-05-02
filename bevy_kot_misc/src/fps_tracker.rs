@@ -51,7 +51,7 @@ impl FpsTracker
     /// Make new tracker.
     pub fn new(max: u8) -> FpsTracker
     {
-        let mut new_tracker = 
+        let new_tracker = 
             FpsTracker{
                     max_records     : max,
                     delta_record_ns : VecDeque::with_capacity((max + 1) as usize),

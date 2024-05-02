@@ -1,13 +1,40 @@
 //local shortcuts
 
 //third-party shortcuts
-use bevy_macro_utils::get_named_struct_fields;
+//use bevy_macro_utils::get_struct_fields;
 
 //standard shortcuts
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, parse_quote, DeriveInput};
 
+use proc_macro::Span;
+use syn::{Data, DataStruct, Error, Fields, FieldsNamed};
+
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+
+/// Get the fields of a data structure if that structure is a struct with named fields;
+/// otherwise, return a compile error that points to the site of the macro invocation.
+//stolen from bevy_macro_utils for migration to bevy v0.13
+//https://github.com/bevyengine/bevy/commit/eeb0c2f2e4f0cdae262d4c3393c0aaa28deb09ce#diff-5555d250ff0f16b55c69bbfd89e6ba879ded9734ad32adf4a7135457b652e38c
+fn get_named_struct_fields(data: &syn::Data) -> syn::Result<&FieldsNamed> {
+    match data {
+        Data::Struct(DataStruct {
+            fields: Fields::Named(fields),
+            ..
+        }) => Ok(fields),
+        _ => Err(Error::new(
+            // This deliberately points to the call site rather than the structure
+            // body; marking the entire body as the source of the error makes it
+            // impossible to figure out which `derive` has a problem.
+            Span::call_site().into(),
+            "Only structs with named fields are supported",
+        )),
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 
 pub(crate) fn derive_style_impl(input: TokenStream) -> TokenStream
