@@ -94,11 +94,11 @@ fn spawn_button(ui: &mut UiBuilder<MainUi>, area: &Widget, x: f32, y: f32)
 
     // default button image tied to button
     let default_widget = make_overlay(ui.tree(), &button, "", true);
-    add_button_rect(ui, &default_widget, Color::GRAY);
+    add_button_rect(ui, &default_widget, bevy::color::palettes::css::GRAY.into());
 
     // pressed button image tied to button
     let pressed_widget = make_overlay(ui.tree(), &button, "", false);
-    add_button_rect(ui, &pressed_widget, Color::DARK_GRAY);
+    add_button_rect(ui, &pressed_widget, bevy::color::palettes::css::DARK_GRAY.into());
 
     // button interactivity
     InteractiveElementBuilder::new()
@@ -182,7 +182,7 @@ fn main()
         .add_plugins(ReactPlugin)
         .insert_resource(WinitSettings{
             focused_mode    : UpdateMode::Continuous,  //continuous so we can see FPS
-            unfocused_mode  : UpdateMode::ReactiveLowPower{ wait: std::time::Duration::from_secs(10) },
+            unfocused_mode  : UpdateMode::reactive_low_power(std::time::Duration::from_secs(10)),
         })
         .register_interaction_source(MouseLButtonMain::default())
         .add_systems(PreStartup, setup)

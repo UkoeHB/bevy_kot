@@ -39,11 +39,11 @@ fn build_ui(mut ui: UiBuilder<MainUi>)
 
     // default button image tied to button
     let default_widget = make_overlay(ui.tree(), &button, "default", true);
-    add_button_rect(&mut ui, &default_widget, Color::GRAY);
+    add_button_rect(&mut ui, &default_widget, bevy::color::palettes::css::GRAY.into());
 
     // pressed button image tied to button
     let pressed_widget = make_overlay(ui.tree(), &button, "pressed", false);
-    add_button_rect(&mut ui, &pressed_widget, Color::DARK_GRAY);
+    add_button_rect(&mut ui, &pressed_widget, bevy::color::palettes::css::DARK_GRAY.into());
 
     // get text style
     let text_style = TextStyle{

@@ -1,6 +1,6 @@
 [workspace.package]
 authors = ["koe <ukoe@protonmail.com>"]
-version = "0.12.0"
+version = "0.13.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/UkoeHB/bevy_kot"
@@ -47,32 +47,32 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [workspace.dependencies]
-bevy             = { version = "0.13", default-features = false }
+bevy             = { version = "0.14", default-features = false }
 bevy_fn_plugin   = { version = "0.1" }
 #bevy_lunex       = { version = "0.0.9" }
 #bevy_lunex_core  = { version = "0.0.9" }
 
-bevy_lunex = { git = "https://github.com/UkoeHB/bevy-lunex", rev = "2749231" }
-bevy_lunex_core = { git = "https://github.com/UkoeHB/bevy-lunex", rev = "2749231" }
+bevy_lunex = { git = "https://github.com/UkoeHB/bevy-lunex", rev = "86716b8" }
+bevy_lunex_core = { git = "https://github.com/UkoeHB/bevy-lunex", rev = "86716b8" }
 crossbeam        = { version = "0.8"}
 fxhash           = { version = "0.2" }
 tracing          = { version = "0.1" }
 
-bevy_kot_derive = { path = "./bevy_kot_derive", version = "0.12.0", default-features = false }
-bevy_kot_ecs    = { path = "./bevy_kot_ecs", version = "0.12.0", default-features = false }
-bevy_kot_misc   = { path = "./bevy_kot_misc", version = "0.12.0", default-features = false }
-bevy_kot_ui     = { path = "./bevy_kot_ui", version = "0.12.0", default-features = false }
-bevy_kot_utils  = { path = "./bevy_kot_utils", version = "0.12.0", default-features = false }
+bevy_kot_derive = { path = "./bevy_kot_derive", version = "0.13.0", default-features = false }
+bevy_kot_ecs    = { path = "./bevy_kot_ecs", version = "0.13.0", default-features = false }
+bevy_kot_misc   = { path = "./bevy_kot_misc", version = "0.13.0", default-features = false }
+bevy_kot_ui     = { path = "./bevy_kot_ui", version = "0.13.0", default-features = false }
+bevy_kot_utils  = { path = "./bevy_kot_utils", version = "0.13.0", default-features = false }
 
 [dependencies]
-bevy_kot_ecs    = { path = "./bevy_kot_ecs", version = "0.12.0", default-features = false }
-bevy_kot_misc   = { path = "./bevy_kot_misc", version = "0.12.0", default-features = false }
-bevy_kot_ui     = { path = "./bevy_kot_ui", version = "0.12.0", default-features = false }
-bevy_kot_utils  = { path = "./bevy_kot_utils", version = "0.12.0", default-features = false }
+bevy_kot_ecs    = { path = "./bevy_kot_ecs", version = "0.13.0", default-features = false }
+bevy_kot_misc   = { path = "./bevy_kot_misc", version = "0.13.0", default-features = false }
+bevy_kot_ui     = { path = "./bevy_kot_ui", version = "0.13.0", default-features = false }
+bevy_kot_utils  = { path = "./bevy_kot_utils", version = "0.13.0", default-features = false }
 
 [dev-dependencies]
-bevy               = { version = "0.13", default-features = true, features = [ "dynamic_linking" ] }
+bevy               = { version = "0.14", default-features = true, features = [ "dynamic_linking" ] }
 tracing            = { version = "0.1" }
 tracing-subscriber = { version = "0.3" }
-bevy_lunex = { git = "https://github.com/UkoeHB/bevy-lunex", rev = "2749231" }
-bevy_lunex_core = { git = "https://github.com/UkoeHB/bevy-lunex", rev = "2749231" }
+bevy_lunex = { git = "https://github.com/UkoeHB/bevy-lunex", rev = "86716b8" }
+bevy_lunex_core = { git = "https://github.com/UkoeHB/bevy-lunex", rev = "86716b8" }

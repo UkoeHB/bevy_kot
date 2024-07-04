@@ -72,12 +72,12 @@ fn build_ui(mut ui: UiBuilder<MainUi>)
         let (widget_a, widget_b) = section(ui, area);
 
         ui.div(move |ui| {
-            ui.add_style(StyleA{ color: Color::BLUE });
+            ui.add_style(StyleA{ color: bevy::color::palettes::css::BLUE.into() });
             section(ui, &widget_a);
         });
         ui.div(move |ui| {
-            ui.add_style(StyleA{ color: Color::ORANGE });
-            ui.edit_style::<StyleB>(|style| { style.color = Color::GREEN; }).unwrap();
+            ui.add_style(StyleA{ color: bevy::color::palettes::css::ORANGE.into() });
+            ui.edit_style::<StyleB>(|style| { style.color = bevy::color::palettes::css::GREEN.into(); }).unwrap();
             section(ui, &widget_b);
         });
     });

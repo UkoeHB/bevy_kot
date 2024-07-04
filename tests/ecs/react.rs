@@ -269,7 +269,7 @@ fn react_entity_insertion()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -301,7 +301,7 @@ fn react_component_insertion()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -337,7 +337,7 @@ fn react_entity_muation()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -377,7 +377,7 @@ fn react_component_mutation()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -413,7 +413,7 @@ fn react_entity_removal()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -458,7 +458,7 @@ fn react_component_removal()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -507,7 +507,7 @@ fn react_entity_despawn()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -552,7 +552,7 @@ fn react_entity_despawn_multiple_reactors()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -602,7 +602,7 @@ fn react_resource_mutation()
     app.add_plugins(ReactPlugin)
         .insert_react_resource(TestReactRes::default())
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // add reactor
     syscall(&mut world, (), on_resource_mutation);
@@ -627,7 +627,7 @@ fn react_resource_mutation_once()
     app.add_plugins(ReactPlugin)
         .insert_react_resource(TestReactRes::default())
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // add reactor
     syscall(&mut world, (), on_resource_mutation_once);
@@ -660,7 +660,7 @@ fn react_event()
     app.add_plugins(ReactPlugin)
         .add_react_event::<IntEvent>()
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // add reactor
     syscall(&mut world, (), on_event);
@@ -685,7 +685,7 @@ fn react_event_out_of_order()
     app.add_plugins(ReactPlugin)
         .add_react_event::<IntEvent>()
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // send event (no reaction)
     syscall(&mut world, 222, send_event);
@@ -718,7 +718,7 @@ fn react_recursive_events()
     app.add_plugins(ReactPlugin)
         .add_react_event::<IntEvent>()
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // add recursive reactor (no reaction)
     syscall(&mut world, (), on_event_recursive);
@@ -740,7 +740,7 @@ fn react_mutation_chain()
     app.add_plugins(ReactPlugin)
         .insert_react_resource(TestReactRes::default())
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity_a = world.spawn_empty().id();
@@ -779,7 +779,7 @@ fn react_multiple_reactors()
         .add_react_event::<IntEvent>()
         .insert_react_resource(TestReactRes::default())
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // add reactor
     syscall(&mut world, (), on_event_or_resource);
@@ -802,7 +802,7 @@ fn reactor_panic_without_plugin()
 {
     // setup
     let mut app = App::new();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entity
     let test_entity = world.spawn_empty().id();
@@ -820,7 +820,7 @@ fn revoke_entity_mutation_reactor()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity = world.spawn_empty().id();
@@ -854,7 +854,7 @@ fn revoke_component_mutation_reactor()
     let mut app = App::new();
     app.add_plugins(ReactPlugin)
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // entities
     let test_entity = world.spawn_empty().id();
@@ -889,7 +889,7 @@ fn revoke_event_reactor()
     app.add_plugins(ReactPlugin)
         .add_react_event::<IntEvent>()
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // add reactor
     let revoke_token = syscall(&mut world, (), on_event);
@@ -918,7 +918,7 @@ fn revoke_multiple_reactors()
         .add_react_event::<IntEvent>()
         .insert_react_resource(TestReactRes::default())
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // add reactor
     let revoke_token = syscall(&mut world, (), on_event_or_resource);
@@ -950,7 +950,7 @@ fn revoke_once_reactor()
     app.add_plugins(ReactPlugin)
         .insert_react_resource(TestReactRes::default())
         .init_resource::<TestReactRecorder>();
-    let mut world = &mut app.world;
+    let mut world = app.world_mut();
 
     // add reactor
     let revoke_token = syscall(&mut world, (), on_resource_mutation_once);

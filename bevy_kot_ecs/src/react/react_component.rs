@@ -2,7 +2,7 @@
 use crate::*;
 
 //third-party shortcuts
-use bevy::ecs::system::CommandQueue;
+use bevy::ecs::world::CommandQueue;
 use bevy::prelude::*;
 
 //standard shortcuts

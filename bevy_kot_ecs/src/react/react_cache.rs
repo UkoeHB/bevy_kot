@@ -3,7 +3,7 @@ use crate::*;
 use bevy_kot_utils::*;
 
 //third-party shortcuts
-use bevy::ecs::system::CommandQueue;
+use bevy::ecs::world::CommandQueue;
 use bevy::prelude::*;
 use bevy::utils::{HashMap, HashSet};
 
